@@ -631,8 +631,16 @@ function loginWithGoogle() {
     client_id: GOOGLE_CLIENT_ID,
     callback: handleCredential,
     ux_mode: 'popup',
+    use_fedcm_for_prompt: false,
   });
-  google.accounts.id.prompt();
+  google.accounts.oauth2 && google.accounts.oauth2.initCodeClient && console.log('oauth2 ready');
+  // Dùng renderButton thay vì prompt để tránh FedCM issues
+  const btn = document.getElementById('g-signin-btn');
+  if (btn) {
+    google.accounts.id.renderButton(btn, { theme: 'outline', size: 'large', width: 300 });
+  } else {
+    google.accounts.id.prompt();
+  }
 }
 
 async function handleCredential(response) {
