@@ -6,7 +6,7 @@
 <title>Trung Tâm Tiếng Đức</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="https://accounts.google.com/gsi/client"></script>
 <style>
 /* ── Reset & Base ── */
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
@@ -627,20 +627,19 @@ let phChildren  = [];
 //  GOOGLE AUTH
 // ══════════════════════════════════════════
 function loginWithGoogle() {
+  // called by renderButton click — handled via callback
+}
+
+function initGoogleSignIn() {
   google.accounts.id.initialize({
     client_id: GOOGLE_CLIENT_ID,
     callback: handleCredential,
-    ux_mode: 'popup',
     use_fedcm_for_prompt: false,
   });
-  google.accounts.oauth2 && google.accounts.oauth2.initCodeClient && console.log('oauth2 ready');
-  // Dùng renderButton thay vì prompt để tránh FedCM issues
-  const btn = document.getElementById('g-signin-btn');
-  if (btn) {
-    google.accounts.id.renderButton(btn, { theme: 'outline', size: 'large', width: 300 });
-  } else {
-    google.accounts.id.prompt();
-  }
+  google.accounts.id.renderButton(
+    document.getElementById('g-signin-btn'),
+    { theme: 'outline', size: 'large', text: 'signin_with', locale: 'vi', width: 300 }
+  );
 }
 
 async function handleCredential(response) {
@@ -1213,6 +1212,7 @@ function toast(msg, type='info') {
   document.getElementById('toast').appendChild(t);
   setTimeout(() => t.remove(), 3500);
 }
+window.addEventListener('load', initGoogleSignIn);
 </script>
 </body>
 </html>
