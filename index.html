@@ -707,8 +707,9 @@ function showPage(id) {
 // ══════════════════════════════════════════
 async function api(params) {
   const email = currentUser?.email || '';
-  const body  = JSON.stringify({ ...params, email });
-  const res   = await fetch(API_URL, { method: 'POST', body, headers: { 'Content-Type': 'application/json' } });
+  const p = { ...params, email };
+  const qs = Object.entries(p).map(([k,v]) => `${encodeURIComponent(k)}=${encodeURIComponent(typeof v==='object'?JSON.stringify(v):v)}`).join('&');
+  const res = await fetch(API_URL + '?' + qs);
   return res.json();
 }
 
