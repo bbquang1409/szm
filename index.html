@@ -5,7 +5,6 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>SZM — Sprachzentrum Manager</title>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<script src="https://accounts.google.com/gsi/client" async></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{
@@ -390,6 +389,7 @@ tr:hover td{background:var(--b50)}
 </div>
 
 <div id="toast"></div>
+<script src="https://accounts.google.com/gsi/client" onload="gsiReady()" async></script>
 
 <script>
 // ══════════════════════════════════════
@@ -847,10 +847,11 @@ function toast(msg, type='') {
 // ══════════════════════════════════════
 //  BOOT
 // ══════════════════════════════════════
-window.onload = function() {
+function gsiReady() {
   google.accounts.id.initialize({ client_id: GCI, callback: onCredential, use_fedcm_for_prompt: false });
   document.getElementById('login-btn').onclick = () => google.accounts.id.prompt();
-};
+}
+
 </script>
 </body>
 </html>
