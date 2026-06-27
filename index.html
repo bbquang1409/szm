@@ -406,21 +406,7 @@ let USER = null, LOPS = [], HVS = [], KBS = {}, PH_KIDS = [], BD_DATA = [], BD_H
 // ══════════════════════════════════════
 //  GOOGLE AUTH — load GSI dynamically
 // ══════════════════════════════════════
-function loadGSI() {
-  // Chờ google object sẵn sàng (tối đa 10 giây)
-  let tries = 0;
-  const check = setInterval(() => {
-    tries++;
-    if (typeof google !== 'undefined' && google.accounts) {
-      clearInterval(check);
-      google.accounts.id.initialize({ client_id: GCI, callback: onCredential, use_fedcm_for_prompt: false });
-      document.getElementById('login-btn').onclick = () => google.accounts.id.prompt();
-    } else if (tries > 100) {
-      clearInterval(check);
-      showLoginError('Không load được Google SDK. Kiểm tra kết nối mạng.');
-    }
-  }, 100);
-}
+
 
 async function onCredential(resp) {
   const pl = parseJWT(resp.credential);
@@ -861,7 +847,10 @@ function toast(msg, type='') {
 // ══════════════════════════════════════
 //  BOOT
 // ══════════════════════════════════════
-loadGSI();
+window.onload = function() {
+  google.accounts.id.initialize({ client_id: GCI, callback: onCredential, use_fedcm_for_prompt: false });
+  document.getElementById('login-btn').onclick = () => google.accounts.id.prompt();
+};
 </script>
 </body>
 </html>
