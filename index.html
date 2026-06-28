@@ -473,7 +473,8 @@ async function startApp() {
 //  API
 // ══════════════════════════════════════
 async function call(params) {
-  const p = { ...params, email: USER?.email || '' };
+  // Dung email tu params neu co, khong thi lay tu USER
+  const p = { email: USER?.email || '', ...params };
   const qs = Object.entries(p).map(([k,v]) =>
     encodeURIComponent(k)+'='+encodeURIComponent(typeof v==='object'?JSON.stringify(v):String(v))
   ).join('&');
