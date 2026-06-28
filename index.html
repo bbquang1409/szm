@@ -406,34 +406,46 @@ const GCI  = '39863848508-e8iffhhvlv2h7l06395vunsp2i3ksnh8.apps.googleuserconten
 let USER = null, LOPS = [], HVS = [], KBS = {}, PH_KIDS = [], BD_DATA = [], BD_HVS = [];
 
 // ══════════════════════════════════════
-//  GOOGLE AUTH — GSI Button
+//  GOOGLE AUTH — oauth2.initTokenClient
+//  (cách này hoạt động tốt trên GitHub Pages)
 // ══════════════════════════════════════
-async function onCredential(resp) {
-  const pl = parseJWT(resp.credential);
+function startGoogleLogin() {
+  google.accounts.oauth2.initTokenClient({
+    client_id: GCI,
+    scope: 'profile email',
+    callback: onToken,
+  }).requestAccessToken();
+}
+
+async function onToken(tokenResp) {
   try {
-    const r = await call({ action:"whoami", email: pl.email });
-    if (!r.ok) { showLoginError(r.error || "Email không được phép truy cập"); return; }
-    USER = { email: pl.email, role: r.data.role, hoTen: r.data.hoTen || pl.name };
+    const res  = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+      headers: { Authorization: 'Bearer ' + tokenResp.access_token }
+    });
+    const info = await res.json();
+    if (!info.email) { showLoginError('Không lấy được email từ Google'); return; }
+    const r = await call({ action: 'whoami', email: info.email });
+    if (!r.ok) { showLoginError(r.error || 'Email không được phép truy cập'); return; }
+    USER = { email: info.email, role: r.data.role, hoTen: r.data.hoTen || info.name };
     startApp();
-  } catch(e) { showLoginError("Lỗi kết nối server: " + e.message); }
+  } catch(e) { showLoginError('Lỗi kết nối: ' + e.message); }
 }
 
 function showLoginError(msg) {
-  const el = document.getElementById("login-error");
-  el.textContent = msg; el.style.display = "block";
+  const el = document.getElementById('login-error');
+  el.textContent = msg; el.style.display = 'block';
 }
 
 function parseJWT(t) {
-  return JSON.parse(atob(t.split(".")[1].replace(/-/g,"+").replace(/_/g,"/")));
+  return JSON.parse(atob(t.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));
 }
 
 function logout() {
   USER = null;
-  document.getElementById("app").style.display = "none";
-  document.getElementById("login-screen").style.display = "flex";
-  document.getElementById("login-error").style.display = "none";
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('login-error').style.display = 'none';
 }
-
 
 // ══════════════════════════════════════
 //  APP INIT
@@ -846,28 +858,13 @@ function toast(msg, type='') {
 }
 
 // ══════════════════════════════════════
+// ══════════════════════════════════════
 //  BOOT
 // ══════════════════════════════════════
-// ══════════════════════
-//  BOOT
-// ══════════════════════
-function initGSI() {
-  if (!window.google) { setTimeout(initGSI, 100); return; }
-  google.accounts.id.initialize({
-    client_id: GCI,
-    callback: onCredential,
-    use_fedcm_for_prompt: true,
-  });
-  const btn = document.getElementById('login-btn');
-  btn.style.display = 'none';
-  const wrap = document.createElement('div');
-  wrap.style.cssText = 'display:flex;justify-content:center';
-  btn.parentNode.insertBefore(wrap, btn);
-  google.accounts.id.renderButton(wrap, {
-    theme: 'outline', size: 'large', width: 280, locale: 'vi',
-  });
-}
-initGSI();
+window.addEventListener('load', () => {
+  document.getElementById('login-btn').addEventListener('click', startGoogleLogin);
+});
+
 
 </script>
 </body>
