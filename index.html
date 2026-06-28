@@ -852,27 +852,7 @@ function gsiReady() {
   if (GSI_INIT) return;
   GSI_INIT = true;
   google.accounts.id.initialize({ client_id: GCI, callback: onCredential, use_fedcm_for_prompt: false });
-
-  const btn = document.getElementById('login-btn');
-
-  // Render nút Google chính thức vào một div ẩn
-  const gDiv = document.createElement('div');
-  gDiv.id = 'g-btn-hidden';
-  gDiv.style.cssText = 'position:absolute;opacity:0;pointer-events:none;width:1px;height:1px;overflow:hidden';
-  document.body.appendChild(gDiv);
-  google.accounts.id.renderButton(gDiv, { theme: 'outline', size: 'large' });
-
-  // Click nút custom → trigger nút Google thật
-  btn.onclick = () => {
-    google.accounts.id.prompt(n => {
-      if (n.isNotDisplayed() || n.isSkippedMoment()) {
-        // Fallback: click vào Google button thật
-        const realBtn = gDiv.querySelector('div[role=button]');
-        if (realBtn) realBtn.click();
-        else showLoginError('Vui lòng cho phép popup hoặc thử trình duyệt khác.');
-      }
-    });
-  };
+  document.getElementById('login-btn').onclick = () => google.accounts.id.prompt();
 }
 
 </script>
