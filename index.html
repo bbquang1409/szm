@@ -851,8 +851,33 @@ let GSI_INIT = false;
 function gsiReady() {
   if (GSI_INIT) return;
   GSI_INIT = true;
-  google.accounts.id.initialize({ client_id: GCI, callback: onCredential, use_fedcm_for_prompt: false });
-  document.getElementById('login-btn').onclick = () => google.accounts.id.prompt();
+
+  // Ẩn nút custom, thay bằng Google button chính thức
+  const btn = document.getElementById('login-btn');
+  btn.style.display = 'none';
+
+  // Tạo wrapper render Google button
+  const wrap = document.createElement('div');
+  wrap.id = 'g-signin-wrap';
+  wrap.style.cssText = 'display:flex;justify-content:center;margin-bottom:0';
+  btn.parentNode.insertBefore(wrap, btn);
+
+  google.accounts.id.initialize({
+    client_id: GCI,
+    callback: onCredential,
+    use_fedcm_for_prompt: true,
+    auto_select: false,
+  });
+
+  google.accounts.id.renderButton(wrap, {
+    theme: 'outline',
+    size: 'large',
+    text: 'signin_with',
+    shape: 'rectangular',
+    logo_alignment: 'left',
+    width: 300,
+    locale: 'vi',
+  });
 }
 
 </script>
