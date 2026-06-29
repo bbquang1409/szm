@@ -933,8 +933,9 @@ function openModalTK(email,hoTen,role){
       <strong>Phụ huynh</strong>: xem học viên mình quản lý
     </div>
   `,async()=>{
-    const body={email:(document.getElementById('f-email').value||email||'').trim().toLowerCase(),hoTen:document.getElementById('f-hoTen').value.trim(),role:document.getElementById('f-role').value};
-    if(!body.email||!body.hoTen){toast('Nhập đầy đủ','error');return;}
+    const inputEmail=(document.getElementById('f-email').value||email||'').trim().toLowerCase();
+    const body={newEmail:inputEmail,targetEmail:inputEmail,hoTen:document.getElementById('f-hoTen').value.trim(),role:document.getElementById('f-role').value};
+    if(!inputEmail||!body.hoTen){toast('Nhập đầy đủ','error');return;}
     const r=await call({action:isEdit?'updateTaiKhoan':'addTaiKhoan',...body});
     if(!r.ok){toast(r.error||'Lỗi','error');return;}
     closeModal();toast(isEdit?'Đã cập nhật':'Đã thêm','success');renderTaiKhoan();
@@ -942,7 +943,7 @@ function openModalTK(email,hoTen,role){
 }
 async function deleteTK(email){
   if(!confirm('Xóa tài khoản '+email+'?')) return;
-  await call({action:'deleteTaiKhoan',email});
+  await call({action:'deleteTaiKhoan',targetEmail:email});
   toast('Đã xóa','success');renderTaiKhoan();
 }
 
