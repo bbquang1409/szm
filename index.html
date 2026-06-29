@@ -289,8 +289,8 @@ tr:hover td{background:#f8fafd}
 const GCI = '39863848508-e8iffhhvlv2h7l06395vunsp2i3ksnh8.apps.googleusercontent.com';
 const API = 'https://script.google.com/macros/s/AKfycbw7w_WgTjrskEXN6ubY1wLEFAoJjvOBuobmkymTaEd2kAYq4Nf7mEJt-g2KevZvVcI9/exec';
 
-const CAP_DO_COLORS = {'A1':'#e8f0fb','A2':'#e1f5ee','B1.1':'#faeeda','B1.2':'#fef0ee','B2':'#f0ebff'};
-const CAP_DO_TEXT   = {'A1':'#1a50a0','A2':'#0f6e56','B1.1':'#7d4e0a','B1.2':'#993c1d','B2':'#5a30b5'};
+const CAP_DO_COLORS = {'A1':'#e8f0fb','A2':'#e1f5ee','B1':'#faeeda','B2':'#fef0ee','LTB1':'#f0ebff','LTB2':'#e8f5e1'};
+const CAP_DO_TEXT   = {'A1':'#1a50a0','A2':'#0f6e56','B1':'#7d4e0a','B2':'#993c1d','LTB1':'#5a30b5','LTB2':'#1a6e3c'};
 const LOP_COLORS    = ['#378add','#1d9e75','#ba7517','#d4537e','#7f77dd','#0f6e56'];
 const LOAI_DIEM     = {bai_tap:'Bài tập',giua_ky:'Giữa kỳ',cuoi_ky:'Cuối kỳ'};
 const TRANG_THAI_DD = {co_mat:'Có mặt',vang_phep:'Nghỉ có phép',vang_khong_phep:'Nghỉ không phép',di_tre:"Đi trễ >15'"};
@@ -535,7 +535,7 @@ async function openModalLop(lopId){
       <div class="form-row"><label>Tên lớp *</label><input id="f-tenLop" value="${l?.tenLop||''}"></div>
       <div class="form-row"><label>Cấp độ</label>
         <select id="f-capDo">
-          ${['A1','A2','B1.1','B1.2','B2'].map(c=>`<option value="${c}" ${l?.capDo===c?'selected':''}>${c}</option>`).join('')}
+          ${['A1','A2','B1','B2','LTB1','LTB2'].map(c=>`<option value="${c}" ${l?.capDo===c?'selected':''}>${c}</option>`).join('')}
         </select>
       </div>
       <div class="form-row"><label>Ngày bắt đầu</label><input type="date" id="f-ngayBD" value="${l?.ngayBatDau||''}"></div>
