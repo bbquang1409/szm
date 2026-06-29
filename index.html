@@ -797,61 +797,170 @@ async function saveDD(){
 // ── BANG DIEM ──
 async function renderBangDiem(){
   setContent('<div class="empty">Đang tải...</div>');
-  let bdList=[],hvList=[];
+  const canEdit=['admin','giaovien'].includes(USER.role);
+
+  // Phụ huynh: xem điểm con mình dạng read-only
   if(USER.role==='phuhuynh'){
     const myR=await call({action:'getMyStudents'});
-    hvList=myR.ok?myR.data:[];
+    const hvList=myR.ok?myR.data:[];
     const res=await Promise.all(hvList.map(hv=>call({action:'getBangDiemByStudent',studentId:hv.studentId})));
-    res.forEach(r=>{if(r.ok)bdList=bdList.concat(r.data);});
-  }else{
-    const[hvR,bdR]=await Promise.all([call({action:'getHocVienByLop',lop:CURRENT_LOP}),call({action:'getBangDiemByLop',lop:CURRENT_LOP})]);
-    hvList=hvR.ok?hvR.data:[];bdList=bdR.ok?bdR.data:[];
+    let bdList=[];res.forEach(r=>{if(r.ok)bdList=bdList.concat(r.data);});
+    const hvMap={};hvList.forEach(hv=>hvMap[hv.studentId]=hv);
+    setContent(`<div class="table-wrap"><div class="table-toolbar"><span style="font-weight:600">Bảng điểm của con</span></div>
+      <table><thead><tr><th>Học viên</th><th>Loại</th><th>Tên bài</th><th>Điểm</th><th>Ngày</th><th>Nhận xét</th></tr></thead>
+      <tbody>${bdList.length===0?'<tr><td colspan="6" style="text-align:center;padding:32px;color:#8a96a8">Chưa có dữ liệu</td></tr>':
+        bdList.map(bd=>`<tr>
+          <td><div style="font-weight:500">${hvMap[bd.studentId]?.hoTen||'—'}</div></td>
+          <td><span class="badge ${loaiClass(bd.loai)}">${LOAI_DIEM[bd.loai]||bd.loai}</span></td>
+          <td>${bd.tenBai||'—'}</td>
+          <td><span style="font-size:15px;font-weight:600;color:${parseFloat(bd.diem)>=5?'#0f6e56':'#e24b4a'}">${bd.diem}</span></td>
+          <td style="font-size:12px;color:#8a96a8">${fmtDate(bd.ngay)}</td>
+          <td style="font-size:12px">${bd.nhanXet||'—'}</td>
+        </tr>`).join('')}
+      </tbody></table></div>`);
+    return;
   }
-  const hvMap={};hvList.forEach(hv=>hvMap[hv.studentId]=hv);
-  const canEdit=['admin','giaovien'].includes(USER.role);
-  document.getElementById('btn-add').onclick=()=>openModalBD(null,hvList);
+
+  if(!CURRENT_LOP){setContent('<div class="empty"><p>Chọn một lớp để nhập điểm</p></div>');return;}
+
+  const[hvR,bdR]=await Promise.all([
+    call({action:'getHocVienByLop',lop:CURRENT_LOP}),
+    call({action:'getBangDiemByLop',lop:CURRENT_LOP})
+  ]);
+  const hvList=(hvR.ok?hvR.data:[]).filter(hv=>hv.trangThai==='danghoc'||!hv.trangThai);
+  const bdList=bdR.ok?bdR.data:[];
+
+  // Tạo map: studentId → {loai → [records]}
+  const bdMap={};
+  bdList.forEach(bd=>{
+    if(!bdMap[bd.studentId]) bdMap[bd.studentId]={};
+    if(!bdMap[bd.studentId][bd.loai]) bdMap[bd.studentId][bd.loai]=[];
+    bdMap[bd.studentId][bd.loai].push(bd);
+  });
+
+  // Lấy tất cả tên bài unique theo từng loại
+  const tenBaiMap={bai_tap:new Set(),giua_ky:new Set(),cuoi_ky:new Set()};
+  bdList.forEach(bd=>{if(bd.tenBai&&tenBaiMap[bd.loai])tenBaiMap[bd.loai].add(bd.tenBai);});
+
+  document.getElementById('btn-add').style.display='none';
+
   setContent(`
-    <div class="table-wrap">
-      <div class="table-toolbar"><span style="font-size:13px;font-weight:600">${CURRENT_LOP||'Tất cả'} — ${bdList.length} bản ghi</span></div>
+    <!-- Toolbar nhập hàng loạt -->
+    <div class="table-wrap" style="margin-bottom:14px;padding:14px 16px">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+        <span style="font-size:13px;font-weight:600;color:#0d2d5e">${CURRENT_LOP} — Nhập điểm hàng loạt</span>
+        <select id="bd-loai" style="width:140px" onchange="renderBDGrid()">
+          <option value="bai_tap">Bài tập</option>
+          <option value="giua_ky">Giữa kỳ</option>
+          <option value="cuoi_ky">Cuối kỳ</option>
+        </select>
+        <input id="bd-tenBai" placeholder="Tên bài / Kỳ thi..." style="width:180px">
+        <input type="date" id="bd-ngay" value="${todayStr()}" style="width:140px">
+        ${canEdit?`<button class="btn btn-primary" onclick="saveBDGrid()">💾 Lưu tất cả</button>`:''}
+      </div>
+    </div>
+
+    <!-- Bảng nhập điểm -->
+    <div class="table-wrap" id="bd-grid-wrap">
+      <div style="overflow-x:auto">
+      <table id="bd-grid">
+        <thead><tr>
+          <th style="min-width:160px">Học viên</th>
+          <th style="min-width:80px;text-align:center">Điểm</th>
+          <th style="min-width:160px">Nhận xét</th>
+          <th>Điểm cũ</th>
+        </tr></thead>
+        <tbody>
+          ${hvList.map(hv=>{
+            const records=bdMap[hv.studentId]?.['bai_tap']||[];
+            const last=records[records.length-1];
+            return `<tr data-sid="${hv.studentId}">
+              <td><div style="font-weight:500">${hv.hoTen}</div></td>
+              <td style="text-align:center">
+                <input type="number" class="bd-diem" data-sid="${hv.studentId}"
+                  min="0" max="10" step="0.1" placeholder="—"
+                  style="width:70px;text-align:center;font-size:15px;font-weight:600"
+                  oninput="highlightRow(this)">
+              </td>
+              <td><input class="bd-nhanxet" data-sid="${hv.studentId}" placeholder="Nhận xét..." style="width:100%;font-size:12px"></td>
+              <td style="font-size:12px;color:#8a96a8">
+                ${records.length>0?records.map(r=>`<span class="badge ${loaiClass(r.loai)}" style="margin-right:3px">${r.diem}</span>`).join(''):'—'}
+              </td>
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+      </div>
+    </div>
+
+    <!-- Lịch sử điểm -->
+    <div class="table-wrap" style="margin-top:14px">
+      <div class="table-toolbar">
+        <span style="font-size:13px;font-weight:600;color:#0d2d5e">Lịch sử điểm — ${CURRENT_LOP}</span>
+      </div>
       <div style="overflow-x:auto">
       <table>
-        <thead><tr><th>Học viên</th><th>Loại</th><th>Tên bài</th><th>Điểm</th><th>Ngày</th><th>Nhận xét</th>${canEdit?'<th>Thao tác</th>':''}</tr></thead>
+        <thead><tr><th>Học viên</th><th>Loại</th><th>Tên bài</th><th>Điểm</th><th>Ngày</th><th>Nhận xét</th>${canEdit?'<th>Xóa</th>':''}</tr></thead>
         <tbody>
-          ${bdList.length===0?`<tr><td colspan="7" style="text-align:center;padding:32px;color:#8a96a8">Chưa có dữ liệu</td></tr>`:bdList.map(bd=>{const hv=hvMap[bd.studentId];return `<tr>
-            <td><div style="font-weight:500">${hv?.hoTen||bd.studentId}</div><div style="font-size:11px;color:#8a96a8">${hv?.lop||''}</div></td>
-            <td><span class="badge ${loaiClass(bd.loai)}">${LOAI_DIEM[bd.loai]||bd.loai}</span></td>
-            <td>${bd.tenBai||'—'}</td>
-            <td><span style="font-size:15px;font-weight:600;color:${parseFloat(bd.diem)>=5?'#0f6e56':'#e24b4a'}">${bd.diem}</span></td>
-            <td style="font-size:12px;color:#8a96a8">${fmtDate(bd.ngay)}</td>
-            <td style="font-size:12px">${bd.nhanXet||'—'}</td>
-            ${canEdit?`<td><div class="td-actions"><button class="btn btn-sm" onclick="openModalBD('${bd.recordId}',null,'${bd.studentId}','${bd.loai}','${bd.diem}','${bd.tenBai}','${bd.nhanXet}','${bd.ngay}')">Sửa</button><button class="btn btn-danger btn-sm" onclick="deleteBD('${bd.recordId}')">Xóa</button></div></td>`:''}
-          </tr>`;}).join('')}
+          ${bdList.length===0
+            ?'<tr><td colspan="7" style="text-align:center;padding:24px;color:#8a96a8">Chưa có dữ liệu</td></tr>'
+            :bdList.sort((a,b)=>b.ngay.localeCompare(a.ngay)).map(bd=>{
+              const hv=hvList.find(h=>h.studentId===bd.studentId);
+              return `<tr>
+                <td><div style="font-weight:500">${hv?.hoTen||bd.studentId}</div></td>
+                <td><span class="badge ${loaiClass(bd.loai)}">${LOAI_DIEM[bd.loai]||bd.loai}</span></td>
+                <td style="font-size:12px">${bd.tenBai||'—'}</td>
+                <td><span style="font-size:14px;font-weight:600;color:${parseFloat(bd.diem)>=5?'#0f6e56':'#e24b4a'}">${bd.diem}</span></td>
+                <td style="font-size:12px;color:#8a96a8">${fmtDate(bd.ngay)}</td>
+                <td style="font-size:12px">${bd.nhanXet||'—'}</td>
+                ${canEdit?`<td><button class="btn btn-danger btn-sm" onclick="deleteBD('${bd.recordId}')">Xóa</button></td>`:''}
+              </tr>`;
+            }).join('')}
         </tbody>
       </table>
       </div>
     </div>
   `);
 }
-async function openModalBD(recordId,hvList,sid,loai,diem,tenBai,nhanXet,ngay){
-  if(!hvList){const r=await call({action:'getHocVienByLop',lop:CURRENT_LOP});hvList=r.ok?r.data:[];}
-  showModal(recordId?'Sửa điểm':'Thêm điểm',`
-    <div class="form-row"><label>Học viên *</label><select id="f-sid">${hvList.map(hv=>`<option value="${hv.studentId}" ${hv.studentId===sid?'selected':''}>${hv.hoTen} (${hv.lop})</option>`).join('')}</select></div>
-    <div class="form-grid2">
-      <div class="form-row"><label>Loại *</label><select id="f-loai"><option value="bai_tap" ${loai==='bai_tap'?'selected':''}>Bài tập</option><option value="giua_ky" ${loai==='giua_ky'?'selected':''}>Giữa kỳ</option><option value="cuoi_ky" ${loai==='cuoi_ky'?'selected':''}>Cuối kỳ</option></select></div>
-      <div class="form-row"><label>Điểm * (0–10)</label><input type="number" id="f-diem" min="0" max="10" step="0.1" value="${diem||''}"></div>
-    </div>
-    <div class="form-row"><label>Tên bài / Kỳ thi</label><input id="f-tenBai" value="${tenBai||''}"></div>
-    <div class="form-row"><label>Ngày</label><input type="date" id="f-ngay" value="${ngay||todayStr()}"></div>
-    <div class="form-row"><label>Nhận xét</label><textarea id="f-nhanXet" rows="2">${nhanXet||''}</textarea></div>
-  `,async()=>{
-    const body={studentId:document.getElementById('f-sid').value,loai:document.getElementById('f-loai').value,diem:document.getElementById('f-diem').value,tenBai:document.getElementById('f-tenBai').value.trim(),ngay:document.getElementById('f-ngay').value,nhanXet:document.getElementById('f-nhanXet').value.trim(),ghiBoi:USER.email};
-    if(!body.diem){toast('Nhập điểm','error');return;}
-    if(recordId){body.recordId=recordId;await call({action:'updateBangDiem',...body});}
-    else await call({action:'addBangDiem',...body});
-    closeModal();toast('Đã lưu điểm','success');renderBangDiem();
-  });
+
+function highlightRow(input){
+  const tr=input.closest('tr');
+  if(input.value) tr.style.background='#f0f8ff';
+  else tr.style.background='';
 }
-async function deleteBD(recordId){if(!confirm('Xóa điểm?')) return;await call({action:'deleteBangDiem',recordId});toast('Đã xóa','success');renderBangDiem();}
+
+async function saveBDGrid(){
+  const loai=document.getElementById('bd-loai').value;
+  const tenBai=document.getElementById('bd-tenBai').value.trim();
+  const ngay=document.getElementById('bd-ngay').value||todayStr();
+  const rows=document.querySelectorAll('#bd-grid tbody tr');
+  const toSave=[];
+  rows.forEach(tr=>{
+    const sid=tr.dataset.sid;
+    const diem=tr.querySelector('.bd-diem')?.value?.trim();
+    const nhanXet=tr.querySelector('.bd-nhanxet')?.value?.trim()||'';
+    if(diem!==''&&diem!==undefined&&!isNaN(parseFloat(diem))){
+      toSave.push({studentId:sid,loai,tenBai,diem,nhanXet,ngay,ghiBoi:USER.email});
+    }
+  });
+  if(toSave.length===0){toast('Chưa nhập điểm nào','error');return;}
+  const btn=document.querySelector('[onclick="saveBDGrid()"]');
+  if(btn){btn.textContent='Đang lưu...';btn.disabled=true;}
+  // Lưu tuần tự
+  let ok=0;
+  for(const item of toSave){
+    const r=await call({action:'addBangDiem',...item});
+    if(r.ok) ok++;
+  }
+  toast(`Đã lưu ${ok}/${toSave.length} điểm`,'success');
+  renderBangDiem();
+}
+
+async function deleteBD(recordId){
+  if(!confirm('Xóa điểm này?')) return;
+  await call({action:'deleteBangDiem',recordId});
+  toast('Đã xóa','success');renderBangDiem();
+}
 
 // ── THONG BAO ──
 async function renderThongBao(){
