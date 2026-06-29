@@ -6,867 +6,984 @@
 <meta http-equiv="Cross-Origin-Opener-Policy" content="unsafe-none">
 <meta http-equiv="Cross-Origin-Embedder-Policy" content="unsafe-none">
 <title>SZM — Sprachzentrum Manager</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{
-  --b50:#e8f1fb;--b100:#c5daff;--b200:#92baff;
-  --b400:#3a7bd5;--b600:#1a50a0;--b800:#0d2d5e;
-  --g50:#f5f7fa;--g100:#e8ecf2;--g200:#d0d8e4;--g400:#8a96a8;--g600:#5a6478;--g800:#2c3344;
-  --green50:#e8f7f0;--green400:#2ea86a;--green600:#1d7a4e;
-  --red50:#fef0ee;--red400:#e55c4a;--red600:#b03a2a;
-  --amber50:#fff8e6;--amber400:#e8a020;--amber600:#a06010;
-  --teal50:#e6f7f5;--teal400:#1aada0;
-  --r:10px;--rl:16px;
-  --s1:0 1px 3px rgba(26,80,160,.08);--s2:0 4px 12px rgba(26,80,160,.12);--s3:0 8px 24px rgba(26,80,160,.15);
-}
-body{font-family:'Inter',sans-serif;background:var(--b50);color:var(--g800);min-height:100vh}
-button{cursor:pointer;font-family:inherit}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:"Inter",sans-serif;background:#f0f4fa;color:#1a2236;font-size:14px;line-height:1.5}
+button,input,select,textarea{font-family:inherit;font-size:14px}
+button{cursor:pointer}
+input,select,textarea{border:1.5px solid #d1dae8;border-radius:8px;padding:8px 12px;outline:none;background:#fff;color:#1a2236;transition:border .15s}
+input:focus,select:focus,textarea:focus{border-color:#3a7bd5}
+textarea{resize:vertical}
 
-/* LOGIN */
-#login-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;background:linear-gradient(150deg,var(--b50),#d0e4ff)}
-.lcard{background:#fff;border-radius:24px;padding:48px 40px;width:420px;max-width:95vw;box-shadow:var(--s3);text-align:center;border:1.5px solid var(--b100)}
-.llogo{width:72px;height:72px;background:linear-gradient(135deg,var(--b600),var(--b400));border-radius:20px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:28px;font-weight:900;margin:0 auto 20px;letter-spacing:-2px}
-.ltitle{font-size:22px;font-weight:800;color:var(--b800);margin-bottom:6px}
-.lsub{font-size:14px;color:var(--g400);margin-bottom:8px;font-style:italic}
-.ldesc{font-size:13px;color:var(--g600);margin-bottom:28px;line-height:1.6}
-.gbtn{display:inline-flex;align-items:center;gap:10px;background:#fff;border:2px solid var(--g200);border-radius:12px;padding:13px 24px;font-size:15px;font-weight:600;color:var(--g800);cursor:pointer;transition:all .15s;width:100%;justify-content:center;font-family:inherit}
-.gbtn:hover{border-color:var(--b400);box-shadow:var(--s2);transform:translateY(-1px)}
-.lfooter{margin-top:20px;font-size:12px;color:var(--g400)}
-.lerror{margin-top:14px;font-size:13px;color:var(--red600);background:var(--red50);border-radius:8px;padding:8px 12px;display:none}
+/* LAYOUT */
+#app-shell{display:flex;height:100vh;overflow:hidden}
+#sidebar{width:220px;background:#fff;border-right:1.5px solid #e4ebf5;display:flex;flex-direction:column;flex-shrink:0}
+#main{flex:1;display:flex;flex-direction:column;overflow:hidden}
 
-/* APP SHELL */
-#app{display:none;flex-direction:column;min-height:100vh}
-.topbar{background:#fff;border-bottom:1.5px solid var(--b100);padding:0 24px;height:60px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;box-shadow:var(--s1)}
-.tbrand{display:flex;align-items:center;gap:10px}
-.tlogo{width:36px;height:36px;background:linear-gradient(135deg,var(--b600),var(--b400));border-radius:10px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;font-size:15px}
-.ttitle{font-size:16px;font-weight:700;color:var(--b800)}
-.tsub{font-size:11px;color:var(--g400);font-style:italic}
-.tright{display:flex;align-items:center;gap:10px}
-.uchip{display:flex;align-items:center;gap:8px;background:var(--b50);border:1px solid var(--b100);border-radius:999px;padding:5px 14px 5px 6px}
-.uavatar{width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,var(--b400),var(--b600));color:#fff;font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center}
-.uname{font-size:13px;font-weight:600;color:var(--b800)}
-.urole{font-size:11px;color:var(--g400)}
-.blogout{background:none;border:1px solid var(--g200);border-radius:8px;padding:6px 12px;font-size:12px;color:var(--g600);font-weight:500}
-.blogout:hover{border-color:var(--red400);color:var(--red600);background:var(--red50)}
+/* SIDEBAR */
+.brand{padding:16px;border-bottom:1.5px solid #e4ebf5;display:flex;align-items:center;gap:10px}
+.brand-logo{width:36px;height:36px;background:linear-gradient(135deg,#1a50a0,#3a7bd5);border-radius:10px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px;font-weight:700;flex-shrink:0}
+.brand-name{font-size:15px;font-weight:600;color:#0d2d5e}
+.nav-section{padding:12px 12px 4px;font-size:10px;color:#a0aab8;text-transform:uppercase;letter-spacing:.06em;font-weight:600}
+.nav-item{display:flex;align-items:center;gap:9px;padding:9px 12px;font-size:13px;color:#5a6478;cursor:pointer;border-radius:8px;margin:1px 6px;transition:all .15s;border:1.5px solid transparent;position:relative}
+.nav-item:hover{background:#f0f4fa;color:#1a2236}
+.nav-item.active{background:#e8f0fb;color:#1a50a0;font-weight:500;border-color:#c5d8f5}
+.nav-item svg{width:17px;height:17px;flex-shrink:0}
+.nav-badge{margin-left:auto;background:#e24b4a;color:#fff;font-size:10px;font-weight:600;padding:1px 6px;border-radius:10px}
+.nav-lop{display:flex;align-items:center;gap:8px;padding:7px 12px;font-size:12px;color:#5a6478;cursor:pointer;border-radius:8px;margin:1px 6px}
+.nav-lop:hover{background:#f0f4fa}
+.nav-lop.active{color:#1a50a0;font-weight:500}
+.lop-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
 
-.layout{display:flex;flex:1}
-.sidebar{width:220px;background:#fff;border-right:1.5px solid var(--b100);padding:16px 0;display:flex;flex-direction:column;gap:2px;min-height:calc(100vh - 60px);position:sticky;top:60px}
-.slabel{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--g400);padding:8px 20px 4px}
-.nitem{display:flex;align-items:center;gap:10px;padding:9px 12px;margin:0 8px;border-radius:var(--r);color:var(--g600);font-size:14px;font-weight:500;cursor:pointer;border:none;background:none;width:calc(100% - 16px);text-align:left;transition:all .15s}
-.nitem:hover{background:var(--b50);color:var(--b600)}
-.nitem.active{background:linear-gradient(135deg,var(--b50),#dbeaff);color:var(--b600);font-weight:700;box-shadow:inset 3px 0 0 var(--b400)}
-.nicon{font-size:17px;width:22px;text-align:center}
+/* alert dot cho lớp có cảnh báo kiểm tra */
+.nav-lop .alert-dot{width:7px;height:7px;border-radius:50%;background:#e24b4a;margin-left:auto;flex-shrink:0;animation:pulse 1.5s infinite}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.6;transform:scale(1.3)}}
 
-.content{flex:1;padding:24px;overflow-x:hidden}
-.page{display:none}.page.active{display:block}
+.sidebar-footer{margin-top:auto;padding:12px;border-top:1.5px solid #e4ebf5}
+.user-card{display:flex;align-items:center;gap:8px;padding:8px;border-radius:8px}
+.avatar{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex-shrink:0}
+.user-name{font-size:13px;font-weight:500;color:#1a2236}
+.role-pill{font-size:10px;padding:1px 7px;border-radius:10px;font-weight:500;display:inline-block;margin-top:2px}
+.r-admin{background:#e8f0fb;color:#1a50a0}
+.r-giaovien{background:#e1f5ee;color:#0f6e56}
+.r-quanly{background:#faeeda;color:#7d4e0a}
+.r-phuhuynh{background:#fbeaf0;color:#8a2040}
+.logout-btn{font-size:11px;color:#8a96a8;background:none;border:none;padding:2px 0;margin-top:2px;display:block;text-align:left}
+.logout-btn:hover{color:#e24b4a}
 
-/* COMPONENTS */
-.card{background:#fff;border-radius:var(--rl);border:1.5px solid var(--b100);padding:20px;box-shadow:var(--s1)}
-.card-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
-.card-title{font-size:15px;font-weight:700;color:var(--b800);display:flex;align-items:center;gap:8px}
+/* TOPBAR */
+#topbar{padding:12px 20px;background:#fff;border-bottom:1.5px solid #e4ebf5;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.page-title{font-size:16px;font-weight:600;color:#0d2d5e;flex:1;min-width:120px}
 
-.btn{border:none;border-radius:var(--r);padding:8px 16px;font-size:13px;font-weight:600;cursor:pointer;display:inline-flex;align-items:center;gap:6px;transition:all .15s}
-.btn-p{background:linear-gradient(135deg,var(--b400),var(--b600));color:#fff;box-shadow:var(--s1)}
-.btn-p:hover{transform:translateY(-1px);box-shadow:var(--s2)}
-.btn-s{background:var(--b50);color:var(--b600);border:1.5px solid var(--b100)}
-.btn-s:hover{background:var(--b100)}
-.btn-d{background:var(--red50);color:var(--red600);border:1.5px solid #fcd5d0}
-.btn-sm{padding:5px 10px;font-size:12px}
+/* ALERT BANNER */
+#alert-banner{display:none;background:#fff3cd;border-bottom:2px solid #f0ad4e;padding:8px 20px;font-size:13px;color:#7d4e0a;display:flex;gap:8px;align-items:center}
+.alert-blink{animation:pulse 1s infinite;display:inline-block;width:8px;height:8px;border-radius:50%;background:#e24b4a;flex-shrink:0}
 
-.fc{border:1.5px solid var(--g200);border-radius:var(--r);padding:9px 12px;font-size:14px;font-family:inherit;color:var(--g800);background:#fff;outline:none;width:100%;transition:border-color .15s}
-.fc:focus{border-color:var(--b400);box-shadow:0 0 0 3px rgba(58,123,213,.1)}
-select.fc{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238a96a8' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:32px}
-.fg{display:flex;flex-direction:column;gap:5px;margin-bottom:14px}
-.fl{font-size:11px;font-weight:700;color:var(--g600);text-transform:uppercase;letter-spacing:.4px}
-.frow{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+/* BTN */
+.btn{padding:7px 14px;border-radius:8px;border:1.5px solid #d1dae8;background:#fff;color:#1a2236;font-weight:500;transition:all .15s;font-size:13px}
+.btn:hover{border-color:#3a7bd5;color:#1a50a0}
+.btn-primary{background:#1a50a0;border-color:#1a50a0;color:#fff}
+.btn-primary:hover{background:#153f80}
+.btn-danger{background:#fff;border-color:#f5c4b3;color:#993c1d}
+.btn-danger:hover{background:#fef0ee;border-color:#e24b4a}
+.btn-sm{padding:4px 10px;font-size:12px}
+.btn-success{background:#0f6e56;border-color:#0f6e56;color:#fff}
 
-.tw{overflow-x:auto;border-radius:var(--rl);border:1.5px solid var(--b100)}
-table{width:100%;border-collapse:collapse;font-size:13px}
-th{background:var(--b50);color:var(--b800);font-weight:700;text-align:left;padding:10px 14px;font-size:11px;text-transform:uppercase;letter-spacing:.5px;border-bottom:1.5px solid var(--b100)}
-td{padding:10px 14px;border-bottom:1px solid var(--g100);vertical-align:middle}
-tr:last-child td{border-bottom:none}
-tr:hover td{background:var(--b50)}
+/* TABS */
+.tab-bar{display:flex;gap:2px;padding:0 20px;background:#fff;border-bottom:1.5px solid #e4ebf5;overflow-x:auto}
+.tab{padding:10px 14px;font-size:13px;color:#5a6478;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1.5px;white-space:nowrap;font-weight:500}
+.tab:hover{color:#1a2236}
+.tab.active{color:#1a50a0;border-bottom-color:#1a50a0}
 
-.badge{display:inline-flex;align-items:center;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:700}
-.b-cm{background:var(--green50);color:var(--green600);border:1px solid #b8edd4}
-.b-vp{background:var(--amber50);color:var(--amber600);border:1px solid #f5dea0}
-.b-vkp{background:var(--red50);color:var(--red600);border:1px solid #fcd5d0}
-.b-tre{background:var(--teal50);color:var(--teal400);border:1px solid #b0e8e4}
-.b-ch{background:var(--g50);color:var(--g400);border:1px solid var(--g200)}
-.b-admin{background:var(--b50);color:var(--b600);border:1px solid var(--b200)}
-.b-ph{background:var(--teal50);color:var(--teal400);border:1px solid #b0e8e4}
-.tag{display:inline-block;padding:2px 8px;border-radius:6px;font-size:11px;font-weight:600;background:var(--b50);color:var(--b600);border:1px solid var(--b100)}
-
-/* KANBAN */
-.kb-bar{display:flex;gap:10px;align-items:center;margin-bottom:18px;flex-wrap:wrap}
-.kb{display:grid;grid-template-columns:repeat(5,1fr);gap:12px;align-items:start}
-@media(max-width:1100px){.kb{grid-template-columns:repeat(3,1fr)}}
-.kc{background:var(--g50);border-radius:var(--rl);border:1.5px solid var(--g100);overflow:hidden;transition:all .15s}
-.kc.drag-over{border-color:var(--b400);background:var(--b50)}
-.kch{padding:10px 14px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;display:flex;align-items:center;justify-content:space-between}
-.kc-cm .kch{background:var(--green50);color:var(--green600);border-bottom:2px solid #b8edd4}
-.kc-vp .kch{background:var(--amber50);color:var(--amber600);border-bottom:2px solid #f5dea0}
-.kc-vkp .kch{background:var(--red50);color:var(--red600);border-bottom:2px solid #fcd5d0}
-.kc-tre .kch{background:var(--teal50);color:var(--teal400);border-bottom:2px solid #b0e8e4}
-.kc-ch .kch{background:var(--g100);color:var(--g600);border-bottom:2px solid var(--g200)}
-.kcount{background:#fff;border-radius:999px;padding:1px 7px;font-size:11px}
-.kitems{padding:8px;display:flex;flex-direction:column;gap:6px;min-height:50px}
-.kcard{background:#fff;border-radius:var(--r);border:1.5px solid var(--g200);padding:9px 12px;cursor:grab;user-select:none;transition:all .15s}
-.kcard:hover{border-color:var(--b200);box-shadow:var(--s1);transform:translateY(-1px)}
-.kcard.dragging{opacity:.4}
-.kn{font-size:13px;font-weight:600;color:var(--g800)}
-.kl{font-size:11px;color:var(--g400);margin-top:2px}
-.kgc input{width:100%;border:none;border-top:1px solid var(--g100);padding-top:5px;margin-top:5px;font-size:11px;color:var(--g600);outline:none;background:transparent;font-family:inherit}
+/* CONTENT */
+#content{flex:1;overflow:auto;padding:20px}
 
 /* STATS */
-.sg{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:20px}
-.sc{background:#fff;border-radius:var(--rl);padding:16px;border:1.5px solid var(--b100);box-shadow:var(--s1)}
-.sc-icon{font-size:24px;margin-bottom:6px}
-.sc-label{font-size:11px;font-weight:700;color:var(--g400);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
-.sc-val{font-size:26px;font-weight:800;color:var(--b800);line-height:1}
+.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px}
+.stat-card{background:#fff;border-radius:12px;padding:16px;border:1.5px solid #e4ebf5}
+.stat-label{font-size:11px;color:#8a96a8;font-weight:600;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px}
+.stat-value{font-size:26px;font-weight:600;color:#0d2d5e;line-height:1}
+.stat-sub{font-size:11px;color:#8a96a8;margin-top:4px}
 
-/* PH */
-.ph-hero{background:linear-gradient(135deg,var(--b600),var(--b400));border-radius:var(--rl);padding:22px;color:#fff;margin-bottom:20px}
-.ph-hero h2{font-size:19px;font-weight:700;margin-bottom:4px}
-.ph-hero p{font-size:13px;opacity:.8}
+/* KANBAN */
+.kanban{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.kanban-col{background:#f5f8fd;border-radius:12px;border:1.5px solid #e4ebf5;overflow:hidden}
+.col-header{padding:11px 14px;background:#fff;border-bottom:1.5px solid #e4ebf5;display:flex;align-items:center;justify-content:space-between;font-size:13px;font-weight:600}
+.col-body{padding:8px;min-height:100px}
+.hv-card{background:#fff;border-radius:8px;border:1.5px solid #e4ebf5;padding:11px;margin-bottom:8px;cursor:pointer;transition:all .15s}
+.hv-card:hover{border-color:#3a7bd5;box-shadow:0 2px 8px rgba(58,123,213,.1)}
+.hv-card.warn{border-left:3px solid #ba7517}
+.hv-card.danger{border-left:3px solid #e24b4a}
+.hv-name{font-size:13px;font-weight:600;margin-bottom:5px;display:flex;align-items:center;gap:6px}
+.hv-meta{font-size:11px;color:#8a96a8;display:flex;align-items:center;gap:4px;margin-top:3px}
+.progress{height:3px;background:#e4ebf5;border-radius:2px;margin-top:8px}
+.progress-fill{height:100%;border-radius:2px;transition:width .3s}
+
+/* TABLE */
+.table-wrap{background:#fff;border-radius:12px;border:1.5px solid #e4ebf5;overflow:hidden}
+.table-toolbar{padding:12px 16px;border-bottom:1.5px solid #e4ebf5;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+table{width:100%;border-collapse:collapse}
+th{padding:9px 12px;text-align:left;font-size:11px;font-weight:600;color:#8a96a8;text-transform:uppercase;letter-spacing:.04em;border-bottom:1.5px solid #e4ebf5;background:#f8fafd;white-space:nowrap}
+td{padding:10px 12px;border-bottom:1px solid #f0f4fa;font-size:13px;vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#f8fafd}
+.td-actions{display:flex;gap:5px;flex-wrap:wrap}
+
+/* BADGES */
+.badge{font-size:10px;padding:2px 8px;border-radius:10px;font-weight:600;white-space:nowrap}
+.b-ok{background:#e1f5ee;color:#0f6e56}
+.b-phep{background:#e8f0fb;color:#1a50a0}
+.b-tre{background:#faeeda;color:#7d4e0a}
+.b-vang{background:#fef0ee;color:#993c1d}
+.b-warn1{background:#faeeda;color:#7d4e0a}
+.b-warn2{background:#fef0ee;color:#993c1d}
+.b-dong{background:#e1f5ee;color:#0f6e56}
+.b-chua{background:#fef0ee;color:#993c1d}
+.b-baoluu{background:#f0ebff;color:#5a30b5}
+.b-nghi{background:#f5f5f5;color:#5a6478}
+
+/* LOP CARD */
+.lop-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.lop-card{background:#fff;border-radius:12px;border:1.5px solid #e4ebf5;padding:16px;cursor:pointer;transition:all .15s;position:relative;overflow:hidden}
+.lop-card:hover{border-color:#3a7bd5;box-shadow:0 4px 14px rgba(58,123,213,.1)}
+.lop-card.has-alert{border-color:#e24b4a;box-shadow:0 0 0 3px rgba(226,75,74,.1)}
+.lop-title{font-size:15px;font-weight:600;color:#0d2d5e;margin-bottom:4px}
+.lop-cap{font-size:11px;font-weight:500;padding:2px 8px;border-radius:6px;display:inline-block;margin-bottom:10px}
+.lop-progress-wrap{margin:10px 0 6px}
+.lop-progress-label{display:flex;justify-content:space-between;font-size:11px;color:#8a96a8;margin-bottom:4px}
+.lop-progress{height:6px;background:#e4ebf5;border-radius:3px}
+.lop-progress-fill{height:100%;border-radius:3px;transition:width .3s}
+.lop-dates{font-size:11px;color:#8a96a8;margin-top:6px}
+.kt-alert{margin-top:10px;padding:8px 10px;border-radius:7px;font-size:12px;font-weight:500}
+.kt-alert.giua{background:#fff3cd;color:#7d4e0a;border:1px solid #f0ad4e}
+.kt-alert.cuoi{background:#fef0ee;color:#993c1d;border:1px solid #f5c4b3}
+.lop-actions{position:absolute;top:12px;right:12px;display:flex;gap:5px}
+.so-hv{font-size:12px;color:#5a6478;margin-top:6px}
+
+/* CHECKBOX STYLE */
+.cb{width:16px;height:16px;cursor:pointer;accent-color:#1a50a0}
 
 /* MODAL */
-.mo{display:none;position:fixed;inset:0;background:rgba(15,30,60,.45);z-index:999;align-items:center;justify-content:center;backdrop-filter:blur(3px)}
-.mo.open{display:flex}
-.md{background:#fff;border-radius:var(--rl);width:500px;max-width:95vw;max-height:90vh;overflow-y:auto;box-shadow:var(--s3);animation:su .2s ease}
-@keyframes su{from{transform:translateY(14px);opacity:0}to{transform:translateY(0);opacity:1}}
-.mh{padding:18px 22px 14px;border-bottom:1.5px solid var(--b100);display:flex;align-items:center;justify-content:space-between}
-.mt{font-size:15px;font-weight:700;color:var(--b800)}
-.mx{background:none;border:none;font-size:20px;color:var(--g400);cursor:pointer;border-radius:6px;padding:2px 6px}
-.mx:hover{background:var(--g100);color:var(--g800)}
-.mb{padding:18px 22px}
-.mf{padding:14px 22px;border-top:1.5px solid var(--b100);display:flex;justify-content:flex-end;gap:8px}
-
-/* PAGE HEADER */
-.ph{margin-bottom:20px}
-.ph h1{font-size:20px;font-weight:800;color:var(--b800);margin-bottom:3px}
-.ph p{font-size:13px;color:var(--g400);font-style:italic}
+.modal-overlay{position:fixed;inset:0;background:rgba(10,20,50,.45);display:flex;align-items:center;justify-content:center;z-index:1000;padding:16px}
+.modal{background:#fff;border-radius:16px;padding:24px;width:100%;max-width:560px;max-height:92vh;overflow-y:auto;box-shadow:0 20px 60px rgba(10,20,50,.25)}
+.modal h3{font-size:15px;font-weight:600;color:#0d2d5e;margin-bottom:18px;padding-bottom:12px;border-bottom:1.5px solid #e4ebf5}
+.form-row{margin-bottom:13px}
+.form-row label{display:block;font-size:12px;font-weight:600;color:#5a6478;margin-bottom:4px}
+.form-row input,.form-row select,.form-row textarea{width:100%}
+.form-grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.form-grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.modal-footer{display:flex;justify-content:flex-end;gap:8px;margin-top:18px;padding-top:14px;border-top:1.5px solid #e4ebf5}
+.hint{background:#f5f8fd;border-radius:8px;padding:10px 12px;font-size:12px;color:#5a6478;margin-top:6px}
 
 /* TOAST */
-#toast{position:fixed;bottom:24px;right:24px;z-index:9999;display:flex;flex-direction:column;gap:6px}
-.toast{background:#fff;border-radius:10px;padding:10px 16px;box-shadow:var(--s3);border-left:4px solid var(--b400);font-size:13px;font-weight:500;color:var(--g800);animation:su .2s ease;display:flex;align-items:center;gap:8px;max-width:300px}
-.toast.ok{border-color:var(--green400)}
-.toast.err{border-color:var(--red400)}
+#toast{position:fixed;bottom:20px;right:20px;z-index:2000;display:flex;flex-direction:column;gap:8px}
+.toast-item{background:#1a2236;color:#fff;padding:10px 16px;border-radius:10px;font-size:13px;box-shadow:0 8px 24px rgba(0,0,0,.2);animation:slideIn .2s ease;max-width:300px}
+.toast-item.success{background:#0f6e56}
+.toast-item.error{background:#993c1d}
+@keyframes slideIn{from{transform:translateX(40px);opacity:0}to{transform:translateX(0);opacity:1}}
 
-.empty{text-align:center;padding:32px;color:var(--g400)}
-.empty .ei{font-size:36px;margin-bottom:8px}
-.loading{text-align:center;padding:24px;color:var(--g400);font-size:13px}
+/* LOGIN */
+#login-screen{min-height:100vh;background:linear-gradient(135deg,#e8f1fb,#d0e4ff);display:flex;align-items:center;justify-content:center}
+.login-card{background:#fff;border-radius:24px;padding:44px 36px;width:400px;max-width:94vw;border:1.5px solid #c5daff;text-align:center}
+.login-logo{width:68px;height:68px;background:linear-gradient(135deg,#1a50a0,#3a7bd5);border-radius:20px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:24px;font-weight:800;margin:0 auto 18px}
+.login-title{font-size:21px;font-weight:700;color:#0d2d5e;margin-bottom:5px}
+.login-sub{font-size:13px;color:#8a96a8;margin-bottom:26px}
+.btn-google{display:flex;align-items:center;gap:10px;background:#fff;border:1.5px solid #d1dae8;border-radius:12px;padding:12px 20px;font-size:14px;font-weight:600;color:#1a2236;cursor:pointer;width:100%;justify-content:center;transition:all .15s}
+.btn-google:hover{border-color:#3a7bd5;box-shadow:0 4px 12px rgba(58,123,213,.12)}
+.login-error{margin-top:12px;font-size:13px;color:#993c1d;background:#fef0ee;border-radius:8px;padding:9px 12px;display:none;text-align:left}
+.login-note{margin-top:16px;font-size:11px;color:#a0aab8}
+
+/* EMPTY */
+.empty{text-align:center;padding:48px 20px;color:#8a96a8}
+
+/* RESPONSIVE */
+@media(max-width:800px){
+  #sidebar{width:54px}
+  .brand-name,.nav-item span,.nav-section,.nav-lop,.user-name,.role-pill,.logout-btn{display:none}
+  .stat-grid{grid-template-columns:1fr 1fr}
+  .kanban,.lop-grid{grid-template-columns:1fr}
+  .form-grid2,.form-grid3{grid-template-columns:1fr}
+}
 </style>
 </head>
 <body>
 
 <!-- LOGIN -->
 <div id="login-screen">
-  <div class="lcard">
-    <div class="llogo">SZ</div>
-    <h1 class="ltitle">Sprachzentrum Manager</h1>
-    <p class="lsub">Quản lý trung tâm tiếng Đức</p>
-    <p class="ldesc">Hệ thống quản lý học viên, điểm danh và bảng điểm.<br>Dành cho giáo viên và phụ huynh.</p>
-    <button class="gbtn" id="login-btn">
-      <svg width="22" height="22" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
+  <div class="login-card">
+    <div class="login-logo">SZ</div>
+    <h1 class="login-title">Sprachzentrum Manager</h1>
+    <p class="login-sub">Quản lý trung tâm tiếng Đức</p>
+    <button class="btn-google" id="login-btn">
+      <svg width="20" height="20" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/></svg>
       Đăng nhập bằng Google
     </button>
-    <div class="lerror" id="login-error"></div>
-    <p class="lfooter">Chỉ email được quản trị viên cấp phép mới có thể truy cập</p>
+    <div class="login-error" id="login-error"></div>
+    <p class="login-note">Chỉ email được cấp phép mới có thể truy cập</p>
   </div>
 </div>
 
 <!-- APP -->
-<div id="app">
-  <div class="topbar">
-    <div class="tbrand">
-      <div class="tlogo">SZ</div>
-      <div><div class="ttitle">Sprachzentrum Manager</div><div class="tsub">Trung Tâm Tiếng Đức</div></div>
+<div id="app-shell" style="display:none">
+  <div id="sidebar">
+    <div class="brand">
+      <div class="brand-logo">SZ</div>
+      <div><div class="brand-name">SZM</div></div>
     </div>
-    <div class="tright">
-      <div class="uchip">
-        <div class="uavatar" id="uavatar">?</div>
-        <div><div class="uname" id="uname">...</div><div class="urole" id="urole">...</div></div>
+    <div class="nav-section">Menu</div>
+    <div class="nav-item active" data-page="dashboard">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      <span>Dashboard</span>
+    </div>
+    <div class="nav-item" data-page="lophoc" id="nav-lophoc">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+      <span>Lớp học</span>
+      <span class="nav-badge" id="badge-lop" style="display:none">!</span>
+    </div>
+    <div class="nav-item" data-page="hocvien" id="nav-hocvien">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+      <span>Học viên</span>
+    </div>
+    <div class="nav-item" data-page="chuyencan" id="nav-chuyencan">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><path d="m9 16 2 2 4-4"/></svg>
+      <span>Chuyên cần</span>
+    </div>
+    <div class="nav-item" data-page="bangdiem" id="nav-bangdiem">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+      <span>Bảng điểm</span>
+    </div>
+    <div class="nav-item" data-page="thongbao" id="nav-thongbao">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/></svg>
+      <span>Thông báo</span>
+      <span class="nav-badge" id="badge-tb" style="display:none">0</span>
+    </div>
+    <div class="nav-item" data-page="taikhoan" id="nav-taikhoan">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      <span>Tài khoản</span>
+    </div>
+    <div class="nav-section" id="lop-section">Lớp của tôi</div>
+    <div id="lop-nav"></div>
+    <div class="sidebar-footer">
+      <div class="user-card">
+        <div class="avatar" id="user-avatar"></div>
+        <div>
+          <div class="user-name" id="user-display-name"></div>
+          <span class="role-pill" id="user-role-pill"></span>
+        </div>
       </div>
-      <button class="blogout" onclick="logout()">Đăng xuất</button>
+      <button class="logout-btn" id="logout-btn">Đăng xuất</button>
     </div>
   </div>
 
-  <div class="layout">
-    <!-- Admin sidebar -->
-    <div class="sidebar" id="sb-admin" style="display:none">
-      <div class="slabel">Tổng quan</div>
-      <button class="nitem active" onclick="nav('dashboard')" data-p="dashboard"><span class="nicon">📊</span>Dashboard</button>
-      <div class="slabel">Giảng dạy</div>
-      <button class="nitem" onclick="nav('diemdanh')" data-p="diemdanh"><span class="nicon">✅</span>Điểm danh</button>
-      <button class="nitem" onclick="nav('bangdiem')" data-p="bangdiem"><span class="nicon">📝</span>Bảng điểm</button>
-      <div class="slabel">Quản lý</div>
-      <button class="nitem" onclick="nav('hocvien')" data-p="hocvien"><span class="nicon">👨‍🎓</span>Học viên</button>
-      <button class="nitem" onclick="nav('taikhoan')" data-p="taikhoan"><span class="nicon">🔐</span>Tài khoản</button>
+  <div id="main">
+    <div id="alert-banner" style="display:none">
+      <span class="alert-blink"></span>
+      <span id="alert-text"></span>
     </div>
-    <!-- PH sidebar -->
-    <div class="sidebar" id="sb-ph" style="display:none">
-      <div class="slabel">Theo dõi</div>
-      <button class="nitem active" onclick="nav('ph-home')" data-p="ph-home"><span class="nicon">🏠</span>Trang chính</button>
-      <button class="nitem" onclick="nav('ph-dd')" data-p="ph-dd"><span class="nicon">📅</span>Chuyên cần</button>
-      <button class="nitem" onclick="nav('ph-bd')" data-p="ph-bd"><span class="nicon">🏆</span>Bảng điểm</button>
+    <div id="topbar">
+      <div class="page-title" id="page-title">Dashboard</div>
+      <select id="filter-lop" style="width:150px;display:none"><option value="">Tất cả lớp</option></select>
+      <input type="date" id="filter-ngay" style="display:none">
+      <button class="btn btn-primary" id="btn-add" style="display:none">+ Thêm</button>
     </div>
-
-    <div class="content">
-      <!-- DASHBOARD -->
-      <div class="page active" id="page-dashboard">
-        <div class="ph"><h1>📊 Tổng quan</h1><p id="dash-date"></p></div>
-        <div class="sg">
-          <div class="sc"><div class="sc-icon">🏫</div><div class="sc-label">Tổng lớp</div><div class="sc-val" id="s-lop">—</div></div>
-          <div class="sc"><div class="sc-icon">👨‍🎓</div><div class="sc-label">Học viên</div><div class="sc-val" id="s-hv">—</div></div>
-          <div class="sc"><div class="sc-icon">✅</div><div class="sc-label">Có mặt</div><div class="sc-val" id="s-cm">—</div></div>
-          <div class="sc"><div class="sc-icon">❌</div><div class="sc-label">Vắng</div><div class="sc-val" id="s-vg">—</div></div>
-        </div>
-        <div class="card">
-          <div class="card-hd">
-            <div class="card-title"><span>🏫</span>Các lớp hôm nay</div>
-            <button class="btn btn-p btn-sm" onclick="nav('diemdanh')">➕ Điểm danh</button>
-          </div>
-          <div id="dash-lop" class="loading">Đang tải...</div>
-        </div>
-      </div>
-
-      <!-- ĐIỂM DANH KANBAN -->
-      <div class="page" id="page-diemdanh">
-        <div class="ph"><h1>✅ Điểm danh</h1><p>Kéo thả học viên vào đúng cột — bấm Lưu để ghi dữ liệu</p></div>
-        <div class="kb-bar">
-          <select class="fc" id="dd-lop" style="width:160px" onchange="loadKanban()"><option value="">Chọn lớp...</option></select>
-          <input type="date" class="fc" id="dd-ngay" style="width:160px" onchange="loadKanban()">
-          <button class="btn btn-p" onclick="saveDiemDanh()">💾 Lưu</button>
-          <span id="dd-status" style="font-size:12px;color:var(--green600);font-weight:600"></span>
-        </div>
-        <div class="kb">
-          <div class="kc kc-ch" id="kcol-Chưa điểm danh" ondragover="dragOver(event)" ondrop="drop(event,'Chưa điểm danh')" ondragleave="dragLeave(event)">
-            <div class="kch">📋 Chưa<span class="kcount" id="kn-ch">0</span></div>
-            <div class="kitems" id="ki-Chưa điểm danh"></div>
-          </div>
-          <div class="kc kc-cm" id="kcol-Có mặt" ondragover="dragOver(event)" ondrop="drop(event,'Có mặt')" ondragleave="dragLeave(event)">
-            <div class="kch">✅ Có mặt<span class="kcount" id="kn-cm">0</span></div>
-            <div class="kitems" id="ki-Có mặt"></div>
-          </div>
-          <div class="kc kc-tre" id="kcol-Trễ" ondragover="dragOver(event)" ondrop="drop(event,'Trễ')" ondragleave="dragLeave(event)">
-            <div class="kch">⏰ Trễ<span class="kcount" id="kn-tre">0</span></div>
-            <div class="kitems" id="ki-Trễ"></div>
-          </div>
-          <div class="kc kc-vp" id="kcol-Vắng có phép" ondragover="dragOver(event)" ondrop="drop(event,'Vắng có phép')" ondragleave="dragLeave(event)">
-            <div class="kch">📄 Vắng phép<span class="kcount" id="kn-vp">0</span></div>
-            <div class="kitems" id="ki-Vắng có phép"></div>
-          </div>
-          <div class="kc kc-vkp" id="kcol-Vắng không phép" ondragover="dragOver(event)" ondrop="drop(event,'Vắng không phép')" ondragleave="dragLeave(event)">
-            <div class="kch">🔴 Vắng KP<span class="kcount" id="kn-vkp">0</span></div>
-            <div class="kitems" id="ki-Vắng không phép"></div>
-          </div>
-        </div>
-      </div>
-
-      <!-- BẢNG ĐIỂM -->
-      <div class="page" id="page-bangdiem">
-        <div class="ph"><h1>📝 Bảng điểm</h1><p>Quản lý điểm số và nhận xét học viên</p></div>
-        <div class="card">
-          <div class="card-hd">
-            <div style="display:flex;gap:8px;flex-wrap:wrap">
-              <select class="fc" id="bd-lop" style="width:150px" onchange="loadBangDiem()"><option value="">Chọn lớp...</option></select>
-              <select class="fc" id="bd-hv" style="width:180px" onchange="renderBangDiem()"><option value="">Tất cả HV</option></select>
-            </div>
-            <button class="btn btn-p btn-sm" onclick="openDiem()">➕ Thêm điểm</button>
-          </div>
-          <div class="tw"><table>
-            <thead><tr><th>Học viên</th><th>Kỳ thi</th><th>Loại</th><th>Điểm</th><th>Nhận xét</th><th>Ngày</th><th></th></tr></thead>
-            <tbody id="bd-body"><tr><td colspan="7" class="loading">Chọn lớp để xem</td></tr></tbody>
-          </table></div>
-        </div>
-      </div>
-
-      <!-- HỌC VIÊN -->
-      <div class="page" id="page-hocvien">
-        <div class="ph"><h1>👨‍🎓 Học viên</h1><p>Quản lý thông tin học viên</p></div>
-        <div class="card">
-          <div class="card-hd">
-            <div style="display:flex;gap:8px;flex-wrap:wrap">
-              <select class="fc" id="hv-lop" style="width:150px" onchange="loadHocVien()"><option value="">Tất cả lớp</option></select>
-              <input type="text" class="fc" id="hv-q" style="width:180px" placeholder="Tìm tên..." oninput="filterHV()">
-            </div>
-            <button class="btn btn-p btn-sm" onclick="openHV()">➕ Thêm HV</button>
-          </div>
-          <div class="tw"><table>
-            <thead><tr><th>Họ tên</th><th>Lớp</th><th>Ngày sinh</th><th>Email HV</th><th>Email PH</th><th>Ghi chú</th><th></th></tr></thead>
-            <tbody id="hv-body"><tr><td colspan="7" class="loading">Đang tải...</td></tr></tbody>
-          </table></div>
-        </div>
-      </div>
-
-      <!-- TÀI KHOẢN -->
-      <div class="page" id="page-taikhoan">
-        <div class="ph"><h1>🔐 Tài khoản</h1><p>Quản lý quyền truy cập</p></div>
-        <div class="card">
-          <div class="card-hd">
-            <div class="card-title"><span>👤</span>Danh sách</div>
-            <button class="btn btn-p btn-sm" onclick="openTK()">➕ Thêm</button>
-          </div>
-          <div class="tw"><table>
-            <thead><tr><th>Email</th><th>Họ tên</th><th>Vai trò</th><th></th></tr></thead>
-            <tbody id="tk-body"><tr><td colspan="4" class="loading">Đang tải...</td></tr></tbody>
-          </table></div>
-        </div>
-      </div>
-
-      <!-- PH HOME -->
-      <div class="page" id="page-ph-home">
-        <div class="ph-hero"><h2 id="ph-hello">Xin chào! 👋</h2><p>Theo dõi tiến độ học tập của con tại Trung Tâm Tiếng Đức</p></div>
-        <div id="ph-children" class="loading">Đang tải...</div>
-      </div>
-      <!-- PH DD -->
-      <div class="page" id="page-ph-dd">
-        <div class="ph"><h1>📅 Chuyên cần</h1><p>Lịch sử điểm danh</p></div>
-        <div id="ph-dd-content" class="loading">Đang tải...</div>
-      </div>
-      <!-- PH BD -->
-      <div class="page" id="page-ph-bd">
-        <div class="ph"><h1>🏆 Bảng điểm</h1><p>Kết quả học tập</p></div>
-        <div id="ph-bd-content" class="loading">Đang tải...</div>
-      </div>
-    </div>
+    <div class="tab-bar" id="tab-bar" style="display:none"></div>
+    <div id="content"></div>
   </div>
 </div>
 
-<!-- MODALS -->
-<div class="mo" id="mo-hv">
-  <div class="md">
-    <div class="mh"><div class="mt" id="mo-hv-t">Thêm học viên</div><button class="mx" onclick="closeMo('mo-hv')">✕</button></div>
-    <div class="mb">
-      <input type="hidden" id="hv-id">
-      <div class="frow"><div class="fg"><label class="fl">Họ tên *</label><input class="fc" id="hv-hoTen" placeholder="Nguyễn Văn An"></div>
-      <div class="fg"><label class="fl">Lớp *</label><input class="fc" id="hv-lop2" placeholder="A1-01"></div></div>
-      <div class="frow"><div class="fg"><label class="fl">Ngày sinh</label><input type="date" class="fc" id="hv-ns"></div>
-      <div class="fg"><label class="fl">Email HV</label><input type="email" class="fc" id="hv-ehv" placeholder="hv@gmail.com"></div></div>
-      <div class="fg"><label class="fl">Email PH <span style="font-weight:400;color:var(--g400)">(nhiều email cách dấu phẩy)</span></label><input class="fc" id="hv-eph" placeholder="cha@gmail.com, me@gmail.com"></div>
-      <div class="fg"><label class="fl">Ghi chú</label><input class="fc" id="hv-gc" placeholder="..."></div>
+<div class="modal-overlay" id="modal" style="display:none">
+  <div class="modal">
+    <h3 id="modal-title"></h3>
+    <div id="modal-body"></div>
+    <div class="modal-footer">
+      <button class="btn" id="modal-cancel">Hủy</button>
+      <button class="btn btn-primary" id="modal-ok">Lưu</button>
     </div>
-    <div class="mf"><button class="btn btn-s" onclick="closeMo('mo-hv')">Hủy</button><button class="btn btn-p" onclick="saveHV()">💾 Lưu</button></div>
   </div>
 </div>
-
-<div class="mo" id="mo-diem">
-  <div class="md">
-    <div class="mh"><div class="mt" id="mo-diem-t">Thêm điểm</div><button class="mx" onclick="closeMo('mo-diem')">✕</button></div>
-    <div class="mb">
-      <input type="hidden" id="diem-id">
-      <div class="frow">
-        <div class="fg"><label class="fl">Lớp *</label><select class="fc" id="diem-lop" onchange="loadHVForDiem()"><option value="">Chọn lớp...</option></select></div>
-        <div class="fg"><label class="fl">Học viên *</label><select class="fc" id="diem-hv"><option value="">Chọn HV...</option></select></div>
-      </div>
-      <div class="frow">
-        <div class="fg"><label class="fl">Kỳ thi *</label><input class="fc" id="diem-ky" placeholder="Kiểm tra tháng 6"></div>
-        <div class="fg"><label class="fl">Loại *</label><select class="fc" id="diem-loai"><option>Kiểm tra miệng</option><option>Bài tập</option><option>Giữa kỳ</option><option>Cuối kỳ</option><option>Từ vựng</option><option>Nghe</option></select></div>
-      </div>
-      <div class="frow">
-        <div class="fg"><label class="fl">Điểm *</label><input type="number" class="fc" id="diem-diem" min="0" max="10" step="0.1" placeholder="0–10"></div>
-        <div class="fg"><label class="fl">Ngày</label><input type="date" class="fc" id="diem-ngay"></div>
-      </div>
-      <div class="fg"><label class="fl">Nhận xét</label><input class="fc" id="diem-nx" placeholder="Tiến bộ tốt..."></div>
-    </div>
-    <div class="mf"><button class="btn btn-s" onclick="closeMo('mo-diem')">Hủy</button><button class="btn btn-p" onclick="saveDiem()">💾 Lưu</button></div>
-  </div>
-</div>
-
-<div class="mo" id="mo-tk">
-  <div class="md">
-    <div class="mh"><div class="mt">Thêm tài khoản</div><button class="mx" onclick="closeMo('mo-tk')">✕</button></div>
-    <div class="mb">
-      <div class="fg"><label class="fl">Email Google *</label><input type="email" class="fc" id="tk-email" placeholder="nguoidung@gmail.com"></div>
-      <div class="frow">
-        <div class="fg"><label class="fl">Họ tên</label><input class="fc" id="tk-ten" placeholder="Nguyễn Thị B"></div>
-        <div class="fg"><label class="fl">Vai trò *</label><select class="fc" id="tk-role"><option value="admin">Giáo viên / Admin</option><option value="phuhuynh">Phụ huynh</option></select></div>
-      </div>
-      <div style="background:var(--amber50);border:1px solid #f5dea0;border-radius:var(--r);padding:9px 12px;font-size:12px;color:var(--amber600)">⚠️ Với phụ huynh: sau khi thêm, vào <b>Học viên</b> điền email PH vào đúng học viên.</div>
-    </div>
-    <div class="mf"><button class="btn btn-s" onclick="closeMo('mo-tk')">Hủy</button><button class="btn btn-p" onclick="saveTK()">💾 Lưu</button></div>
-  </div>
-</div>
-
 <div id="toast"></div>
+
 <script src="https://accounts.google.com/gsi/client" async defer></script>
-
 <script>
-// ══════════════════════════════════════
-//  CONFIG
-// ══════════════════════════════════════
-const API  = 'https://script.google.com/macros/s/AKfycbw7w_WgTjrskEXN6ubY1wLEFAoJjvOBuobmkymTaEd2kAYq4Nf7mEJt-g2KevZvVcI9/exec';
-const GCI  = '39863848508-e8iffhhvlv2h7l06395vunsp2i3ksnh8.apps.googleusercontent.com';
+const GCI = '39863848508-e8iffhhvlv2h7l06395vunsp2i3ksnh8.apps.googleusercontent.com';
+const API = 'https://script.google.com/macros/s/AKfycbw7w_WgTjrskEXN6ubY1wLEFAoJjvOBuobmkymTaEd2kAYq4Nf7mEJt-g2KevZvVcI9/exec';
 
-// ══════════════════════════════════════
-//  STATE
-// ══════════════════════════════════════
-let USER = null, LOPS = [], HVS = [], KBS = {}, PH_KIDS = [], BD_DATA = [], BD_HVS = [];
+const CAP_DO_COLORS = {'A1':'#e8f0fb','A2':'#e1f5ee','B1.1':'#faeeda','B1.2':'#fef0ee','B2':'#f0ebff'};
+const CAP_DO_TEXT   = {'A1':'#1a50a0','A2':'#0f6e56','B1.1':'#7d4e0a','B1.2':'#993c1d','B2':'#5a30b5'};
+const LOP_COLORS    = ['#378add','#1d9e75','#ba7517','#d4537e','#7f77dd','#0f6e56'];
+const LOAI_DIEM     = {bai_tap:'Bài tập',giua_ky:'Giữa kỳ',cuoi_ky:'Cuối kỳ'};
+const TRANG_THAI_DD = {co_mat:'Có mặt',vang_phep:'Nghỉ có phép',vang_khong_phep:'Nghỉ không phép',di_tre:"Đi trễ >15'"};
+const TRANG_THAI_HV = {danghoc:'Đang học',nghi:'Đã nghỉ',baoluu:'Bảo lưu'};
+const ROLES_VI      = {admin:'Admin',giaovien:'Giáo viên',quanly:'Quản lý',phuhuynh:'Phụ huynh'};
 
-// ══════════════════════════════════════
-//  GOOGLE AUTH — oauth2.initTokenClient
-//  (cách này hoạt động tốt trên GitHub Pages)
-// ══════════════════════════════════════
-function startGoogleLogin() {
-  google.accounts.oauth2.initTokenClient({
-    client_id: GCI,
-    scope: 'profile email',
-    callback: onToken,
-  }).requestAccessToken();
+let USER=null, LOPS=[], LOP_DATA=[], CURRENT_PAGE='dashboard', CURRENT_LOP='', CURRENT_TAB='', MODAL_CB=null;
+
+// ── AUTH ──
+function startGoogleLogin(){
+  google.accounts.oauth2.initTokenClient({client_id:GCI,scope:'profile email',callback:onToken}).requestAccessToken();
 }
-
-async function onToken(tokenResp) {
-  try {
-    const res  = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
-      headers: { Authorization: 'Bearer ' + tokenResp.access_token }
-    });
-    const info = await res.json();
-    if (!info.email) { showLoginError('Không lấy được email từ Google'); return; }
-    const r = await call({ action: 'whoami', email: info.email });
-    if (!r.ok) { showLoginError(r.error || 'Email không được phép truy cập'); return; }
-    USER = { email: info.email, role: r.data.role, hoTen: r.data.hoTen || info.name };
+async function onToken(t){
+  showLoginError('Đang xác thực...');
+  try{
+    const res=await fetch('https://www.googleapis.com/oauth2/v3/userinfo',{headers:{Authorization:'Bearer '+t.access_token}});
+    const info=await res.json();
+    if(!info.email){showLoginError('Không lấy được email');return;}
+    const r=await call({action:'whoami',email:info.email});
+    if(!r.ok){showLoginError(r.error||'Email không được phép');return;}
+    USER={email:info.email,role:r.data.role,hoTen:r.data.hoTen||info.name,lopPhuTrach:r.data.lopPhuTrach||''};
     startApp();
-  } catch(e) { showLoginError('Lỗi kết nối: ' + e.message); }
+  }catch(e){showLoginError('Lỗi: '+e.message);}
 }
+function showLoginError(msg){const el=document.getElementById('login-error');el.textContent=msg;el.style.display='block';}
+function logout(){USER=null;document.getElementById('app-shell').style.display='none';document.getElementById('login-screen').style.display='flex';document.getElementById('login-error').style.display='none';}
 
-function showLoginError(msg) {
-  const el = document.getElementById('login-error');
-  el.textContent = msg; el.style.display = 'block';
-}
-
-function parseJWT(t) {
-  return JSON.parse(atob(t.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')));
-}
-
-function logout() {
-  USER = null;
-  document.getElementById('app').style.display = 'none';
-  document.getElementById('login-screen').style.display = 'flex';
-  document.getElementById('login-error').style.display = 'none';
-}
-
-// ══════════════════════════════════════
-//  APP INIT
-// ══════════════════════════════════════
-async function startApp() {
-  document.getElementById('login-screen').style.display = 'none';
-  document.getElementById('app').style.display = 'flex';
-  const av = (USER.hoTen||USER.email).slice(0,2).toUpperCase();
-  document.getElementById('uavatar').textContent = av;
-  document.getElementById('uname').textContent   = USER.hoTen || USER.email;
-  document.getElementById('urole').textContent   = USER.role === 'admin' ? '👨‍🏫 Giáo viên' : '👨‍👧 Phụ huynh';
-  if (USER.role === 'admin') {
-    document.getElementById('sb-admin').style.display = 'flex';
-    await loadLops();
-    loadDash();
-    nav('dashboard');
-  } else {
-    document.getElementById('sb-ph').style.display = 'flex';
-    await loadPHKids();
-    nav('ph-home');
-  }
-}
-
-// ══════════════════════════════════════
-//  API
-// ══════════════════════════════════════
-async function call(params) {
-  // Dung email tu params neu co, khong thi lay tu USER
-  const p = { email: USER?.email || '', ...params };
-  const qs = Object.entries(p).map(([k,v]) =>
-    encodeURIComponent(k)+'='+encodeURIComponent(typeof v==='object'?JSON.stringify(v):String(v))
-  ).join('&');
-  const r = await fetch(API + '?' + qs);
-  if (!r.ok) throw new Error('HTTP ' + r.status);
+// ── API ──
+async function call(params){
+  const p={email:USER?.email||'',...params};
+  const qs=Object.entries(p).map(([k,v])=>encodeURIComponent(k)+'='+encodeURIComponent(typeof v==='object'?JSON.stringify(v):String(v))).join('&');
+  const r=await fetch(API+'?'+qs);
+  if(!r.ok) throw new Error('HTTP '+r.status);
   return r.json();
 }
 
-// ══════════════════════════════════════
-//  NAV
-// ══════════════════════════════════════
-function nav(id) {
-  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-  document.querySelectorAll('.nitem').forEach(n => n.classList.remove('active'));
-  const pg = document.getElementById('page-'+id);
-  if (pg) pg.classList.add('active');
-  const nb = document.querySelector(`[data-p="${id}"]`);
-  if (nb) nb.classList.add('active');
-  if      (id==='hocvien')  loadHocVien();
-  else if (id==='diemdanh') initDD();
-  else if (id==='bangdiem') initBD();
-  else if (id==='taikhoan') loadTK();
-  else if (id==='ph-dd')    loadPHDD();
-  else if (id==='ph-bd')    loadPHBD();
+// ── BOOT ──
+async function startApp(){
+  document.getElementById('login-screen').style.display='none';
+  document.getElementById('app-shell').style.display='flex';
+  const ini=USER.hoTen.split(' ').slice(-2).map(w=>w[0]).join('').toUpperCase();
+  const av=document.getElementById('user-avatar');
+  av.textContent=ini;av.style.background='#e8f0fb';av.style.color='#1a50a0';
+  document.getElementById('user-display-name').textContent=USER.hoTen;
+  const rp=document.getElementById('user-role-pill');
+  rp.textContent=ROLES_VI[USER.role]||USER.role;rp.className='role-pill r-'+USER.role;
+  applyRoleNav();
+  await loadLops();
+  navTo('dashboard');
 }
 
-// ══════════════════════════════════════
-//  LOPS
-// ══════════════════════════════════════
-async function loadLops() {
-  const r = await call({ action:'getLopList' });
-  if (!r.ok) return;
-  LOPS = r.data;
-  ['dd-lop','bd-lop','hv-lop','diem-lop'].forEach(id => {
-    const el = document.getElementById(id); if (!el) return;
-    const first = el.options[0].textContent;
-    el.innerHTML = `<option value="">${first}</option>`;
-    LOPS.forEach(l => el.appendChild(new Option(l,l)));
-  });
+function applyRoleNav(){
+  const r=USER.role;
+  if(r==='phuhuynh'){['nav-lophoc','nav-hocvien','nav-chuyencan','nav-bangdiem','nav-taikhoan','lop-section','lop-nav'].forEach(id=>{const el=document.getElementById(id);if(el)el.style.display='none';});}
+  if(r==='giaovien') document.getElementById('nav-taikhoan').style.display='none';
+  if(r==='quanly'){document.getElementById('nav-taikhoan').style.display='none';document.getElementById('nav-chuyencan').style.display='none';}
 }
 
-// ══════════════════════════════════════
-//  DASHBOARD
-// ══════════════════════════════════════
-async function loadDash() {
-  document.getElementById('dash-date').textContent =
-    new Date().toLocaleDateString('vi-VN',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
-  const r = await call({ action:'getHocVienByLop', lop:'' });
-  if (!r.ok) return;
-  HVS = r.data;
-  document.getElementById('s-lop').textContent = LOPS.length;
-  document.getElementById('s-hv').textContent  = HVS.length;
-  const today = new Date().toISOString().slice(0,10);
-  let cm=0, vg=0, html='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px">';
-  for (const lop of LOPS) {
-    const dr = await call({ action:'getDiemDanhByLop', lop, ngay:today });
-    const dd = dr.ok ? dr.data : [];
-    const lopHV = HVS.filter(h=>h.lop===lop).length;
-    const c = dd.filter(d=>d.trangThai==='Có mặt'||d.trangThai==='Trễ').length;
-    const v = dd.filter(d=>d.trangThai?.startsWith('Vắng')).length;
-    cm+=c; vg+=v;
-    const pct = lopHV ? Math.round(c/lopHV*100) : 0;
-    const bc  = pct>=80?'var(--green400)':pct>=50?'var(--amber400)':'var(--red400)';
-    html += `<div class="card" style="padding:12px;cursor:pointer" onclick="nav('diemdanh');document.getElementById('dd-lop').value='${lop}';loadKanban()">
-      <div style="font-size:13px;font-weight:700;color:var(--b800);margin-bottom:6px">🏫 ${lop}</div>
-      <div style="font-size:11px;color:var(--g400);margin-bottom:6px">${lopHV} HV · ${c} có mặt</div>
-      <div style="height:5px;background:var(--g100);border-radius:99px;overflow:hidden">
-        <div style="height:100%;width:${pct}%;background:${bc};border-radius:99px"></div>
-      </div>
-      <div style="font-size:11px;color:var(--g400);margin-top:4px;text-align:right">${pct}%</div>
-    </div>`;
+async function loadLops(){
+  const r=await call({action:'getLopList'});
+  if(!r.ok) return;
+  LOP_DATA=r.data;
+  LOPS=LOP_DATA.map(l=>l.tenLop);
+  renderLopNav();
+  renderFilterLop();
+  // Cảnh báo kiểm tra
+  const alerts=LOP_DATA.filter(l=>l.canhBaoGiuaKy||l.canhBaoCuoiKy);
+  if(alerts.length>0){
+    document.getElementById('badge-lop').style.display='';
+    const msgs=alerts.map(l=>{
+      if(l.canhBaoCuoiKy) return `${l.tenLop}: Cuối kỳ còn ${l.soNgayConCuoiKy} ngày!`;
+      return `${l.tenLop}: Giữa kỳ còn ${l.soNgayConGiuaKy} ngày!`;
+    });
+    const banner=document.getElementById('alert-banner');
+    document.getElementById('alert-text').textContent='⚠ Sắp đến kỳ kiểm tra: '+msgs.join(' · ');
+    banner.style.display='flex';
   }
-  html += '</div>';
-  document.getElementById('dash-lop').innerHTML = html;
-  document.getElementById('s-cm').textContent = cm;
-  document.getElementById('s-vg').textContent = vg;
 }
 
-// ══════════════════════════════════════
-//  KANBAN
-// ══════════════════════════════════════
-const COLS = ['Chưa điểm danh','Có mặt','Trễ','Vắng có phép','Vắng không phép'];
-const CNT  = {'Chưa điểm danh':'ch','Có mặt':'cm','Trễ':'tre','Vắng có phép':'vp','Vắng không phép':'vkp'};
-
-function initDD() { document.getElementById('dd-ngay').value = new Date().toISOString().slice(0,10); }
-
-async function loadKanban() {
-  const lop = document.getElementById('dd-lop').value;
-  const ngay= document.getElementById('dd-ngay').value;
-  if (!lop) return;
-  COLS.forEach(c => document.getElementById('ki-'+c).innerHTML = '');
-  const [hr, dr] = await Promise.all([
-    call({ action:'getHocVienByLop', lop }),
-    call({ action:'getDiemDanhByLop', lop, ngay }),
-  ]);
-  if (!hr.ok) return;
-  KBS = {};
-  hr.data.forEach(hv => {
-    const dd = dr.ok ? dr.data.find(d=>d.studentId===hv.studentId) : null;
-    KBS[hv.studentId] = { trangThai: dd?.trangThai||'Chưa điểm danh', ghiChu: dd?.ghiChu||'', hoTen: hv.hoTen, lop: hv.lop };
-  });
-  renderKB();
-}
-
-function renderKB() {
-  COLS.forEach(c => document.getElementById('ki-'+c).innerHTML = '');
-  Object.entries(KBS).forEach(([sid, s]) => {
-    const col = document.getElementById('ki-'+s.trangThai) || document.getElementById('ki-Chưa điểm danh');
-    col.appendChild(mkCard(sid, s));
-  });
-  updateCnt();
-}
-
-function mkCard(sid, s) {
-  const d = document.createElement('div');
-  d.className='kcard'; d.draggable=true; d.dataset.id=sid;
-  d.innerHTML=`<div class="kn">${s.hoTen}</div><div class="kl">🏫 ${s.lop}</div>
-    <div class="kgc"><input type="text" placeholder="Ghi chú..." value="${s.ghiChu}" onchange="KBS['${sid}'].ghiChu=this.value" onclick="event.stopPropagation()"></div>`;
-  d.addEventListener('dragstart', e => { e.dataTransfer.setData('text/plain',sid); d.classList.add('dragging'); });
-  d.addEventListener('dragend', () => d.classList.remove('dragging'));
-  return d;
-}
-
-function dragOver(e)  { e.preventDefault(); e.currentTarget.classList.add('drag-over'); }
-function dragLeave(e) { e.currentTarget.classList.remove('drag-over'); }
-function drop(e,tt)   { e.preventDefault(); e.currentTarget.classList.remove('drag-over');
-  const sid=e.dataTransfer.getData('text/plain');
-  if (sid&&KBS[sid]) { KBS[sid].trangThai=tt; renderKB(); }
-}
-
-function updateCnt() {
-  const c={};
-  Object.values(KBS).forEach(s=>c[s.trangThai]=(c[s.trangThai]||0)+1);
-  Object.entries(CNT).forEach(([k,v])=>{ const el=document.getElementById('kn-'+v); if(el) el.textContent=c[k]||0; });
-}
-
-async function saveDiemDanh() {
-  const ngay=document.getElementById('dd-ngay').value;
-  if (!ngay) { toast('Chọn ngày!','err'); return; }
-  const records=Object.entries(KBS).map(([sid,s])=>({studentId:sid,ngay,trangThai:s.trangThai,ghiChu:s.ghiChu}));
-  const r=await call({ action:'saveDiemDanh', records });
-  if (r.ok) { toast('Lưu thành công!','ok'); document.getElementById('dd-status').textContent='✅ Đã lưu '+new Date().toLocaleTimeString('vi-VN'); }
-  else toast('Lỗi: '+r.error,'err');
-}
-
-// ══════════════════════════════════════
-//  BẢNG ĐIỂM
-// ══════════════════════════════════════
-function initBD() {
-  const s=document.getElementById('diem-lop');
-  s.innerHTML='<option value="">Chọn lớp...</option>';
-  LOPS.forEach(l=>s.appendChild(new Option(l,l)));
-  document.getElementById('diem-ngay').value=new Date().toISOString().slice(0,10);
-}
-
-async function loadBangDiem() {
-  const lop=document.getElementById('bd-lop').value; if (!lop) return;
-  const [hr,br]=await Promise.all([call({action:'getHocVienByLop',lop}),call({action:'getBangDiemByLop',lop})]);
-  BD_HVS=hr.ok?hr.data:[]; BD_DATA=br.ok?br.data:[];
-  const s=document.getElementById('bd-hv');
-  s.innerHTML='<option value="">Tất cả HV</option>';
-  BD_HVS.forEach(h=>s.appendChild(new Option(h.hoTen,h.studentId)));
-  renderBangDiem();
-}
-
-function renderBangDiem() {
-  const sid=document.getElementById('bd-hv').value;
-  const rows=sid?BD_DATA.filter(r=>r.studentId===sid):BD_DATA;
-  const tb=document.getElementById('bd-body');
-  if (!rows.length) { tb.innerHTML='<tr><td colspan="7"><div class="empty"><div class="ei">📭</div><p>Chưa có điểm</p></div></td></tr>'; return; }
-  tb.innerHTML=rows.map(r=>{
-    const hv=BD_HVS.find(h=>h.studentId===r.studentId);
-    const dc=+r.diem>=8?'var(--green600)':+r.diem>=5?'var(--amber600)':'var(--red600)';
-    return `<tr>
-      <td><strong>${hv?.hoTen||r.studentId}</strong><br><span style="font-size:11px;color:var(--g400)">${hv?.lop||''}</span></td>
-      <td>${r.kyThi}</td><td><span class="tag">${r.loai}</span></td>
-      <td><span style="font-size:15px;font-weight:700;color:${dc}">${r.diem}</span><span style="font-size:11px;color:var(--g400)">/10</span></td>
-      <td style="font-style:italic;color:var(--g600)">${r.nhanXet||'—'}</td>
-      <td style="font-size:12px;color:var(--g400)">${r.ngay}</td>
-      <td><button class="btn btn-d btn-sm" onclick="delDiem('${r.recordId}')">🗑️</button></td>
-    </tr>`;
+function renderLopNav(){
+  const nav=document.getElementById('lop-nav');
+  if(!nav) return;
+  nav.innerHTML=LOP_DATA.map((l,i)=>{
+    const hasAlert=l.canhBaoGiuaKy||l.canhBaoCuoiKy;
+    return `<div class="nav-lop" data-lop="${l.tenLop}" onclick="filterByLop('${l.tenLop}')">
+      <span class="lop-dot" style="background:${LOP_COLORS[i%LOP_COLORS.length]}"></span>
+      ${l.tenLop}
+      ${hasAlert?'<span class="alert-dot"></span>':''}
+    </div>`;
   }).join('');
 }
 
-function openDiem() { document.getElementById('diem-id').value=''; document.getElementById('mo-diem-t').textContent='➕ Thêm điểm'; ['diem-lop','diem-hv','diem-ky','diem-diem','diem-nx'].forEach(id=>{const el=document.getElementById(id);if(el.tagName==='SELECT')el.value='';else el.value=''}); openMo('mo-diem'); }
-
-async function loadHVForDiem() {
-  const lop=document.getElementById('diem-lop').value;
-  const s=document.getElementById('diem-hv');
-  s.innerHTML='<option value="">Chọn HV...</option>';
-  if (!lop) return;
-  const r=await call({action:'getHocVienByLop',lop});
-  if (r.ok) r.data.forEach(h=>s.appendChild(new Option(h.hoTen,h.studentId)));
+function renderFilterLop(){
+  const sel=document.getElementById('filter-lop');
+  sel.innerHTML='<option value="">Tất cả lớp</option>'+LOPS.map(l=>`<option value="${l}">${l}</option>`).join('');
+  sel.onchange=()=>{CURRENT_LOP=sel.value;renderCurrentPage();};
 }
 
-async function saveDiem() {
-  const body={studentId:document.getElementById('diem-hv').value,kyThi:document.getElementById('diem-ky').value,loai:document.getElementById('diem-loai').value,diem:document.getElementById('diem-diem').value,nhanXet:document.getElementById('diem-nx').value,ngay:document.getElementById('diem-ngay').value};
-  if (!body.studentId||!body.kyThi||!body.diem) { toast('Điền đầy đủ thông tin!','err'); return; }
-  const r=await call({action:'addBangDiem',...body});
-  if (r.ok) { toast('Lưu thành công!','ok'); closeMo('mo-diem'); loadBangDiem(); }
-  else toast('Lỗi: '+r.error,'err');
+function filterByLop(lop){
+  CURRENT_LOP=lop;
+  document.getElementById('filter-lop').value=lop;
+  document.querySelectorAll('.nav-lop').forEach(el=>el.classList.toggle('active',el.dataset.lop===lop));
+  if(['hocvien','chuyencan','bangdiem'].includes(CURRENT_PAGE)) renderCurrentPage();
+  else navTo('hocvien');
 }
 
-async function delDiem(rid) {
-  if (!confirm('Xóa điểm này?')) return;
-  const r=await call({action:'deleteBangDiem',recordId:rid});
-  if (r.ok) { toast('Đã xóa!','ok'); loadBangDiem(); }
-  else toast('Lỗi: '+r.error,'err');
+// ── NAV ──
+function navTo(page){
+  CURRENT_PAGE=page;CURRENT_TAB='';
+  document.querySelectorAll('.nav-item[data-page]').forEach(el=>el.classList.toggle('active',el.dataset.page===page));
+  const titles={dashboard:'Dashboard',lophoc:'Lớp học',hocvien:'Học viên',chuyencan:'Chuyên cần',bangdiem:'Bảng điểm',thongbao:'Thông báo',taikhoan:'Tài khoản'};
+  document.getElementById('page-title').textContent=titles[page]||page;
+  document.getElementById('filter-lop').style.display=['hocvien','chuyencan','bangdiem'].includes(page)?'':'none';
+  document.getElementById('filter-ngay').style.display=page==='chuyencan'?'':'none';
+  document.getElementById('btn-add').style.display=['lophoc','hocvien','bangdiem','thongbao','taikhoan'].includes(page)&&USER.role!=='phuhuynh'?'':'none';
+  document.getElementById('tab-bar').style.display=page==='hocvien'?'':'none';
+  if(page==='chuyencan'&&!document.getElementById('filter-ngay').value)
+    document.getElementById('filter-ngay').value=new Date().toISOString().slice(0,10);
+  document.getElementById('filter-ngay').onchange=renderCurrentPage;
+  renderCurrentPage();
 }
 
-// ══════════════════════════════════════
-//  HỌC VIÊN
-// ══════════════════════════════════════
-async function loadHocVien() {
-  const lop=document.getElementById('hv-lop').value;
-  const r=await call({action:'getHocVienByLop',lop});
-  if (!r.ok) return;
-  HVS=r.data; filterHV();
+function renderCurrentPage(){
+  switch(CURRENT_PAGE){
+    case 'dashboard': renderDashboard();break;
+    case 'lophoc':   renderLopHoc();break;
+    case 'hocvien':  renderHocVien();break;
+    case 'chuyencan':renderChuyenCan();break;
+    case 'bangdiem': renderBangDiem();break;
+    case 'thongbao': renderThongBao();break;
+    case 'taikhoan': renderTaiKhoan();break;
+  }
 }
 
-function filterHV() {
-  const q=document.getElementById('hv-q').value.toLowerCase();
-  const rows=HVS.filter(h=>!q||h.hoTen.toLowerCase().includes(q));
-  const tb=document.getElementById('hv-body');
-  if (!rows.length) { tb.innerHTML='<tr><td colspan="7"><div class="empty"><div class="ei">👻</div><p>Không tìm thấy</p></div></td></tr>'; return; }
-  tb.innerHTML=rows.map(h=>`<tr>
-    <td><strong>${h.hoTen}</strong></td><td><span class="tag">${h.lop}</span></td>
-    <td style="font-size:12px;color:var(--g600)">${h.ngaySinh||'—'}</td>
-    <td style="font-size:12px">${h.emailHocVien||'—'}</td>
-    <td style="font-size:12px;color:var(--teal400)">${h.emailPhuHuynh||'—'}</td>
-    <td style="font-size:12px;font-style:italic;color:var(--g400)">${h.ghiChu||'—'}</td>
-    <td>
-      <button class="btn btn-s btn-sm" onclick="editHV('${h.studentId}')">✏️</button>
-      <button class="btn btn-d btn-sm" onclick="delHV('${h.studentId}')">🗑️</button>
-    </td></tr>`).join('');
+// ── DASHBOARD ──
+async function renderDashboard(){
+  setContent('<div class="empty">Đang tải...</div>');
+  const r=await call({action:'getDashboard'});
+  if(!r.ok){setContent('<div class="empty">Không tải được</div>');return;}
+  const d=r.data;
+  if(USER.role==='phuhuynh'){renderDashboardPH(d);return;}
+  const ktAlerts=(d.canhBaoKiemTra||[]);
+  setContent(`
+    <div class="stat-grid">
+      <div class="stat-card"><div class="stat-label">Tổng học viên</div><div class="stat-value">${d.tongHocVien||0}</div><div class="stat-sub">${d.tongLop||0} lớp</div></div>
+      <div class="stat-card"><div class="stat-label">Chuyên cần TB</div><div class="stat-value" style="color:${(d.chuyenCanTB||0)>=80?'#0f6e56':'#ba7517'}">${d.chuyenCanTB!=null?d.chuyenCanTB+'%':'—'}</div><div class="stat-sub">7 ngày gần nhất</div></div>
+      <div class="stat-card"><div class="stat-label">Điểm TB</div><div class="stat-value">${d.diemTB||'—'}</div><div class="stat-sub">Toàn trung tâm</div></div>
+      <div class="stat-card"><div class="stat-label">Cần liên hệ</div><div class="stat-value" style="color:#e24b4a">${d.canhBaoLan2||0}</div><div class="stat-sub">${d.canhBaoLan1||0} đang theo dõi</div></div>
+    </div>
+    ${ktAlerts.length>0?`
+    <div class="table-wrap" style="margin-bottom:16px;padding:14px 16px">
+      <div style="font-size:13px;font-weight:600;color:#0d2d5e;margin-bottom:10px">🔔 Cảnh báo kiểm tra sắp tới</div>
+      ${ktAlerts.map(l=>`
+        <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #f0f4fa">
+          <span style="font-weight:500">${l.tenLop}</span>
+          ${l.canhBaoGiuaKy?`<span class="badge b-warn1" style="animation:pulse 1.5s infinite">Giữa kỳ còn ${l.soNgayConGiuaKy} ngày</span>`:''}
+          ${l.canhBaoCuoiKy?`<span class="badge b-warn2" style="animation:pulse 1.5s infinite">Cuối kỳ còn ${l.soNgayConCuoiKy} ngày</span>`:''}
+          <button class="btn btn-sm" onclick="navTo('lophoc')">Xem lớp</button>
+        </div>`).join('')}
+    </div>`:''}
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
+      <div class="table-wrap" style="padding:14px 16px">
+        <div style="font-size:13px;font-weight:600;color:#0d2d5e;margin-bottom:10px">Lớp học</div>
+        ${LOP_DATA.map((l,i)=>`<div style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid #f0f4fa;cursor:pointer" onclick="filterByLop('${l.tenLop}')">
+          <span style="width:8px;height:8px;border-radius:50%;background:${LOP_COLORS[i%LOP_COLORS.length]};display:inline-block;flex-shrink:0"></span>
+          <span style="flex:1;font-size:13px">${l.tenLop}</span>
+          <span class="lop-cap" style="background:${CAP_DO_COLORS[l.capDo]||'#f0f4fa'};color:${CAP_DO_TEXT[l.capDo]||'#5a6478'}">${l.capDo||''}</span>
+          ${l.canhBaoGiuaKy||l.canhBaoCuoiKy?'<span style="width:7px;height:7px;border-radius:50%;background:#e24b4a;flex-shrink:0"></span>':''}
+        </div>`).join('')}
+      </div>
+      <div class="table-wrap" style="padding:14px 16px">
+        <div style="font-size:13px;font-weight:600;color:#0d2d5e;margin-bottom:10px">Chuyên cần</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:4px">
+          <div style="background:#fef0ee;border-radius:8px;padding:12px;text-align:center"><div style="font-size:22px;font-weight:600;color:#e24b4a">${d.canhBaoLan2||0}</div><div style="font-size:11px;color:#993c1d;margin-top:4px">Email đã gửi PH</div></div>
+          <div style="background:#faeeda;border-radius:8px;padding:12px;text-align:center"><div style="font-size:22px;font-weight:600;color:#ba7517">${d.canhBaoLan1||0}</div><div style="font-size:11px;color:#7d4e0a;margin-top:4px">Cờ cảnh báo</div></div>
+        </div>
+      </div>
+    </div>
+  `);
+}
+function renderDashboardPH(d){
+  setContent(`
+    <div class="stat-grid" style="grid-template-columns:1fr 1fr">
+      <div class="stat-card"><div class="stat-label">Học viên</div><div class="stat-value">${d.soHocVien||0}</div></div>
+      <div class="stat-card"><div class="stat-label">Thông báo chưa đọc</div><div class="stat-value" style="color:#1a50a0">${d.thongBaoChuaDoc||0}</div></div>
+    </div>
+    <div class="table-wrap" style="margin-top:14px;padding:14px 16px">
+      <div style="font-size:13px;font-weight:600;margin-bottom:10px">Học viên của bạn</div>
+      ${(d.hocVien||[]).map(hv=>`<div style="display:flex;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid #f0f4fa">
+        <div class="avatar" style="background:#e8f0fb;color:#1a50a0">${ini(hv.hoTen)}</div>
+        <div><div style="font-weight:500">${hv.hoTen}</div><div style="font-size:11px;color:#8a96a8">${hv.lop}</div></div>
+        <span class="badge ${ttClass(hv.trangThai)}" style="margin-left:auto">${TRANG_THAI_HV[hv.trangThai]||hv.trangThai}</span>
+      </div>`).join('')}
+    </div>
+  `);
 }
 
-function openHV() { document.getElementById('hv-id').value=''; document.getElementById('mo-hv-t').textContent='➕ Thêm học viên'; ['hv-hoTen','hv-lop2','hv-ns','hv-ehv','hv-eph','hv-gc'].forEach(id=>document.getElementById(id).value=''); openMo('mo-hv'); }
-
-function editHV(sid) {
-  const h=HVS.find(x=>x.studentId===sid); if (!h) return;
-  document.getElementById('hv-id').value=sid;
-  document.getElementById('mo-hv-t').textContent='✏️ Sửa học viên';
-  document.getElementById('hv-hoTen').value=h.hoTen;
-  document.getElementById('hv-lop2').value=h.lop;
-  document.getElementById('hv-ns').value=h.ngaySinh||'';
-  document.getElementById('hv-ehv').value=h.emailHocVien||'';
-  document.getElementById('hv-eph').value=h.emailPhuHuynh||'';
-  document.getElementById('hv-gc').value=h.ghiChu||'';
-  openMo('mo-hv');
+// ── LOP HOC ──
+async function renderLopHoc(){
+  setContent('<div class="empty">Đang tải...</div>');
+  const r=await call({action:'getLopList'});
+  LOP_DATA=r.ok?r.data:[];
+  document.getElementById('btn-add').onclick=()=>openModalLop(null);
+  if(LOP_DATA.length===0){setContent('<div class="empty"><p>Chưa có lớp nào. Thêm lớp đầu tiên!</p></div>');return;}
+  setContent(`<div class="lop-grid">${LOP_DATA.map(l=>lopCard(l)).join('')}</div>`);
 }
 
-async function saveHV() {
-  const sid=document.getElementById('hv-id').value;
-  const body={hoTen:document.getElementById('hv-hoTen').value.trim(),lop:document.getElementById('hv-lop2').value.trim(),ngaySinh:document.getElementById('hv-ns').value,emailHocVien:document.getElementById('hv-ehv').value.trim(),emailPhuHuynh:document.getElementById('hv-eph').value.trim(),ghiChu:document.getElementById('hv-gc').value.trim()};
-  if (!body.hoTen||!body.lop) { toast('Nhập họ tên và lớp!','err'); return; }
-  if (sid) body.studentId=sid;
-  const r=await call({action:sid?'updateHocVien':'addHocVien',...body});
-  if (r.ok) { toast('Lưu thành công!','ok'); closeMo('mo-hv'); await loadLops(); loadHocVien(); }
-  else toast('Lỗi: '+r.error,'err');
+function lopCard(l){
+  const total=dateDiff(l.ngayBatDau,l.ngayKetThuc);
+  const passed=dateDiff(l.ngayBatDau,todayStr());
+  const pct=total>0?Math.max(0,Math.min(100,Math.round(passed/total*100))):0;
+  const canEdit=['admin'].includes(USER.role);
+  return `<div class="lop-card ${l.canhBaoGiuaKy||l.canhBaoCuoiKy?'has-alert':''}">
+    ${canEdit?`<div class="lop-actions">
+      <button class="btn btn-sm" onclick="event.stopPropagation();openModalLop('${l.lopId}')">Sửa</button>
+      <button class="btn btn-danger btn-sm" onclick="event.stopPropagation();deleteLop('${l.lopId}')">Xóa</button>
+    </div>`:''}
+    <div class="lop-title">${l.tenLop}</div>
+    <span class="lop-cap" style="background:${CAP_DO_COLORS[l.capDo]||'#f0f4fa'};color:${CAP_DO_TEXT[l.capDo]||'#5a6478'}">${l.capDo||'—'}</span>
+    <div style="font-size:11px;color:#8a96a8">GV: ${l.giaoVienEmail||'—'}</div>
+    ${l.ngayBatDau&&l.ngayKetThuc?`
+    <div class="lop-progress-wrap">
+      <div class="lop-progress-label"><span>Tiến độ</span><span>${pct}%</span></div>
+      <div class="lop-progress"><div class="lop-progress-fill" style="width:${pct}%;background:${pct>=100?'#0f6e56':'#3a7bd5'}"></div></div>
+    </div>
+    <div class="lop-dates">${fmtDate(l.ngayBatDau)} → ${fmtDate(l.ngayKetThuc)}</div>
+    ${l.ngayGiuaKy?`<div style="font-size:11px;color:#8a96a8;margin-top:4px">Giữa kỳ: ${fmtDate(l.ngayGiuaKy)}</div>`:''}
+    `:''}
+    ${l.canhBaoGiuaKy?`<div class="kt-alert giua">⚠ Giữa kỳ còn ${l.soNgayConGiuaKy} ngày!</div>`:''}
+    ${l.canhBaoCuoiKy?`<div class="kt-alert cuoi">🔴 Cuối kỳ còn ${l.soNgayConCuoiKy} ngày!</div>`:''}
+    <div class="so-hv" style="margin-top:8px;cursor:pointer" onclick="filterByLop('${l.tenLop}')">Xem học viên →</div>
+  </div>`;
 }
 
-async function delHV(sid) {
-  if (!confirm('Xóa học viên này?')) return;
-  const r=await call({action:'deleteHocVien',studentId:sid});
-  if (r.ok) { toast('Đã xóa!','ok'); loadHocVien(); }
-  else toast('Lỗi: '+r.error,'err');
+async function openModalLop(lopId){
+  let l=null;
+  if(lopId) l=LOP_DATA.find(x=>x.lopId===lopId)||null;
+  const tvList=await call({action:'getTaiKhoanList'});
+  const gvList=tvList.ok?tvList.data.filter(t=>t.role==='giaovien'):[];
+  showModal(l?'Sửa lớp':'Thêm lớp mới',`
+    <div class="form-grid2">
+      <div class="form-row"><label>Tên lớp *</label><input id="f-tenLop" value="${l?.tenLop||''}"></div>
+      <div class="form-row"><label>Cấp độ</label>
+        <select id="f-capDo">
+          ${['A1','A2','B1.1','B1.2','B2'].map(c=>`<option value="${c}" ${l?.capDo===c?'selected':''}>${c}</option>`).join('')}
+        </select>
+      </div>
+      <div class="form-row"><label>Ngày bắt đầu</label><input type="date" id="f-ngayBD" value="${l?.ngayBatDau||''}"></div>
+      <div class="form-row"><label>Ngày kết thúc (dự kiến)</label><input type="date" id="f-ngayKT" value="${l?.ngayKetThuc||''}"></div>
+    </div>
+    <div class="form-row"><label>Giáo viên phụ trách</label>
+      <select id="f-gv">
+        <option value="">— Chọn giáo viên —</option>
+        ${gvList.map(gv=>`<option value="${gv.email}" ${l?.giaoVienEmail===gv.email?'selected':''}>${gv.hoTen} (${gv.email})</option>`).join('')}
+      </select>
+    </div>
+    <div class="form-row"><label>Ghi chú</label><textarea id="f-ghiChu" rows="2">${l?.ghiChu||''}</textarea></div>
+    <div class="hint">Ngày kiểm tra giữa kỳ sẽ được tính tự động = 50% thời gian lớp học. Cảnh báo sẽ hiện khi còn ≤ 7 ngày.</div>
+  `,async()=>{
+    const body={tenLop:document.getElementById('f-tenLop').value.trim(),capDo:document.getElementById('f-capDo').value,ngayBatDau:document.getElementById('f-ngayBD').value,ngayKetThuc:document.getElementById('f-ngayKT').value,giaoVienEmail:document.getElementById('f-gv').value,ghiChu:document.getElementById('f-ghiChu').value.trim()};
+    if(!body.tenLop){toast('Nhập tên lớp','error');return;}
+    if(l){body.lopId=lopId;await call({action:'updateLop',...body});}
+    else await call({action:'addLop',...body});
+    closeModal();toast(l?'Đã cập nhật lớp':'Đã thêm lớp','success');
+    await loadLops();renderLopHoc();
+  });
+}
+async function deleteLop(lopId){
+  if(!confirm('Xóa lớp này? Dữ liệu học viên không bị xóa.')) return;
+  await call({action:'deleteLop',lopId});
+  toast('Đã xóa lớp','success');await loadLops();renderLopHoc();
 }
 
-// ══════════════════════════════════════
-//  TÀI KHOẢN
-// ══════════════════════════════════════
-async function loadTK() {
+// ── HOC VIEN ──
+async function renderHocVien(){
+  // Tab bar
+  const tabBar=document.getElementById('tab-bar');
+  tabBar.style.display='';
+  if(!CURRENT_TAB) CURRENT_TAB='kanban';
+  tabBar.innerHTML=`
+    <div class="tab ${CURRENT_TAB==='kanban'?'active':''}" onclick="switchTab('kanban')">Kanban</div>
+    <div class="tab ${CURRENT_TAB==='list'?'active':''}" onclick="switchTab('list')">Danh sách</div>
+  `;
+  document.getElementById('btn-add').onclick=()=>openModalHV(null);
+  if(CURRENT_TAB==='list') await renderHVList();
+  else await renderHVKanban();
+}
+
+function switchTab(tab){CURRENT_TAB=tab;renderHocVien();}
+
+async function renderHVKanban(){
+  setContent('<div class="empty">Đang tải...</div>');
+  const [hvR,cbR]=await Promise.all([call({action:'getHocVienByLop',lop:CURRENT_LOP}),CURRENT_LOP?call({action:'getThongKeCanhBao',lop:CURRENT_LOP}):{ok:false}]);
+  const hvList=hvR.ok?hvR.data.filter(hv=>hv.trangThai==='danghoc'||!hv.trangThai):[];
+  const cbMap={};if(cbR.ok)cbR.data.forEach(c=>cbMap[c.studentId]=c);
+  const tot=hvList.filter(hv=>!cbMap[hv.studentId]||cbMap[hv.studentId].diemViPham<3);
+  const theo=hvList.filter(hv=>cbMap[hv.studentId]?.loaiCanhBao==='canh_bao_1');
+  const crit=hvList.filter(hv=>cbMap[hv.studentId]?.loaiCanhBao==='canh_bao_2');
+  setContent(`<div class="kanban">
+    ${kCol('Học tốt',tot.length,'b-ok',tot.map(hv=>hvCard(hv,cbMap[hv.studentId],'ok')).join(''))}
+    ${kCol('Cần theo dõi',theo.length,'b-warn1',theo.map(hv=>hvCard(hv,cbMap[hv.studentId],'warn')).join(''))}
+    ${kCol('Cần liên hệ ngay',crit.length,'b-warn2',crit.map(hv=>hvCard(hv,cbMap[hv.studentId],'danger')).join(''))}
+  </div>`);
+}
+
+function kCol(title,count,badge,html){
+  return `<div class="kanban-col"><div class="col-header"><span>${title}</span><span class="badge ${badge}">${count}</span></div><div class="col-body">${html||'<div style="padding:20px;text-align:center;font-size:12px;color:#a0aab8">Không có</div>'}</div></div>`;
+}
+function hvCard(hv,cb,status){
+  const dp=cb?cb.diemViPham:0;
+  const pct=Math.max(0,Math.min(100,Math.round((1-dp/10)*100)));
+  const clr=status==='ok'?'#1d9e75':status==='warn'?'#ba7517':'#e24b4a';
+  return `<div class="hv-card ${status!=='ok'?status:''}" onclick="openModalHV('${hv.studentId}')">
+    <div class="hv-name"><div class="avatar" style="width:24px;height:24px;font-size:10px;background:#e8f0fb;color:#1a50a0">${ini(hv.hoTen)}</div>${hv.hoTen}${cb?.emailDaGui?'<span class="badge b-warn2" style="margin-left:auto;font-size:9px">Email PH</span>':''}</div>
+    <div class="hv-meta">${hv.lop}</div>
+    ${dp>0?`<div class="hv-meta" style="color:#ba7517">⚠ ${dp} điểm VP</div>`:''}
+    ${hv.soDienThoaiPH?`<div class="hv-meta">PH: ${hv.soDienThoaiPH}</div>`:''}
+    <div class="progress"><div class="progress-fill" style="width:${pct}%;background:${clr}"></div></div>
+  </div>`;
+}
+
+async function renderHVList(){
+  setContent('<div class="empty">Đang tải...</div>');
+  const r=await call({action:'getHocVienByLop',lop:CURRENT_LOP});
+  const hvList=r.ok?r.data:[];
+  const canEdit=['admin','giaovien'].includes(USER.role);
+  setContent(`
+    <div class="table-wrap">
+      <div class="table-toolbar">
+        <span style="font-size:13px;font-weight:500">${CURRENT_LOP||'Tất cả'} — ${hvList.length} học viên</span>
+        <span style="flex:1"></span>
+        <input placeholder="Tìm tên..." style="width:160px" oninput="filterHVTable(this.value)">
+      </div>
+      <div style="overflow-x:auto">
+      <table id="hv-table">
+        <thead><tr>
+          <th>Họ tên</th><th>Lớp</th><th>SĐT cá nhân</th><th>Email cá nhân</th>
+          <th>SĐT phụ huynh</th><th>Email PH</th>
+          <th>Đóng tiền</th><th>Trạng thái</th><th>Ghi chú</th>
+          ${canEdit?'<th>Sửa</th>':''}
+        </tr></thead>
+        <tbody>
+          ${hvList.map(hv=>`<tr data-name="${hv.hoTen.toLowerCase()}">
+            <td><div style="display:flex;align-items:center;gap:7px"><div class="avatar" style="width:26px;height:26px;font-size:10px;background:#e8f0fb;color:#1a50a0">${ini(hv.hoTen)}</div><span style="font-weight:500">${hv.hoTen}</span></div></td>
+            <td>${hv.lop}</td>
+            <td>${hv.sdtCaNhan||'—'}</td>
+            <td style="font-size:12px">${hv.emailCaNhan||'—'}</td>
+            <td>${hv.soDienThoaiPH||'—'}</td>
+            <td style="font-size:12px">${hv.emailPhuHuynh||'—'}</td>
+            <td style="text-align:center">
+              ${canEdit
+                ?`<input type="checkbox" class="cb" ${hv.daDongTien==='true'?'checked':''} onchange="toggleDongTien('${hv.studentId}',this.checked)">`
+                :`<span class="badge ${hv.daDongTien==='true'?'b-dong':'b-chua'}">${hv.daDongTien==='true'?'Đã đóng':'Chưa'}</span>`}
+            </td>
+            <td>
+              ${canEdit
+                ?`<select class="tt-select" style="font-size:12px;padding:4px 8px" onchange="toggleTrangThai('${hv.studentId}',this.value)">
+                    <option value="danghoc" ${hv.trangThai==='danghoc'?'selected':''}>Đang học</option>
+                    <option value="nghi" ${hv.trangThai==='nghi'?'selected':''}>Đã nghỉ</option>
+                    <option value="baoluu" ${hv.trangThai==='baoluu'?'selected':''}>Bảo lưu</option>
+                  </select>`
+                :`<span class="badge ${ttClass(hv.trangThai)}">${TRANG_THAI_HV[hv.trangThai]||hv.trangThai}</span>`}
+            </td>
+            <td style="font-size:12px;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${hv.ghiChu||''}">${hv.ghiChu||'—'}</td>
+            ${canEdit?`<td><button class="btn btn-sm" onclick="openModalHV('${hv.studentId}')">Sửa</button></td>`:''}
+          </tr>`).join('')}
+        </tbody>
+      </table>
+      </div>
+    </div>
+  `);
+}
+
+function filterHVTable(q){
+  document.querySelectorAll('#hv-table tbody tr').forEach(tr=>{
+    tr.style.display=tr.dataset.name.includes(q.toLowerCase())?'':'none';
+  });
+}
+
+async function toggleDongTien(studentId,checked){
+  await call({action:'updateHocVien',studentId,daDongTien:String(checked)});
+  toast(checked?'Đã đánh dấu đóng tiền':'Chưa đóng tiền','success');
+}
+async function toggleTrangThai(studentId,val){
+  await call({action:'updateHocVien',studentId,trangThai:val});
+  toast('Đã cập nhật trạng thái','success');
+}
+
+async function openModalHV(studentId){
+  if(USER.role==='phuhuynh') return;
+  let hv=null;
+  if(studentId){const r=await call({action:'getHocVienById',studentId});if(r.ok)hv=r.data;}
+  const isEdit=!!hv;
+  showModal(isEdit?'Sửa học viên':'Thêm học viên',`
+    <div class="form-grid2">
+      <div class="form-row"><label>Họ tên *</label><input id="f-hoTen" value="${hv?.hoTen||''}"></div>
+      <div class="form-row"><label>Lớp *</label>
+        <select id="f-lop">
+          ${LOPS.map(l=>`<option value="${l}" ${hv?.lop===l?'selected':''}>${l}</option>`).join('')}
+          <option value="__new__">+ Lớp mới...</option>
+        </select>
+      </div>
+      <div class="form-row"><label>Ngày sinh</label><input type="date" id="f-ngaySinh" value="${hv?.ngaySinh||''}"></div>
+      <div class="form-row"><label>Giới tính</label>
+        <select id="f-gioiTinh">
+          <option value="">—</option>
+          <option value="Nam" ${hv?.gioiTinh==='Nam'?'selected':''}>Nam</option>
+          <option value="Nữ" ${hv?.gioiTinh==='Nữ'?'selected':''}>Nữ</option>
+        </select>
+      </div>
+      <div class="form-row"><label>SĐT cá nhân</label><input id="f-sdtCN" value="${hv?.sdtCaNhan||''}"></div>
+      <div class="form-row"><label>Email cá nhân</label><input id="f-emailCN" value="${hv?.emailCaNhan||''}"></div>
+      <div class="form-row"><label>SĐT phụ huynh</label><input id="f-sdtPH" value="${hv?.soDienThoaiPH||''}"></div>
+      <div class="form-row"><label>Email phụ huynh</label><input id="f-emailPH" value="${hv?.emailPhuHuynh||''}"></div>
+    </div>
+    <div class="form-grid2">
+      <div class="form-row"><label>Trạng thái</label>
+        <select id="f-tt">
+          <option value="danghoc" ${hv?.trangThai==='danghoc'||!hv?'selected':''}>Đang học</option>
+          <option value="nghi" ${hv?.trangThai==='nghi'?'selected':''}>Đã nghỉ</option>
+          <option value="baoluu" ${hv?.trangThai==='baoluu'?'selected':''}>Bảo lưu</option>
+        </select>
+      </div>
+      <div class="form-row"><label>Đóng tiền</label>
+        <select id="f-dongTien">
+          <option value="false" ${hv?.daDongTien!=='true'?'selected':''}>Chưa đóng</option>
+          <option value="true" ${hv?.daDongTien==='true'?'selected':''}>Đã đóng</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row"><label>Ghi chú</label><textarea id="f-ghiChu" rows="2">${hv?.ghiChu||''}</textarea></div>
+    ${isEdit&&USER.role==='admin'?`<button class="btn btn-danger btn-sm" onclick="deleteHV('${studentId}')">Xóa học viên</button>`:''}
+  `,async()=>{
+    const lopVal=document.getElementById('f-lop').value;
+    const body={hoTen:document.getElementById('f-hoTen').value.trim(),lop:lopVal==='__new__'?prompt('Tên lớp mới:'):lopVal,sdtCaNhan:document.getElementById('f-sdtCN').value.trim(),emailCaNhan:document.getElementById('f-emailCN').value.trim(),soDienThoaiPH:document.getElementById('f-sdtPH').value.trim(),emailPhuHuynh:document.getElementById('f-emailPH').value.trim(),gioiTinh:document.getElementById('f-gioiTinh').value,ngaySinh:document.getElementById('f-ngaySinh').value,trangThai:document.getElementById('f-tt').value,daDongTien:document.getElementById('f-dongTien').value,ghiChu:document.getElementById('f-ghiChu').value.trim()};
+    if(!body.hoTen||!body.lop){toast('Nhập đủ họ tên và lớp','error');return;}
+    if(isEdit){body.studentId=studentId;await call({action:'updateHocVien',...body});}
+    else await call({action:'addHocVien',...body});
+    closeModal();toast(isEdit?'Đã cập nhật':'Đã thêm học viên','success');renderHocVien();
+  });
+}
+async function deleteHV(studentId){
+  if(!confirm('Xóa học viên này?')) return;
+  await call({action:'deleteHocVien',studentId});
+  closeModal();toast('Đã xóa','success');renderHocVien();
+}
+
+// ── CHUYEN CAN ──
+async function renderChuyenCan(){
+  const lop=CURRENT_LOP;const ngay=document.getElementById('filter-ngay').value||todayStr();
+  document.getElementById('filter-ngay').value=ngay;
+  if(!lop){setContent('<div class="empty"><p>Chọn một lớp để điểm danh</p></div>');return;}
+  setContent('<div class="empty">Đang tải...</div>');
+  const [hvR,ddR,cbR]=await Promise.all([call({action:'getHocVienByLop',lop}),call({action:'getDiemDanhByLop',lop,ngay}),call({action:'getThongKeCanhBao',lop})]);
+  const hvList=hvR.ok?hvR.data.filter(hv=>hv.trangThai==='danghoc'||!hv.trangThai):[];
+  const ddMap={};if(ddR.ok)ddR.data.forEach(d=>ddMap[d.studentId]=d);
+  const cbMap={};if(cbR.ok)cbR.data.forEach(c=>cbMap[c.studentId]=c);
+  const canEdit=['admin','giaovien'].includes(USER.role);
+  setContent(`
+    <div class="table-wrap">
+      <div class="table-toolbar">
+        <span style="font-size:13px;font-weight:600">${lop} — ${fmtDate(ngay)}</span>
+        <span style="flex:1"></span>
+        ${canEdit?`<button class="btn btn-primary btn-sm" onclick="saveDD()">💾 Lưu điểm danh</button>`:''}
+      </div>
+      <table>
+        <thead><tr><th>Học viên</th><th>Trạng thái</th><th>Tổng VP</th><th>Cảnh báo</th><th>Ghi chú</th></tr></thead>
+        <tbody>
+          ${hvList.map(hv=>{const dd=ddMap[hv.studentId];const cb=cbMap[hv.studentId];const cur=dd?.trangThai||'co_mat';return `<tr>
+            <td><div style="display:flex;align-items:center;gap:8px"><div class="avatar" style="width:26px;height:26px;font-size:10px;background:#e8f0fb;color:#1a50a0">${ini(hv.hoTen)}</div><div><div style="font-weight:500">${hv.hoTen}</div><div style="font-size:11px;color:#8a96a8">${hv.emailPhuHuynh||''}</div></div></div></td>
+            <td>${canEdit?`<select class="dd-sel" data-sid="${hv.studentId}" style="min-width:155px"><option value="co_mat" ${cur==='co_mat'?'selected':''}>Có mặt</option><option value="vang_phep" ${cur==='vang_phep'?'selected':''}>Nghỉ có phép</option><option value="vang_khong_phep" ${cur==='vang_khong_phep'?'selected':''}>Nghỉ không phép</option><option value="di_tre" ${cur==='di_tre'?'selected':''}>Đi trễ >15'</option></select>`:`<span class="badge ${ddClass(cur)}">${TRANG_THAI_DD[cur]||cur}</span>`}</td>
+            <td><span style="font-weight:600;color:${(cb?.diemViPham||0)>=3?'#e24b4a':'#1a2236'}">${cb?.diemViPham||0}</span><span style="font-size:11px;color:#8a96a8"> điểm</span></td>
+            <td>${cb?.loaiCanhBao==='canh_bao_2'?'<span class="badge b-warn2">Email đã gửi</span>':cb?.loaiCanhBao==='canh_bao_1'?'<span class="badge b-warn1">Cờ cảnh báo</span>':'<span style="color:#8a96a8;font-size:12px">—</span>'}</td>
+            <td>${canEdit?`<input class="dd-note" data-sid="${hv.studentId}" value="${dd?.ghiChu||''}" placeholder="Ghi chú..." style="width:110px;font-size:12px">`:`<span style="font-size:12px">${dd?.ghiChu||'—'}</span>`}</td>
+          </tr>`;}).join('')}
+        </tbody>
+      </table>
+    </div>
+    ${cbR.ok&&cbR.data.filter(c=>c.diemViPham>0).length>0?`
+    <div class="table-wrap" style="margin-top:14px;padding:14px 16px">
+      <div style="font-size:13px;font-weight:600;margin-bottom:10px">⚠ Cảnh báo chuyên cần — ${lop}</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px">
+        ${cbR.data.filter(c=>c.diemViPham>0).map(c=>`<div style="background:${c.loaiCanhBao==='canh_bao_2'?'#fef0ee':'#faeeda'};border-radius:8px;padding:12px">
+          <div style="font-size:13px;font-weight:600">${c.hoTen}</div>
+          <div style="font-size:11px;margin-top:4px;color:${c.loaiCanhBao==='canh_bao_2'?'#993c1d':'#7d4e0a'}">${c.diemViPham} điểm VP${c.emailDaGui?' · Email đã gửi':''}</div>
+        </div>`).join('')}
+      </div>
+    </div>`:''}
+  `);
+}
+async function saveDD(){
+  const ngay=document.getElementById('filter-ngay').value;
+  const records=[];
+  document.querySelectorAll('.dd-sel').forEach(sel=>{
+    const sid=sel.dataset.sid;
+    const note=document.querySelector(`.dd-note[data-sid="${sid}"]`)?.value||'';
+    records.push({studentId:sid,ngay,trangThai:sel.value,ghiChu:note});
+  });
+  const r=await call({action:'saveDiemDanh',records});
+  if(r.ok){toast('Đã lưu điểm danh','success');renderChuyenCan();}
+  else toast('Lỗi lưu','error');
+}
+
+// ── BANG DIEM ──
+async function renderBangDiem(){
+  setContent('<div class="empty">Đang tải...</div>');
+  let bdList=[],hvList=[];
+  if(USER.role==='phuhuynh'){
+    const myR=await call({action:'getMyStudents'});
+    hvList=myR.ok?myR.data:[];
+    const res=await Promise.all(hvList.map(hv=>call({action:'getBangDiemByStudent',studentId:hv.studentId})));
+    res.forEach(r=>{if(r.ok)bdList=bdList.concat(r.data);});
+  }else{
+    const[hvR,bdR]=await Promise.all([call({action:'getHocVienByLop',lop:CURRENT_LOP}),call({action:'getBangDiemByLop',lop:CURRENT_LOP})]);
+    hvList=hvR.ok?hvR.data:[];bdList=bdR.ok?bdR.data:[];
+  }
+  const hvMap={};hvList.forEach(hv=>hvMap[hv.studentId]=hv);
+  const canEdit=['admin','giaovien'].includes(USER.role);
+  document.getElementById('btn-add').onclick=()=>openModalBD(null,hvList);
+  setContent(`
+    <div class="table-wrap">
+      <div class="table-toolbar"><span style="font-size:13px;font-weight:600">${CURRENT_LOP||'Tất cả'} — ${bdList.length} bản ghi</span></div>
+      <div style="overflow-x:auto">
+      <table>
+        <thead><tr><th>Học viên</th><th>Loại</th><th>Tên bài</th><th>Điểm</th><th>Ngày</th><th>Nhận xét</th>${canEdit?'<th>Thao tác</th>':''}</tr></thead>
+        <tbody>
+          ${bdList.length===0?`<tr><td colspan="7" style="text-align:center;padding:32px;color:#8a96a8">Chưa có dữ liệu</td></tr>`:bdList.map(bd=>{const hv=hvMap[bd.studentId];return `<tr>
+            <td><div style="font-weight:500">${hv?.hoTen||bd.studentId}</div><div style="font-size:11px;color:#8a96a8">${hv?.lop||''}</div></td>
+            <td><span class="badge ${loaiClass(bd.loai)}">${LOAI_DIEM[bd.loai]||bd.loai}</span></td>
+            <td>${bd.tenBai||'—'}</td>
+            <td><span style="font-size:15px;font-weight:600;color:${parseFloat(bd.diem)>=5?'#0f6e56':'#e24b4a'}">${bd.diem}</span></td>
+            <td style="font-size:12px;color:#8a96a8">${fmtDate(bd.ngay)}</td>
+            <td style="font-size:12px">${bd.nhanXet||'—'}</td>
+            ${canEdit?`<td><div class="td-actions"><button class="btn btn-sm" onclick="openModalBD('${bd.recordId}',null,'${bd.studentId}','${bd.loai}','${bd.diem}','${bd.tenBai}','${bd.nhanXet}','${bd.ngay}')">Sửa</button><button class="btn btn-danger btn-sm" onclick="deleteBD('${bd.recordId}')">Xóa</button></div></td>`:''}
+          </tr>`;}).join('')}
+        </tbody>
+      </table>
+      </div>
+    </div>
+  `);
+}
+async function openModalBD(recordId,hvList,sid,loai,diem,tenBai,nhanXet,ngay){
+  if(!hvList){const r=await call({action:'getHocVienByLop',lop:CURRENT_LOP});hvList=r.ok?r.data:[];}
+  showModal(recordId?'Sửa điểm':'Thêm điểm',`
+    <div class="form-row"><label>Học viên *</label><select id="f-sid">${hvList.map(hv=>`<option value="${hv.studentId}" ${hv.studentId===sid?'selected':''}>${hv.hoTen} (${hv.lop})</option>`).join('')}</select></div>
+    <div class="form-grid2">
+      <div class="form-row"><label>Loại *</label><select id="f-loai"><option value="bai_tap" ${loai==='bai_tap'?'selected':''}>Bài tập</option><option value="giua_ky" ${loai==='giua_ky'?'selected':''}>Giữa kỳ</option><option value="cuoi_ky" ${loai==='cuoi_ky'?'selected':''}>Cuối kỳ</option></select></div>
+      <div class="form-row"><label>Điểm * (0–10)</label><input type="number" id="f-diem" min="0" max="10" step="0.1" value="${diem||''}"></div>
+    </div>
+    <div class="form-row"><label>Tên bài / Kỳ thi</label><input id="f-tenBai" value="${tenBai||''}"></div>
+    <div class="form-row"><label>Ngày</label><input type="date" id="f-ngay" value="${ngay||todayStr()}"></div>
+    <div class="form-row"><label>Nhận xét</label><textarea id="f-nhanXet" rows="2">${nhanXet||''}</textarea></div>
+  `,async()=>{
+    const body={studentId:document.getElementById('f-sid').value,loai:document.getElementById('f-loai').value,diem:document.getElementById('f-diem').value,tenBai:document.getElementById('f-tenBai').value.trim(),ngay:document.getElementById('f-ngay').value,nhanXet:document.getElementById('f-nhanXet').value.trim(),ghiBoi:USER.email};
+    if(!body.diem){toast('Nhập điểm','error');return;}
+    if(recordId){body.recordId=recordId;await call({action:'updateBangDiem',...body});}
+    else await call({action:'addBangDiem',...body});
+    closeModal();toast('Đã lưu điểm','success');renderBangDiem();
+  });
+}
+async function deleteBD(recordId){if(!confirm('Xóa điểm?')) return;await call({action:'deleteBangDiem',recordId});toast('Đã xóa','success');renderBangDiem();}
+
+// ── THONG BAO ──
+async function renderThongBao(){
+  setContent('<div class="empty">Đang tải...</div>');
+  const r=await call({action:'getThongBao'});
+  const list=r.ok?r.data:[];
+  document.getElementById('btn-add').onclick=openModalTB;
+  if(!list.length){setContent('<div class="empty"><p>Không có thông báo</p></div>');return;}
+  setContent(`<div style="max-width:700px">${list.map(tb=>`
+    <div style="background:#fff;border-radius:10px;border:1.5px solid #e4ebf5;padding:14px 16px;margin-bottom:10px${USER.role==='phuhuynh'&&!tb.daDocs?';border-left:3px solid #3a7bd5':''}">
+      <div style="font-size:14px;font-weight:600;color:#0d2d5e;margin-bottom:4px">${tb.tieuDe}</div>
+      <div style="font-size:13px;color:#5a6478;margin-bottom:8px;line-height:1.6">${tb.noiDung.replace(/\n/g,'<br>')}</div>
+      <div style="font-size:11px;color:#a0aab8;display:flex;gap:12px">
+        <span>Từ: ${tb.nguoiGui}</span><span>${fmtDate(tb.ngayGui)}</span>
+        ${tb.lopTarget?`<span>Lớp: ${tb.lopTarget}</span>`:''}
+      </div>
+    </div>`).join('')}</div>`);
+}
+function openModalTB(){
+  showModal('Gửi thông báo',`
+    <div class="form-row"><label>Tiêu đề *</label><input id="f-td" placeholder="Tiêu đề..."></div>
+    <div class="form-row"><label>Nội dung *</label><textarea id="f-nd" rows="4" placeholder="Nội dung..."></textarea></div>
+    <div class="form-row"><label>Gửi tới</label><select id="f-nr"><option value="all">Tất cả phụ huynh</option>${LOPS.map(l=>`<option value="lop_${l}">PH lớp ${l}</option>`).join('')}</select></div>
+  `,async()=>{
+    const nr=document.getElementById('f-nr').value;
+    const body={tieuDe:document.getElementById('f-td').value.trim(),noiDung:document.getElementById('f-nd').value.trim(),nguoiNhan:nr.startsWith('lop_')?'all':nr,lop:nr.startsWith('lop_')?nr.replace('lop_',''):''};
+    if(!body.tieuDe||!body.noiDung){toast('Nhập đầy đủ','error');return;}
+    await call({action:'sendThongBao',...body});
+    closeModal();toast('Đã gửi thông báo','success');renderThongBao();
+  });
+}
+
+// ── TAI KHOAN ──
+async function renderTaiKhoan(){
+  if(USER.role!=='admin'){setContent('<div class="empty"><p>Không có quyền</p></div>');return;}
+  setContent('<div class="empty">Đang tải...</div>');
   const r=await call({action:'getTaiKhoanList'});
-  if (!r.ok) return;
-  document.getElementById('tk-body').innerHTML=r.data.map(t=>`<tr>
-    <td>${t.email}</td><td>${t.hoTen||'—'}</td>
-    <td><span class="badge ${t.role==='admin'?'b-admin':'b-ph'}">${t.role==='admin'?'👨‍🏫 Giáo viên':'👨‍👧 Phụ huynh'}</span></td>
-    <td><button class="btn btn-d btn-sm" onclick="delTK('${t.email}')">🗑️</button></td>
-  </tr>`).join('');
+  const list=r.ok?r.data:[];
+  document.getElementById('btn-add').onclick=()=>openModalTK(null);
+  setContent(`
+    <div class="table-wrap">
+      <div class="table-toolbar"><span style="font-size:13px;font-weight:600">Danh sách tài khoản — ${list.length}</span></div>
+      <table>
+        <thead><tr><th>Họ tên</th><th>Email</th><th>Vai trò</th><th>Lớp phụ trách</th><th>Ngày tạo</th><th>Thao tác</th></tr></thead>
+        <tbody>
+          ${list.map(tk=>`<tr>
+            <td><div style="display:flex;align-items:center;gap:7px"><div class="avatar" style="width:26px;height:26px;font-size:10px;background:#e8f0fb;color:#1a50a0">${ini(tk.hoTen)}</div><span style="font-weight:500">${tk.hoTen}</span></div></td>
+            <td style="color:#5a6478;font-size:12px">${tk.email}</td>
+            <td><span class="role-pill r-${tk.role}">${ROLES_VI[tk.role]||tk.role}</span></td>
+            <td style="font-size:12px;color:#5a6478">${tk.lopPhuTrach||'—'}</td>
+            <td style="font-size:12px;color:#8a96a8">${fmtDate(tk.ngayTao)}</td>
+            <td><div class="td-actions">
+              <button class="btn btn-sm" onclick="openModalTK('${tk.email}','${tk.hoTen}','${tk.role}','${tk.lopPhuTrach||''}')">Sửa</button>
+              ${tk.email!==USER.email?`<button class="btn btn-danger btn-sm" onclick="deleteTK('${tk.email}')">Xóa</button>`:''}
+            </div></td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+    </div>
+  `);
+}
+function openModalTK(email,hoTen,role,lopPhuTrach){
+  const isEdit=!!email;
+  showModal(isEdit?'Sửa tài khoản':'Thêm tài khoản',`
+    <div class="form-row"><label>Họ tên *</label><input id="f-hoTen" value="${hoTen||''}"></div>
+    <div class="form-row"><label>Email Google *</label><input id="f-email" value="${email||''}" ${isEdit?'disabled':''}></div>
+    <div class="form-row"><label>Vai trò *</label>
+      <select id="f-role" onchange="toggleLopField(this.value)">
+        <option value="admin" ${role==='admin'?'selected':''}>Admin</option>
+        <option value="giaovien" ${role==='giaovien'?'selected':''}>Giáo viên</option>
+        <option value="quanly" ${role==='quanly'?'selected':''}>Quản lý</option>
+        <option value="phuhuynh" ${role==='phuhuynh'?'selected':''}>Phụ huynh / Người giới thiệu</option>
+      </select>
+    </div>
+    <div class="form-row" id="f-lop-row" style="${role==='giaovien'?'':'display:none'}">
+      <label>Lớp phụ trách <span style="font-weight:400;color:#8a96a8">(nhiều lớp cách nhau bằng dấu phẩy)</span></label>
+      <input id="f-lopPT" value="${lopPhuTrach||''}" placeholder="VD: A1-Sáng, B1.2-Tối">
+    </div>
+    <div class="hint">
+      <strong>Admin</strong>: toàn quyền &nbsp;|&nbsp; <strong>Giáo viên</strong>: chỉ thấy lớp mình dạy &nbsp;|&nbsp;
+      <strong>Quản lý</strong>: xem báo cáo, gửi thông báo &nbsp;|&nbsp; <strong>Phụ huynh</strong>: xem học viên mình quản lý
+    </div>
+  `,async()=>{
+    const body={email:(document.getElementById('f-email').value||email||'').trim().toLowerCase(),hoTen:document.getElementById('f-hoTen').value.trim(),role:document.getElementById('f-role').value,lopPhuTrach:document.getElementById('f-lopPT')?.value?.trim()||''};
+    if(!body.email||!body.hoTen){toast('Nhập đầy đủ','error');return;}
+    const r=await call({action:isEdit?'updateTaiKhoan':'addTaiKhoan',...body});
+    if(!r.ok){toast(r.error||'Lỗi','error');return;}
+    closeModal();toast(isEdit?'Đã cập nhật':'Đã thêm','success');renderTaiKhoan();
+  });
+}
+function toggleLopField(role){
+  const row=document.getElementById('f-lop-row');
+  if(row) row.style.display=role==='giaovien'?'':'none';
+}
+async function deleteTK(email){
+  if(!confirm('Xóa tài khoản '+email+'?')) return;
+  await call({action:'deleteTaiKhoan',email});
+  toast('Đã xóa','success');renderTaiKhoan();
 }
 
-function openTK() { ['tk-email','tk-ten'].forEach(id=>document.getElementById(id).value=''); openMo('mo-tk'); }
+// ── HELPERS ──
+function ini(name){return(name||'').split(' ').slice(-2).map(w=>w[0]||'').join('').toUpperCase()||'?';}
+function fmtDate(s){if(!s)return '—';try{return new Date(s).toLocaleDateString('vi-VN');}catch{return s;}}
+function todayStr(){return new Date().toISOString().slice(0,10);}
+function dateDiff(a,b){if(!a||!b)return 0;return Math.round((new Date(b)-new Date(a))/(86400000));}
+function ddClass(tt){return{co_mat:'b-ok',vang_phep:'b-phep',vang_khong_phep:'b-vang',di_tre:'b-tre'}[tt]||'';}
+function loaiClass(l){return{bai_tap:'b-phep',giua_ky:'b-warn1',cuoi_ky:'b-vang'}[l]||'';}
+function ttClass(t){return{danghoc:'b-ok',nghi:'b-nghi',baoluu:'b-baoluu'}[t]||'';}
+function setContent(h){document.getElementById('content').innerHTML=h;}
 
-async function saveTK() {
-  const body={email:document.getElementById('tk-email').value.trim(),hoTen:document.getElementById('tk-ten').value.trim(),role:document.getElementById('tk-role').value};
-  if (!body.email) { toast('Nhập email!','err'); return; }
-  const r=await call({action:'addTaiKhoan',...body});
-  if (r.ok) { toast('Thêm tài khoản thành công!','ok'); closeMo('mo-tk'); loadTK(); }
-  else toast('Lỗi: '+r.error,'err');
+function showModal(title,body,onOk){
+  document.getElementById('modal-title').textContent=title;
+  document.getElementById('modal-body').innerHTML=body;
+  document.getElementById('modal').style.display='flex';
+  MODAL_CB=onOk;
+}
+function closeModal(){document.getElementById('modal').style.display='none';MODAL_CB=null;}
+function toast(msg,type=''){
+  const el=document.createElement('div');
+  el.className='toast-item'+(type?' '+type:'');el.textContent=msg;
+  document.getElementById('toast').appendChild(el);
+  setTimeout(()=>el.remove(),3000);
 }
 
-async function delTK(email) {
-  if (!confirm('Xóa tài khoản '+email+'?')) return;
-  const r=await call({action:'deleteTaiKhoan',email});
-  if (r.ok) { toast('Đã xóa!','ok'); loadTK(); }
-  else toast('Lỗi: '+r.error,'err');
-}
-
-// ══════════════════════════════════════
-//  PHỤ HUYNH
-// ══════════════════════════════════════
-async function loadPHKids() {
-  const r=await call({action:'getMyChildren'});
-  PH_KIDS=r.ok?r.data:[];
-  document.getElementById('ph-hello').textContent='Xin chào, '+USER.hoTen+'! 👋';
-  const c=document.getElementById('ph-children');
-  if (!PH_KIDS.length) { c.innerHTML='<div class="empty"><div class="ei">👶</div><p>Chưa có học viên liên kết</p></div>'; return; }
-  c.innerHTML='<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px">'+
-    PH_KIDS.map(h=>{
-      const av=h.hoTen.split(' ').slice(-2).map(w=>w[0]).join('').toUpperCase();
-      return `<div class="card" style="padding:0;overflow:hidden">
-        <div style="background:linear-gradient(135deg,var(--b50),#dbeaff);padding:16px;display:flex;align-items:center;gap:12px;border-bottom:1.5px solid var(--b100)">
-          <div style="width:38px;height:38px;border-radius:50%;background:linear-gradient(135deg,var(--b400),var(--b600));color:#fff;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0">${av}</div>
-          <div><div style="font-size:14px;font-weight:700;color:var(--b800)">${h.hoTen}</div><div style="font-size:12px;color:var(--g400)">🏫 ${h.lop}</div></div>
-        </div>
-        <div style="padding:12px;display:flex;gap:8px">
-          <button class="btn btn-s btn-sm" onclick="nav('ph-dd');loadPHDD('${h.studentId}')">📅 Chuyên cần</button>
-          <button class="btn btn-p btn-sm" onclick="nav('ph-bd');loadPHBD('${h.studentId}')">🏆 Bảng điểm</button>
-        </div>
-      </div>`;
-    }).join('')+'</div>';
-}
-
-async function loadPHDD(sid) {
-  const c=document.getElementById('ph-dd-content');
-  const kids=sid?[PH_KIDS.find(h=>h.studentId===sid)]:PH_KIDS;
-  let html='';
-  const bm={'Có mặt':'b-cm','Trễ':'b-tre','Vắng có phép':'b-vp','Vắng không phép':'b-vkp','Chưa điểm danh':'b-ch'};
-  for (const h of kids.filter(Boolean)) {
-    const r=await call({action:'getDiemDanhByStudent',studentId:h.studentId});
-    const rows=r.ok?r.data:[];
-    const cm=rows.filter(d=>d.trangThai==='Có mặt'||d.trangThai==='Trễ').length;
-    const pct=rows.length?Math.round(cm/rows.length*100):0;
-    html+=`<div class="card" style="margin-bottom:14px">
-      <div class="card-hd"><div class="card-title"><span>👤</span>${h.hoTen} — <span style="font-weight:400;color:var(--g400)">${h.lop}</span></div>
-      <div style="font-size:13px;font-weight:700;color:var(--green600)">${pct}% hiện diện (${cm}/${rows.length} buổi)</div></div>
-      ${rows.length?`<div class="tw"><table><thead><tr><th>Ngày</th><th>Trạng thái</th><th>Ghi chú</th></tr></thead>
-      <tbody>${rows.map(d=>`<tr><td>${d.ngay}</td><td><span class="badge ${bm[d.trangThai]||'b-ch'}">${d.trangThai}</span></td><td style="font-style:italic;color:var(--g400)">${d.ghiChu||'—'}</td></tr>`).join('')}</tbody>
-      </table></div>`:'<div class="empty"><div class="ei">📭</div><p>Chưa có dữ liệu</p></div>'}
-    </div>`;
-  }
-  c.innerHTML=html||'<div class="empty"><div class="ei">📭</div><p>Không có dữ liệu</p></div>';
-}
-
-async function loadPHBD(sid) {
-  const c=document.getElementById('ph-bd-content');
-  const kids=sid?[PH_KIDS.find(h=>h.studentId===sid)]:PH_KIDS;
-  let html='';
-  for (const h of kids.filter(Boolean)) {
-    const r=await call({action:'getBangDiemByStudent',studentId:h.studentId});
-    const rows=r.ok?r.data:[];
-    const avg=rows.length?(rows.reduce((s,d)=>s+(+d.diem),0)/rows.length).toFixed(1):'—';
-    const ac=+avg>=8?'var(--green600)':+avg>=5?'var(--amber600)':'var(--red600)';
-    html+=`<div class="card" style="margin-bottom:14px">
-      <div class="card-hd"><div class="card-title"><span>🏆</span>${h.hoTen} — <span style="font-weight:400;color:var(--g400)">${h.lop}</span></div>
-      <div style="font-size:13px;font-weight:700;color:${ac}">TB: ${avg}/10</div></div>
-      ${rows.length?`<div class="tw"><table><thead><tr><th>Kỳ thi</th><th>Loại</th><th>Điểm</th><th>Nhận xét</th><th>Ngày</th></tr></thead>
-      <tbody>${rows.map(d=>{const dc=+d.diem>=8?'var(--green600)':+d.diem>=5?'var(--amber600)':'var(--red600)';
-        return `<tr><td><strong>${d.kyThi}</strong></td><td><span class="tag">${d.loai}</span></td>
-        <td><span style="font-size:15px;font-weight:700;color:${dc}">${d.diem}</span><span style="font-size:11px;color:var(--g400)">/10</span></td>
-        <td style="font-style:italic;color:var(--g600)">${d.nhanXet||'—'}</td><td style="font-size:12px;color:var(--g400)">${d.ngay}</td></tr>`;
-      }).join('')}</tbody></table></div>`:'<div class="empty"><div class="ei">📝</div><p>Chưa có điểm</p></div>'}
-    </div>`;
-  }
-  c.innerHTML=html||'<div class="empty"><div class="ei">📭</div><p>Không có dữ liệu</p></div>';
-}
-
-// ══════════════════════════════════════
-//  MODAL & TOAST
-// ══════════════════════════════════════
-function openMo(id)  { document.getElementById(id).classList.add('open'); }
-function closeMo(id) { document.getElementById(id).classList.remove('open'); }
-document.querySelectorAll('.mo').forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('open')}));
-
-function toast(msg, type='') {
-  const t=document.createElement('div');
-  t.className='toast '+(type||'');
-  t.innerHTML=(type==='ok'?'✅':type==='err'?'❌':'ℹ️')+' '+msg;
-  document.getElementById('toast').appendChild(t);
-  setTimeout(()=>t.remove(),3000);
-}
-
-// ══════════════════════════════════════
-// ══════════════════════════════════════
-//  BOOT
-// ══════════════════════════════════════
-window.addEventListener('load', () => {
-  document.getElementById('login-btn').addEventListener('click', startGoogleLogin);
+window.addEventListener('load',()=>{
+  document.getElementById('login-btn').addEventListener('click',startGoogleLogin);
+  document.getElementById('logout-btn').addEventListener('click',logout);
+  document.getElementById('modal-cancel').addEventListener('click',closeModal);
+  document.getElementById('modal-ok').addEventListener('click',()=>{if(MODAL_CB)MODAL_CB();});
+  document.getElementById('modal').addEventListener('click',e=>{if(e.target===e.currentTarget)closeModal();});
+  document.querySelectorAll('.nav-item[data-page]').forEach(el=>{el.addEventListener('click',()=>navTo(el.dataset.page));});
 });
-
-
 </script>
 </body>
 </html>
