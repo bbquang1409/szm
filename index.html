@@ -895,16 +895,16 @@ async function renderTaiKhoan(){
     <div class="table-wrap">
       <div class="table-toolbar"><span style="font-size:13px;font-weight:600">Danh sách tài khoản — ${list.length}</span></div>
       <table>
-        <thead><tr><th>Họ tên</th><th>Email</th><th>Vai trò</th><th>Lớp phụ trách</th><th>Ngày tạo</th><th>Thao tác</th></tr></thead>
+        <thead><tr><th>Họ tên</th><th>Email</th><th>Vai trò</th><th>Ngày tạo</th><th>Thao tác</th></tr></thead>
         <tbody>
           ${list.map(tk=>`<tr>
             <td><div style="display:flex;align-items:center;gap:7px"><div class="avatar" style="width:26px;height:26px;font-size:10px;background:#e8f0fb;color:#1a50a0">${ini(tk.hoTen)}</div><span style="font-weight:500">${tk.hoTen}</span></div></td>
             <td style="color:#5a6478;font-size:12px">${tk.email}</td>
             <td><span class="role-pill r-${tk.role}">${ROLES_VI[tk.role]||tk.role}</span></td>
-            <td style="font-size:12px;color:#5a6478">${tk.lopPhuTrach||'—'}</td>
+
             <td style="font-size:12px;color:#8a96a8">${fmtDate(tk.ngayTao)}</td>
             <td><div class="td-actions">
-              <button class="btn btn-sm" onclick="openModalTK('${tk.email}','${tk.hoTen}','${tk.role}','${tk.lopPhuTrach||''}')">Sửa</button>
+              <button class="btn btn-sm" onclick="openModalTK('${tk.email}','${tk.hoTen}','${tk.role}')">Sửa</button>
               ${tk.email!==USER.email?`<button class="btn btn-danger btn-sm" onclick="deleteTK('${tk.email}')">Xóa</button>`:''}
             </div></td>
           </tr>`).join('')}
@@ -913,38 +913,32 @@ async function renderTaiKhoan(){
     </div>
   `);
 }
-function openModalTK(email,hoTen,role,lopPhuTrach){
+function openModalTK(email,hoTen,role){
   const isEdit=!!email;
   showModal(isEdit?'Sửa tài khoản':'Thêm tài khoản',`
     <div class="form-row"><label>Họ tên *</label><input id="f-hoTen" value="${hoTen||''}"></div>
     <div class="form-row"><label>Email Google *</label><input id="f-email" value="${email||''}" ${isEdit?'disabled':''}></div>
     <div class="form-row"><label>Vai trò *</label>
-      <select id="f-role" onchange="toggleLopField(this.value)">
+      <select id="f-role">
         <option value="admin" ${role==='admin'?'selected':''}>Admin</option>
         <option value="giaovien" ${role==='giaovien'?'selected':''}>Giáo viên</option>
         <option value="quanly" ${role==='quanly'?'selected':''}>Quản lý</option>
         <option value="phuhuynh" ${role==='phuhuynh'?'selected':''}>Phụ huynh / Người giới thiệu</option>
       </select>
     </div>
-    <div class="form-row" id="f-lop-row" style="${role==='giaovien'?'':'display:none'}">
-      <label>Lớp phụ trách <span style="font-weight:400;color:#8a96a8">(nhiều lớp cách nhau bằng dấu phẩy)</span></label>
-      <input id="f-lopPT" value="${lopPhuTrach||''}" placeholder="VD: A1-Sáng, B1.2-Tối">
-    </div>
     <div class="hint">
-      <strong>Admin</strong>: toàn quyền &nbsp;|&nbsp; <strong>Giáo viên</strong>: chỉ thấy lớp mình dạy &nbsp;|&nbsp;
-      <strong>Quản lý</strong>: xem báo cáo, gửi thông báo &nbsp;|&nbsp; <strong>Phụ huynh</strong>: xem học viên mình quản lý
+      <strong>Admin</strong>: toàn quyền &nbsp;|&nbsp;
+      <strong>Giáo viên</strong>: thấy lớp được assign trong Lớp học &nbsp;|&nbsp;
+      <strong>Quản lý</strong>: xem báo cáo, gửi thông báo &nbsp;|&nbsp;
+      <strong>Phụ huynh</strong>: xem học viên mình quản lý
     </div>
   `,async()=>{
-    const body={email:(document.getElementById('f-email').value||email||'').trim().toLowerCase(),hoTen:document.getElementById('f-hoTen').value.trim(),role:document.getElementById('f-role').value,lopPhuTrach:document.getElementById('f-lopPT')?.value?.trim()||''};
+    const body={email:(document.getElementById('f-email').value||email||'').trim().toLowerCase(),hoTen:document.getElementById('f-hoTen').value.trim(),role:document.getElementById('f-role').value};
     if(!body.email||!body.hoTen){toast('Nhập đầy đủ','error');return;}
     const r=await call({action:isEdit?'updateTaiKhoan':'addTaiKhoan',...body});
     if(!r.ok){toast(r.error||'Lỗi','error');return;}
     closeModal();toast(isEdit?'Đã cập nhật':'Đã thêm','success');renderTaiKhoan();
   });
-}
-function toggleLopField(role){
-  const row=document.getElementById('f-lop-row');
-  if(row) row.style.display=role==='giaovien'?'':'none';
 }
 async function deleteTK(email){
   if(!confirm('Xóa tài khoản '+email+'?')) return;
