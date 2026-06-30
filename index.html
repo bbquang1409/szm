@@ -225,11 +225,6 @@ tr:hover td{background:#f8fafd}
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
       <span>Học viên</span>
     </div>
-    <div class="nav-item" data-page="thongbao" id="nav-thongbao">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"/></svg>
-      <span>Tin nhắn</span>
-      <span class="nav-badge" id="badge-tb" style="display:none">0</span>
-    </div>
     <div class="nav-item" data-page="taikhoan" id="nav-taikhoan">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
       <span>Tài khoản</span>
@@ -396,7 +391,7 @@ function filterByLop(lop){
 function navTo(page){
   CURRENT_PAGE=page;CURRENT_TAB='';
   document.querySelectorAll('.nav-item[data-page]').forEach(el=>el.classList.toggle('active',el.dataset.page===page));
-  const titles={dashboard:'Dashboard',lophoc:'Lớp học',hocvien:'Học viên',thongbao:'Tin nhắn',taikhoan:'Tài khoản'};
+  const titles={dashboard:'Dashboard',lophoc:'Lớp học',hocvien:'Học viên',taikhoan:'Tài khoản'};
   document.getElementById('page-title').textContent=titles[page]||page;
   document.getElementById('filter-lop').style.display=page==='hocvien'?'':'none';
   document.getElementById('filter-ngay').style.display='none';
@@ -411,7 +406,6 @@ function renderCurrentPage(){
     case 'lophoc':   renderLopHoc();break;
     case 'lopdetail':renderLopDetail();break;
     case 'hocvien':  renderHocVien();break;
-    case 'thongbao': renderThongBao();break;
     case 'taikhoan': renderTaiKhoan();break;
   }
 }
@@ -468,10 +462,14 @@ async function renderDashboardPH(d){
   const bdRes = await Promise.all(hvList.map(hv=>call({action:'getBangDiemByStudent',studentId:hv.studentId})));
   const ddRes = await Promise.all(hvList.map(hv=>call({action:'getDiemDanhByStudent',studentId:hv.studentId})));
 
+  // Lấy tin nhắn của phụ huynh
+  const tbR = await call({action:'getThongBao'});
+  const msgList = (tbR.ok?tbR.data:[]).slice().sort((a,b)=>a.ngayGui.localeCompare(b.ngayGui));
+
   setContent(`
     <div class="stat-grid" style="grid-template-columns:1fr 1fr">
       <div class="stat-card"><div class="stat-label">Học viên</div><div class="stat-value">${d.soHocVien||0}</div></div>
-      <div class="stat-card"><div class="stat-label">Thông báo chưa đọc</div><div class="stat-value" style="color:#1a50a0">${d.thongBaoChuaDoc||0}</div></div>
+      <div class="stat-card"><div class="stat-label">Tin nhắn chưa đọc</div><div class="stat-value" style="color:#1a50a0">${d.thongBaoChuaDoc||0}</div></div>
     </div>
     ${hvList.map((hv,i)=>{
       const bd = bdRes[i].ok?bdRes[i].data:[];
@@ -498,7 +496,28 @@ async function renderDashboardPH(d){
           ).join('')}</div>`}
       </div>`;
     }).join('')}
+
+    <div class="table-wrap" style="margin-top:14px;padding:14px 16px">
+      <div style="font-size:13px;font-weight:600;color:#0d2d5e;margin-bottom:12px">✉️ Tin nhắn từ trung tâm</div>
+      ${msgList.length===0?'<div class="empty" style="padding:20px"><p>Chưa có tin nhắn nào</p></div>':
+        msgList.map(tb=>`
+        <div style="background:#f5f8fd;border-radius:12px;border-bottom-left-radius:4px;padding:10px 14px;margin-bottom:10px;${!tb.daDocs?'box-shadow:0 0 0 2px #3a7bd5':''}">
+          <div style="font-size:13px;line-height:1.6;white-space:pre-wrap">${escapeHtml(tb.noiDung)}</div>
+          <div style="font-size:10px;margin-top:6px;color:#8a96a8;display:flex;gap:8px">
+            <span>${tb.nguoiGui}</span><span>${fmtDate(tb.ngayGui)}</span>
+            ${tb.lopTarget?`<span>· Lớp ${tb.lopTarget}</span>`:''}
+            ${!tb.daDocs?'<span style="color:#1a50a0;font-weight:600">● Mới</span>':''}
+          </div>
+        </div>`).join('')}
+    </div>
   `);
+
+  // Đánh dấu đã đọc
+  msgList.filter(tb=>!tb.daDocs).forEach(tb=>call({action:'markThongBaoDaDoc',tbId:tb.tbId}));
+}
+
+function escapeHtml(s){
+  const d=document.createElement('div'); d.textContent=s||''; return d.innerHTML;
 }
 
 // ── LOP HOC ──
@@ -507,8 +526,33 @@ async function renderLopHoc(){
   const r=await call({action:'getLopList'});
   LOP_DATA=r.ok?r.data:[];
   document.getElementById('btn-add').onclick=()=>openModalLop(null);
+  const canMsg=['admin','quanly'].includes(USER.role);
   if(LOP_DATA.length===0){setContent('<div class="empty"><p>Chưa có lớp nào. Thêm lớp đầu tiên!</p></div>');return;}
-  setContent(`<div class="lop-grid">${LOP_DATA.map(l=>lopCard(l)).join('')}</div>`);
+  setContent(`
+    ${canMsg?`<div style="margin-bottom:14px;display:flex;justify-content:flex-end">
+      <button class="btn" onclick="openModalGuiTinLop()">✉️ Gửi tin nhắn cho lớp</button>
+    </div>`:''}
+    <div class="lop-grid">${LOP_DATA.map(l=>lopCard(l)).join('')}</div>
+  `);
+}
+
+function openModalGuiTinLop(){
+  showModal('Gửi tin nhắn cho lớp',`
+    <div class="form-row"><label>Gửi tới *</label>
+      <select id="f-target">
+        <option value="all">📢 Tất cả phụ huynh (mọi lớp)</option>
+        ${LOPS.map(l=>`<option value="lop_${l}">👥 Phụ huynh lớp ${l}</option>`).join('')}
+      </select>
+    </div>
+    <div class="form-row"><label>Nội dung *</label><textarea id="f-msg" rows="4" placeholder="Nhập nội dung tin nhắn..."></textarea></div>
+  `,async()=>{
+    const target=document.getElementById('f-target').value;
+    const noiDung=document.getElementById('f-msg').value.trim();
+    if(!noiDung){toast('Nhập nội dung','error');return;}
+    const body={tieuDe:noiDung.slice(0,40),noiDung,nguoiNhan:target.startsWith('lop_')?'all':target,lop:target.startsWith('lop_')?target.replace('lop_',''):''};
+    await call({action:'sendThongBao',...body});
+    closeModal();toast('Đã gửi tin nhắn','success');
+  });
 }
 
 function lopCard(l){
@@ -616,12 +660,16 @@ function hvCard(hv,cb,status){
   const dp=cb?cb.diemViPham:0;
   const pct=Math.max(0,Math.min(100,Math.round((1-dp/10)*100)));
   const clr=status==='ok'?'#1d9e75':status==='warn'?'#ba7517':'#e24b4a';
-  return `<div class="hv-card ${status!=='ok'?status:''}" onclick="openModalHV('${hv.studentId}')">
-    <div class="hv-name"><div class="avatar" style="width:24px;height:24px;font-size:10px;background:#e8f0fb;color:#1a50a0">${ini(hv.hoTen)}</div>${hv.hoTen}${cb?.emailDaGui?'<span class="badge b-warn2" style="margin-left:auto;font-size:9px">Email PH</span>':''}</div>
-    <div class="hv-meta">${hv.lop}</div>
-    ${dp>0?`<div class="hv-meta" style="color:#ba7517">⚠ ${dp} điểm VP</div>`:''}
-    ${hv.soDienThoaiPH?`<div class="hv-meta">PH: ${hv.soDienThoaiPH}</div>`:''}
-    <div class="progress"><div class="progress-fill" style="width:${pct}%;background:${clr}"></div></div>
+  const canMsg = ['admin','quanly','giaovien'].includes(USER.role) && hv.emailPhuHuynh;
+  return `<div class="hv-card ${status!=='ok'?status:''}">
+    <div onclick="openModalHV('${hv.studentId}')" style="cursor:pointer">
+      <div class="hv-name"><div class="avatar" style="width:24px;height:24px;font-size:10px;background:#e8f0fb;color:#1a50a0">${ini(hv.hoTen)}</div>${hv.hoTen}${cb?.emailDaGui?'<span class="badge b-warn2" style="margin-left:auto;font-size:9px">Email PH</span>':''}</div>
+      <div class="hv-meta">${hv.lop}</div>
+      ${dp>0?`<div class="hv-meta" style="color:#ba7517">⚠ ${dp} điểm VP</div>`:''}
+      ${hv.soDienThoaiPH?`<div class="hv-meta">PH: ${hv.soDienThoaiPH}</div>`:''}
+      <div class="progress"><div class="progress-fill" style="width:${pct}%;background:${clr}"></div></div>
+    </div>
+    ${canMsg?`<button class="btn btn-sm" style="margin-top:8px;width:100%" onclick="event.stopPropagation();openModalNhanTinPH('${hv.studentId}','${hv.hoTen}')">✉️ Nhắn tin phụ huynh</button>`:''}
   </div>`;
 }
 
@@ -630,6 +678,7 @@ async function renderHVList(){
   const r=await call({action:'getHocVienByLop',lop:CURRENT_LOP});
   const hvList=r.ok?r.data:[];
   const canEdit=['admin','giaovien'].includes(USER.role);
+  const canMsg=['admin','quanly','giaovien'].includes(USER.role);
   setContent(`
     <div class="table-wrap">
       <div class="table-toolbar">
@@ -643,6 +692,7 @@ async function renderHVList(){
           <th>Họ tên</th><th>Lớp</th><th>SĐT cá nhân</th><th>Email cá nhân</th>
           <th>SĐT phụ huynh</th><th>Email PH</th>
           <th>Đóng tiền</th><th>Trạng thái</th><th>Ghi chú</th>
+          ${canMsg?'<th>Nhắn tin</th>':''}
           ${canEdit?'<th>Sửa</th>':''}
         </tr></thead>
         <tbody>
@@ -668,6 +718,7 @@ async function renderHVList(){
                 :`<span class="badge ${ttClass(hv.trangThai)}">${TRANG_THAI_HV[hv.trangThai]||hv.trangThai}</span>`}
             </td>
             <td style="font-size:12px;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${hv.ghiChu||''}">${hv.ghiChu||'—'}</td>
+            ${canMsg?`<td>${hv.emailPhuHuynh?`<button class="btn btn-sm" onclick="openModalNhanTinPH('${hv.studentId}','${hv.hoTen}')">✉️</button>`:'<span style="color:#a0aab8;font-size:11px">—</span>'}</td>`:''}
             ${canEdit?`<td><button class="btn btn-sm" onclick="openModalHV('${hv.studentId}')">Sửa</button></td>`:''}
           </tr>`).join('')}
         </tbody>
@@ -749,6 +800,23 @@ async function deleteHV(studentId){
   if(!confirm('Xóa học viên này?')) return;
   await call({action:'deleteHocVien',studentId});
   closeModal();toast('Đã xóa','success');renderHocVien();
+}
+
+// ── NHẮN TIN CHO PHỤ HUYNH (1 học viên cụ thể) ──
+async function openModalNhanTinPH(studentId,hoTen){
+  const hv=await call({action:'getHocVienById',studentId});
+  const emailPH = hv.ok?hv.data.emailPhuHuynh:'';
+  if(!emailPH){toast('Học viên chưa có email phụ huynh','error');return;}
+
+  showModal(`Nhắn tin phụ huynh — ${hoTen}`,`
+    <div class="hint" style="margin-bottom:12px">Gửi tới: ${emailPH}</div>
+    <div class="form-row"><label>Nội dung *</label><textarea id="f-msg" rows="4" placeholder="Nhập nội dung tin nhắn..."></textarea></div>
+  `,async()=>{
+    const noiDung=document.getElementById('f-msg').value.trim();
+    if(!noiDung){toast('Nhập nội dung','error');return;}
+    await call({action:'sendThongBao',tieuDe:noiDung.slice(0,40),noiDung,nguoiNhan:emailPH,lop:''});
+    closeModal();toast('Đã gửi tin nhắn','success');
+  });
 }
 
 // ── CHUYEN CAN ──
@@ -1036,75 +1104,6 @@ async function deleteBD(recordId){
   toast('Đã xóa','success');
   const lop=LOP_DATA.find(l=>l.lopId===LOP_DETAIL_ID);
   renderTabBangDiem(lop);
-}
-
-// ── THONG BAO ──
-async function renderThongBao(){
-  setContent('<div class="empty">Đang tải...</div>');
-  const r=await call({action:'getThongBao'});
-  const list=(r.ok?r.data:[]).slice().sort((a,b)=>a.ngayGui.localeCompare(b.ngayGui)); // cũ → mới, giống chat
-  const canSend = ['admin','quanly'].includes(USER.role);
-  document.getElementById('btn-add').style.display='none';
-
-  setContent(`
-    <div style="max-width:680px;margin:0 auto">
-      ${canSend?`
-      <div class="table-wrap" style="padding:14px 16px;margin-bottom:16px">
-        <div style="font-size:13px;font-weight:600;color:#0d2d5e;margin-bottom:10px">✉️ Soạn tin nhắn mới</div>
-        <textarea id="msg-input" rows="3" placeholder="Nhập nội dung tin nhắn..." style="width:100%;margin-bottom:8px"></textarea>
-        <div style="display:flex;gap:8px;align-items:center">
-          <select id="msg-target" style="width:200px">
-            <option value="all">📢 Tất cả phụ huynh</option>
-            ${LOPS.map(l=>`<option value="lop_${l}">👥 Phụ huynh lớp ${l}</option>`).join('')}
-          </select>
-          <span style="flex:1"></span>
-          <button class="btn btn-primary" onclick="sendMsg()">Gửi tin nhắn</button>
-        </div>
-      </div>`:''}
-
-      <div id="chat-thread">
-        ${list.length===0?'<div class="empty"><p>Chưa có tin nhắn nào</p></div>':list.map(tb=>chatBubble(tb)).join('')}
-      </div>
-    </div>
-  `);
-
-  // Tự cuộn xuống tin nhắn mới nhất
-  const thread = document.getElementById('chat-thread');
-  if(thread) thread.scrollIntoView({block:'end'});
-
-  // Đánh dấu đã đọc (phụ huynh)
-  if(USER.role==='phuhuynh'){
-    list.filter(tb=>!tb.daDocs).forEach(tb=>call({action:'markThongBaoDaDoc',tbId:tb.tbId}));
-  }
-}
-
-function chatBubble(tb){
-  const isMine = ['admin','quanly'].includes(USER.role); // tin gửi từ phía trung tâm hiện bên phải nếu đang là staff
-  const unread = USER.role==='phuhuynh' && !tb.daDocs;
-  return `<div style="display:flex;${isMine?'justify-content:flex-end':'justify-content:flex-start'};margin-bottom:12px">
-    <div style="max-width:78%;${isMine?'background:#1a50a0;color:#fff':'background:#fff;color:#1a2236;border:1.5px solid #e4ebf5'};border-radius:14px;${isMine?'border-bottom-right-radius:4px':'border-bottom-left-radius:4px'};padding:10px 14px;${unread?'box-shadow:0 0 0 2px #3a7bd5':''}">
-      <div style="font-size:13px;line-height:1.6;white-space:pre-wrap">${escapeHtml(tb.noiDung)}</div>
-      <div style="font-size:10px;margin-top:6px;opacity:.7;display:flex;gap:8px">
-        <span>${tb.nguoiGui}</span><span>${fmtDate(tb.ngayGui)}</span>
-        ${tb.lopTarget?`<span>· Lớp ${tb.lopTarget}</span>`:''}
-        ${unread?'<span style="color:#ffb020;font-weight:600">● Mới</span>':''}
-      </div>
-    </div>
-  </div>`;
-}
-
-function escapeHtml(s){
-  const d=document.createElement('div'); d.textContent=s||''; return d.innerHTML;
-}
-
-async function sendMsg(){
-  const noiDung = document.getElementById('msg-input').value.trim();
-  const target  = document.getElementById('msg-target').value;
-  if(!noiDung){toast('Nhập nội dung tin nhắn','error');return;}
-  const body={tieuDe:noiDung.slice(0,40),noiDung,nguoiNhan:target.startsWith('lop_')?'all':target,lop:target.startsWith('lop_')?target.replace('lop_',''):''};
-  await call({action:'sendThongBao',...body});
-  toast('Đã gửi tin nhắn','success');
-  renderThongBao();
 }
 
 // ── TAI KHOAN ──
