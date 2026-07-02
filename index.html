@@ -18,164 +18,195 @@ textarea{resize:vertical}
 
 /* LAYOUT */
 #app-shell{display:flex;height:100vh;overflow:hidden}
-#sidebar{width:220px;background:#fff;border-right:1.5px solid #e4ebf5;display:flex;flex-direction:column;flex-shrink:0}
-#main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+#sidebar{width:230px;background:linear-gradient(180deg,#0d2d5e 0%,#1a50a0 100%);border-right:none;display:flex;flex-direction:column;flex-shrink:0;box-shadow:4px 0 20px rgba(10,30,80,.18)}
+#main{flex:1;display:flex;flex-direction:column;overflow:hidden;background:#f0f4fa}
 
 /* SIDEBAR */
-.brand{padding:16px;border-bottom:1.5px solid #e4ebf5;display:flex;align-items:center;gap:10px}
-.brand-logo{width:36px;height:36px;background:linear-gradient(135deg,#1a50a0,#3a7bd5);border-radius:10px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px;font-weight:700;flex-shrink:0}
-.brand-name{font-size:15px;font-weight:600;color:#0d2d5e}
-.nav-section{padding:12px 12px 4px;font-size:10px;color:#a0aab8;text-transform:uppercase;letter-spacing:.06em;font-weight:600}
-.nav-item{display:flex;align-items:center;gap:9px;padding:9px 12px;font-size:13px;color:#5a6478;cursor:pointer;border-radius:8px;margin:1px 6px;transition:all .15s;border:1.5px solid transparent;position:relative}
-.nav-item:hover{background:#f0f4fa;color:#1a2236}
-.nav-item.active{background:#e8f0fb;color:#1a50a0;font-weight:500;border-color:#c5d8f5}
-.nav-item svg{width:17px;height:17px;flex-shrink:0}
-.nav-badge{margin-left:auto;background:#e24b4a;color:#fff;font-size:10px;font-weight:600;padding:1px 6px;border-radius:10px}
-.nav-lop{display:flex;align-items:center;gap:8px;padding:7px 12px;font-size:12px;color:#5a6478;cursor:pointer;border-radius:8px;margin:1px 6px}
-.nav-lop:hover{background:#f0f4fa}
-.nav-lop.active{color:#1a50a0;font-weight:500}
-.lop-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.brand{padding:18px 16px 14px;border-bottom:1px solid rgba(255,255,255,.12);display:flex;align-items:center;gap:10px}
+.brand-logo{width:38px;height:38px;background:linear-gradient(135deg,#fff3,#fff1);border:2px solid rgba(255,255,255,.3);border-radius:12px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:14px;font-weight:800;flex-shrink:0;box-shadow:0 2px 8px rgba(0,0,0,.2)}
+.brand-name{font-size:12px;font-weight:600;color:rgba(255,255,255,.9);line-height:1.3}
+.nav-section{padding:14px 14px 4px;font-size:9px;color:rgba(255,255,255,.4);text-transform:uppercase;letter-spacing:.1em;font-weight:700}
+.nav-item{display:flex;align-items:center;gap:9px;padding:9px 14px;font-size:13px;color:rgba(255,255,255,.7);cursor:pointer;border-radius:10px;margin:1px 8px;transition:all .18s;border:1px solid transparent;position:relative}
+.nav-item:hover{background:rgba(255,255,255,.1);color:#fff}
+.nav-item.active{background:rgba(255,255,255,.18);color:#fff;font-weight:600;border-color:rgba(255,255,255,.25);box-shadow:0 2px 10px rgba(0,0,0,.15)}
+.nav-item svg{width:17px;height:17px;flex-shrink:0;opacity:.85}
+.nav-item.active svg{opacity:1}
+.nav-badge{margin-left:auto;background:#e24b4a;color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:10px;box-shadow:0 1px 4px rgba(226,75,74,.5)}
+.nav-lop{display:flex;align-items:center;gap:8px;padding:6px 14px;font-size:12px;color:rgba(255,255,255,.65);cursor:pointer;border-radius:8px;margin:1px 8px;transition:all .15s}
+.nav-lop:hover{background:rgba(255,255,255,.1);color:#fff}
+.nav-lop.active{color:#fff;font-weight:500;background:rgba(255,255,255,.12)}
+.lop-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
 
 /* alert dot cho lớp có cảnh báo kiểm tra */
-.nav-lop .alert-dot{width:7px;height:7px;border-radius:50%;background:#e24b4a;margin-left:auto;flex-shrink:0;animation:pulse 1.5s infinite}
+.nav-lop .alert-dot{width:7px;height:7px;border-radius:50%;background:#fbbf24;margin-left:auto;flex-shrink:0;animation:pulse 1.5s infinite;box-shadow:0 0 6px #fbbf24}
 @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.6;transform:scale(1.3)}}
 
-.sidebar-footer{margin-top:auto;padding:12px;border-top:1.5px solid #e4ebf5}
-.user-card{display:flex;align-items:center;gap:8px;padding:8px;border-radius:8px}
-.avatar{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;flex-shrink:0}
-.user-name{font-size:13px;font-weight:500;color:#1a2236}
-.role-pill{font-size:10px;padding:1px 7px;border-radius:10px;font-weight:500;display:inline-block;margin-top:2px}
-.r-admin{background:#e8f0fb;color:#1a50a0}
-.r-giaovien{background:#e1f5ee;color:#0f6e56}
-.r-quanly{background:#faeeda;color:#7d4e0a}
-.r-phuhuynh{background:#fbeaf0;color:#8a2040}
-.logout-btn{font-size:11px;color:#8a96a8;background:none;border:none;padding:2px 0;margin-top:2px;display:block;text-align:left}
-.logout-btn:hover{color:#e24b4a}
+.sidebar-footer{margin-top:auto;padding:12px;border-top:1px solid rgba(255,255,255,.1)}
+.user-card{display:flex;align-items:center;gap:8px;padding:8px;border-radius:10px;transition:background .15s}
+.user-card:hover{background:rgba(255,255,255,.08)}
+.avatar{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0;border:2px solid rgba(255,255,255,.3)}
+.user-name{font-size:12px;font-weight:600;color:rgba(255,255,255,.9)}
+.role-pill{font-size:9px;padding:1px 7px;border-radius:10px;font-weight:600;display:inline-block;margin-top:2px}
+.r-admin{background:rgba(255,255,255,.2);color:#fff}
+.r-giaovien{background:rgba(16,185,129,.25);color:#6ee7b7}
+.r-quanly{background:rgba(251,191,36,.2);color:#fde68a}
+.r-phuhuynh{background:rgba(251,113,133,.2);color:#fda4af}
+.logout-btn{font-size:11px;color:rgba(255,255,255,.45);background:none;border:none;padding:2px 0;margin-top:2px;display:block;text-align:left;cursor:pointer;transition:color .15s}
+.logout-btn:hover{color:#f87171}
 
 /* TOPBAR */
-#topbar{padding:12px 20px;background:#fff;border-bottom:1.5px solid #e4ebf5;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-.page-title{font-size:16px;font-weight:600;color:#0d2d5e;flex:1;min-width:120px}
+#topbar{padding:14px 24px;background:#fff;border-bottom:none;box-shadow:0 1px 0 #e4ebf5,0 4px 12px rgba(0,0,0,.04);display:flex;align-items:center;gap:10px;flex-wrap:wrap;z-index:10}
+.page-title{font-size:17px;font-weight:700;color:#0d2d5e;flex:1;min-width:120px}
 
 /* ALERT BANNER */
-#alert-banner{display:none;background:#fff3cd;border-bottom:2px solid #f0ad4e;padding:8px 20px;font-size:13px;color:#7d4e0a;display:flex;gap:8px;align-items:center}
+#alert-banner{display:none;background:linear-gradient(90deg,#fff7e0,#fff3cd);border-bottom:none;border-top:3px solid #f0ad4e;padding:8px 24px;font-size:13px;color:#7d4e0a;display:flex;gap:8px;align-items:center;box-shadow:0 2px 8px rgba(240,173,78,.15)}
 .alert-blink{animation:pulse 1s infinite;display:inline-block;width:8px;height:8px;border-radius:50%;background:#e24b4a;flex-shrink:0}
 
 /* BTN */
-.btn{padding:7px 14px;border-radius:8px;border:1.5px solid #d1dae8;background:#fff;color:#1a2236;font-weight:500;transition:all .15s;font-size:13px}
-.btn:hover{border-color:#3a7bd5;color:#1a50a0}
-.btn-primary{background:#1a50a0;border-color:#1a50a0;color:#fff}
-.btn-primary:hover{background:#153f80}
-.btn-danger{background:#fff;border-color:#f5c4b3;color:#993c1d}
-.btn-danger:hover{background:#fef0ee;border-color:#e24b4a}
+.btn{padding:7px 16px;border-radius:9px;border:1.5px solid #d1dae8;background:#fff;color:#1a2236;font-weight:500;transition:all .15s;font-size:13px;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.btn:hover{border-color:#3a7bd5;color:#1a50a0;box-shadow:0 2px 8px rgba(58,123,213,.12);transform:translateY(-1px)}
+.btn:active{transform:translateY(0)}
+.btn-primary{background:linear-gradient(135deg,#1a50a0,#2563d4);border-color:#1a50a0;color:#fff;box-shadow:0 2px 8px rgba(26,80,160,.3)}
+.btn-primary:hover{background:linear-gradient(135deg,#153f80,#1a50a0);box-shadow:0 4px 14px rgba(26,80,160,.4);color:#fff}
+.btn-danger{background:#fff;border-color:#f5c4b3;color:#993c1d;box-shadow:0 1px 3px rgba(0,0,0,.06)}
+.btn-danger:hover{background:#fef0ee;border-color:#e24b4a;box-shadow:0 2px 8px rgba(226,75,74,.15)}
 .btn-sm{padding:4px 10px;font-size:12px}
-.btn-success{background:#0f6e56;border-color:#0f6e56;color:#fff}
+.btn-success{background:linear-gradient(135deg,#0f6e56,#059669);border-color:#0f6e56;color:#fff;box-shadow:0 2px 8px rgba(15,110,86,.3)}
 
 /* TABS */
-.tab-bar{display:flex;gap:2px;padding:0 20px;background:#fff;border-bottom:1.5px solid #e4ebf5;overflow-x:auto}
-.tab{padding:10px 14px;font-size:13px;color:#5a6478;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1.5px;white-space:nowrap;font-weight:500}
+.tab-bar{display:flex;gap:2px;padding:0 24px;background:#fff;border-bottom:1px solid #e4ebf5;overflow-x:auto}
+.tab{padding:11px 16px;font-size:13px;color:#5a6478;cursor:pointer;border-bottom:2.5px solid transparent;margin-bottom:-1px;white-space:nowrap;font-weight:500;transition:all .15s}
 .tab:hover{color:#1a2236}
-.tab.active{color:#1a50a0;border-bottom-color:#1a50a0}
+.tab.active{color:#1a50a0;border-bottom-color:#1a50a0;font-weight:600}
 
 /* CONTENT */
-#content{flex:1;overflow:auto;padding:20px}
+#content{flex:1;overflow:auto;padding:24px}
 
 /* STATS */
-.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:18px}
-.stat-card{background:#fff;border-radius:12px;padding:16px;border:1.5px solid #e4ebf5}
-.stat-label{font-size:11px;color:#8a96a8;font-weight:600;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px}
-.stat-value{font-size:26px;font-weight:600;color:#0d2d5e;line-height:1}
-.stat-sub{font-size:11px;color:#8a96a8;margin-top:4px}
+.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px}
+.stat-card{background:#fff;border-radius:16px;padding:18px 20px;border:none;box-shadow:0 2px 0 #e4ebf5,0 4px 16px rgba(0,0,0,.06);position:relative;overflow:hidden;transition:transform .15s,box-shadow .15s}
+.stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:3px;background:linear-gradient(90deg,#1a50a0,#3a7bd5)}
+.stat-card:hover{transform:translateY(-2px);box-shadow:0 6px 24px rgba(0,0,0,.1)}
+.stat-label{font-size:11px;color:#8a96a8;font-weight:600;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px}
+.stat-value{font-size:28px;font-weight:700;color:#0d2d5e;line-height:1}
+.stat-sub{font-size:11px;color:#8a96a8;margin-top:5px}
 
 /* KANBAN */
-.kanban{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
-.kanban-col{background:#f5f8fd;border-radius:12px;border:1.5px solid #e4ebf5;overflow:hidden}
-.col-header{padding:11px 14px;background:#fff;border-bottom:1.5px solid #e4ebf5;display:flex;align-items:center;justify-content:space-between;font-size:13px;font-weight:600}
+.kanban{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.kanban-col{background:#f5f8fd;border-radius:14px;border:1px solid #e4ebf5;overflow:hidden;box-shadow:0 2px 8px rgba(0,0,0,.04)}
+.col-header{padding:12px 16px;background:#fff;border-bottom:1px solid #e4ebf5;display:flex;align-items:center;justify-content:space-between;font-size:13px;font-weight:600}
 .col-body{padding:8px;min-height:100px}
-.hv-card{background:#fff;border-radius:8px;border:1.5px solid #e4ebf5;padding:11px;margin-bottom:8px;cursor:pointer;transition:all .15s}
-.hv-card:hover{border-color:#3a7bd5;box-shadow:0 2px 8px rgba(58,123,213,.1)}
+.hv-card{background:#fff;border-radius:10px;border:1px solid #e4ebf5;padding:12px;margin-bottom:8px;cursor:pointer;transition:all .18s;box-shadow:0 1px 4px rgba(0,0,0,.05)}
+.hv-card:hover{border-color:#3a7bd5;box-shadow:0 4px 14px rgba(58,123,213,.14);transform:translateY(-1px)}
 .hv-card.warn{border-left:3px solid #ba7517}
 .hv-card.danger{border-left:3px solid #e24b4a}
 .hv-name{font-size:13px;font-weight:600;margin-bottom:5px;display:flex;align-items:center;gap:6px}
 .hv-meta{font-size:11px;color:#8a96a8;display:flex;align-items:center;gap:4px;margin-top:3px}
-.progress{height:3px;background:#e4ebf5;border-radius:2px;margin-top:8px}
+.progress{height:4px;background:#e4ebf5;border-radius:2px;margin-top:8px}
 .progress-fill{height:100%;border-radius:2px;transition:width .3s}
 
 /* TABLE */
-.table-wrap{background:#fff;border-radius:12px;border:1.5px solid #e4ebf5;overflow:hidden}
-.table-toolbar{padding:12px 16px;border-bottom:1.5px solid #e4ebf5;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.table-wrap{background:#fff;border-radius:16px;border:none;overflow:hidden;box-shadow:0 2px 0 #e4ebf5,0 4px 16px rgba(0,0,0,.06)}
+.table-toolbar{padding:14px 18px;border-bottom:1px solid #f0f4fa;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
 table{width:100%;border-collapse:collapse}
-th{padding:9px 12px;text-align:left;font-size:11px;font-weight:600;color:#8a96a8;text-transform:uppercase;letter-spacing:.04em;border-bottom:1.5px solid #e4ebf5;background:#f8fafd;white-space:nowrap}
-td{padding:10px 12px;border-bottom:1px solid #f0f4fa;font-size:13px;vertical-align:middle}
+th{padding:10px 14px;text-align:left;font-size:10px;font-weight:700;color:#8a96a8;text-transform:uppercase;letter-spacing:.06em;border-bottom:1px solid #f0f4fa;background:linear-gradient(180deg,#fafbfd,#f5f8fc);white-space:nowrap}
+td{padding:11px 14px;border-bottom:1px solid #f7f9fc;font-size:13px;vertical-align:middle}
 tr:last-child td{border-bottom:none}
-tr:hover td{background:#f8fafd}
+tr:hover td{background:#f8faff}
 .td-actions{display:flex;gap:5px;flex-wrap:wrap}
 
 /* BADGES */
-.badge{font-size:10px;padding:2px 8px;border-radius:10px;font-weight:600;white-space:nowrap}
-.b-ok{background:#e1f5ee;color:#0f6e56}
-.b-phep{background:#e8f0fb;color:#1a50a0}
-.b-tre{background:#faeeda;color:#7d4e0a}
-.b-vang{background:#fef0ee;color:#993c1d}
-.b-warn1{background:#faeeda;color:#7d4e0a}
-.b-warn2{background:#fef0ee;color:#993c1d}
-.b-dong{background:#e1f5ee;color:#0f6e56}
-.b-chua{background:#fef0ee;color:#993c1d}
-.b-baoluu{background:#f0ebff;color:#5a30b5}
-.b-nghi{background:#f5f5f5;color:#5a6478}
+.badge{font-size:10px;padding:3px 9px;border-radius:20px;font-weight:600;white-space:nowrap}
+.b-ok{background:#dcfce7;color:#166534}
+.b-phep{background:#dbeafe;color:#1e40af}
+.b-tre{background:#fef9c3;color:#854d0e}
+.b-vang{background:#fee2e2;color:#991b1b}
+.b-warn1{background:#fef3c7;color:#92400e}
+.b-warn2{background:#fee2e2;color:#991b1b}
+.b-dong{background:#dcfce7;color:#166534}
+.b-chua{background:#fee2e2;color:#991b1b}
+.b-baoluu{background:#ede9fe;color:#5b21b6}
+.b-nghi{background:#f1f5f9;color:#475569}
 
 /* LOP CARD */
-.lop-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
-.lop-card{background:#fff;border-radius:12px;border:1.5px solid #e4ebf5;padding:16px;cursor:pointer;transition:all .15s;position:relative;overflow:hidden}
-.lop-card:hover{border-color:#3a7bd5;box-shadow:0 4px 14px rgba(58,123,213,.1)}
-.lop-card.has-alert{border-color:#e24b4a;box-shadow:0 0 0 3px rgba(226,75,74,.1)}
-.lop-title{font-size:15px;font-weight:600;color:#0d2d5e;margin-bottom:4px}
-.lop-cap{font-size:11px;font-weight:500;padding:2px 8px;border-radius:6px;display:inline-block;margin-bottom:10px}
+.lop-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.lop-card{background:#fff;border-radius:16px;border:none;padding:18px;cursor:pointer;transition:all .2s;position:relative;overflow:hidden;box-shadow:0 2px 0 #e4ebf5,0 4px 16px rgba(0,0,0,.06)}
+.lop-card::after{content:'';position:absolute;top:0;left:0;right:0;height:4px;background:linear-gradient(90deg,#1a50a0,#3a7bd5);opacity:.6;transition:opacity .2s}
+.lop-card:hover{box-shadow:0 8px 30px rgba(0,0,0,.12);transform:translateY(-3px)}
+.lop-card:hover::after{opacity:1}
+.lop-card.has-alert{box-shadow:0 4px 20px rgba(226,75,74,.2),0 0 0 2px rgba(226,75,74,.3)}
+.lop-card.has-alert::after{background:linear-gradient(90deg,#e24b4a,#f87171)}
+.lop-title{font-size:16px;font-weight:700;color:#0d2d5e;margin-bottom:4px}
+.lop-cap{font-size:10px;font-weight:700;padding:3px 9px;border-radius:20px;display:inline-block;margin-bottom:10px;letter-spacing:.04em}
 .lop-progress-wrap{margin:10px 0 6px}
-.lop-progress-label{display:flex;justify-content:space-between;font-size:11px;color:#8a96a8;margin-bottom:4px}
-.lop-progress{height:6px;background:#e4ebf5;border-radius:3px}
-.lop-progress-fill{height:100%;border-radius:3px;transition:width .3s}
+.lop-progress-label{display:flex;justify-content:space-between;font-size:11px;color:#8a96a8;margin-bottom:5px}
+.lop-progress{height:7px;background:#f0f4fa;border-radius:4px;box-shadow:inset 0 1px 3px rgba(0,0,0,.06)}
+.lop-progress-fill{height:100%;border-radius:4px;transition:width .4s;box-shadow:0 1px 4px rgba(0,0,0,.15)}
 .lop-dates{font-size:11px;color:#8a96a8;margin-top:6px}
-.kt-alert{margin-top:10px;padding:8px 10px;border-radius:7px;font-size:12px;font-weight:500}
-.kt-alert.giua{background:#fff3cd;color:#7d4e0a;border:1px solid #f0ad4e}
-.kt-alert.cuoi{background:#fef0ee;color:#993c1d;border:1px solid #f5c4b3}
-.lop-actions{position:absolute;top:12px;right:12px;display:flex;gap:5px}
-.so-hv{font-size:12px;color:#5a6478;margin-top:6px}
+.kt-alert{margin-top:10px;padding:8px 12px;border-radius:9px;font-size:12px;font-weight:600;display:flex;align-items:center;gap:6px}
+.kt-alert.giua{background:#fffbeb;color:#92400e;border-left:3px solid #f59e0b}
+.kt-alert.cuoi{background:#fff1f2;color:#991b1b;border-left:3px solid #e24b4a}
+.lop-actions{position:absolute;top:14px;right:14px;display:flex;gap:5px}
+.so-hv{font-size:12px;color:#6b7280;margin-top:8px}
 
 /* CHECKBOX STYLE */
 .cb{width:16px;height:16px;cursor:pointer;accent-color:#1a50a0}
 
 /* MODAL */
-.modal-overlay{position:fixed;inset:0;background:rgba(10,20,50,.45);display:flex;align-items:center;justify-content:center;z-index:1000;padding:16px}
-.modal{background:#fff;border-radius:16px;padding:24px;width:100%;max-width:560px;max-height:92vh;overflow-y:auto;box-shadow:0 20px 60px rgba(10,20,50,.25)}
-.modal h3{font-size:15px;font-weight:600;color:#0d2d5e;margin-bottom:18px;padding-bottom:12px;border-bottom:1.5px solid #e4ebf5}
-.form-row{margin-bottom:13px}
-.form-row label{display:block;font-size:12px;font-weight:600;color:#5a6478;margin-bottom:4px}
+.modal-overlay{position:fixed;inset:0;background:rgba(10,20,50,.5);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;z-index:1000;padding:16px}
+.modal{background:#fff;border-radius:20px;padding:28px;width:100%;max-width:560px;max-height:92vh;overflow-y:auto;box-shadow:0 24px 60px rgba(10,20,80,.25),0 0 0 1px rgba(255,255,255,.6)}
+.modal h3{font-size:16px;font-weight:700;color:#0d2d5e;margin-bottom:20px;padding-bottom:14px;border-bottom:1px solid #f0f4fa}
+.form-row{margin-bottom:14px}
+.form-row label{display:block;font-size:12px;font-weight:600;color:#5a6478;margin-bottom:5px}
 .form-row input,.form-row select,.form-row textarea{width:100%}
 .form-grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 .form-grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
-.modal-footer{display:flex;justify-content:flex-end;gap:8px;margin-top:18px;padding-top:14px;border-top:1.5px solid #e4ebf5}
-.hint{background:#f5f8fd;border-radius:8px;padding:10px 12px;font-size:12px;color:#5a6478;margin-top:6px}
+.modal-footer{display:flex;justify-content:flex-end;gap:8px;margin-top:20px;padding-top:16px;border-top:1px solid #f0f4fa}
+.hint{background:linear-gradient(135deg,#f0f7ff,#e8f0fb);border-radius:10px;padding:11px 14px;font-size:12px;color:#3b5ea6;margin-top:6px;border-left:3px solid #3a7bd5}
 
 /* TOAST */
-#toast{position:fixed;bottom:20px;right:20px;z-index:2000;display:flex;flex-direction:column;gap:8px}
-.toast-item{background:#1a2236;color:#fff;padding:10px 16px;border-radius:10px;font-size:13px;box-shadow:0 8px 24px rgba(0,0,0,.2);animation:slideIn .2s ease;max-width:300px}
-.toast-item.success{background:#0f6e56}
-.toast-item.error{background:#993c1d}
-@keyframes slideIn{from{transform:translateX(40px);opacity:0}to{transform:translateX(0);opacity:1}}
+#toast{position:fixed;bottom:24px;right:24px;z-index:2000;display:flex;flex-direction:column;gap:8px}
+.toast-item{background:linear-gradient(135deg,#1a2236,#0d2d5e);color:#fff;padding:12px 18px;border-radius:12px;font-size:13px;box-shadow:0 8px 24px rgba(0,0,0,.25);animation:slideIn .25s cubic-bezier(.34,1.56,.64,1);max-width:320px;border:1px solid rgba(255,255,255,.1)}
+.toast-item.success{background:linear-gradient(135deg,#0f6e56,#059669)}
+.toast-item.error{background:linear-gradient(135deg,#993c1d,#dc2626)}
+@keyframes slideIn{from{transform:translateX(40px) scale(.95);opacity:0}to{transform:translateX(0) scale(1);opacity:1}}
 
 /* LOGIN */
-#login-screen{min-height:100vh;background:linear-gradient(135deg,#e8f1fb,#d0e4ff);display:flex;align-items:center;justify-content:center}
-.login-card{background:#fff;border-radius:24px;padding:44px 36px;width:400px;max-width:94vw;border:1.5px solid #c5daff;text-align:center}
-.login-logo{width:68px;height:68px;background:linear-gradient(135deg,#1a50a0,#3a7bd5);border-radius:20px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:24px;font-weight:800;margin:0 auto 18px}
-.login-title{font-size:21px;font-weight:700;color:#0d2d5e;margin-bottom:5px}
-.login-sub{font-size:13px;color:#8a96a8;margin-bottom:26px}
-.btn-google{display:flex;align-items:center;gap:10px;background:#fff;border:1.5px solid #d1dae8;border-radius:12px;padding:12px 20px;font-size:14px;font-weight:600;color:#1a2236;cursor:pointer;width:100%;justify-content:center;transition:all .15s}
-.btn-google:hover{border-color:#3a7bd5;box-shadow:0 4px 12px rgba(58,123,213,.12)}
-.login-error{margin-top:12px;font-size:13px;color:#993c1d;background:#fef0ee;border-radius:8px;padding:9px 12px;display:none;text-align:left}
-.login-note{margin-top:16px;font-size:11px;color:#a0aab8}
+#login-screen{min-height:100vh;background:linear-gradient(135deg,#0d2d5e 0%,#1a50a0 50%,#2563d4 100%);display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
+#login-screen::before{content:'';position:absolute;width:600px;height:600px;border-radius:50%;background:rgba(255,255,255,.04);top:-200px;right:-200px}
+#login-screen::after{content:'';position:absolute;width:400px;height:400px;border-radius:50%;background:rgba(255,255,255,.03);bottom:-150px;left:-150px}
+.login-card{background:#fff;border-radius:24px;padding:48px 40px;width:420px;max-width:94vw;border:none;text-align:center;box-shadow:0 24px 60px rgba(0,0,0,.3),0 0 0 1px rgba(255,255,255,.1);position:relative;z-index:1}
+.login-logo{width:72px;height:72px;background:linear-gradient(135deg,#1a50a0,#2563d4);border-radius:22px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:26px;font-weight:800;margin:0 auto 20px;box-shadow:0 8px 24px rgba(26,80,160,.4)}
+.login-title{font-size:22px;font-weight:700;color:#0d2d5e;margin-bottom:6px}
+.login-sub{font-size:13px;color:#8a96a8;margin-bottom:28px}
+.btn-google{display:flex;align-items:center;gap:10px;background:#fff;border:1.5px solid #e4ebf5;border-radius:12px;padding:13px 24px;font-size:14px;font-weight:600;color:#1a2236;cursor:pointer;width:100%;justify-content:center;transition:all .18s;box-shadow:0 2px 8px rgba(0,0,0,.08)}
+.btn-google:hover{border-color:#3a7bd5;box-shadow:0 4px 16px rgba(58,123,213,.18);transform:translateY(-1px)}
+.login-error{margin-top:14px;font-size:13px;color:#993c1d;background:#fef2f2;border-radius:10px;padding:10px 14px;display:none;text-align:left;border-left:3px solid #e24b4a}
+.login-note{margin-top:18px;font-size:11px;color:#a0aab8}
 
 /* EMPTY */
 .empty{text-align:center;padding:48px 20px;color:#8a96a8}
+
+/* TUTORIAL BUBBLE */
+#tutorial-bubble{position:fixed;bottom:24px;right:24px;z-index:1500;width:300px;background:#fff;border-radius:18px;box-shadow:0 8px 32px rgba(10,30,80,.18),0 0 0 1.5px rgba(26,80,160,.12);overflow:hidden;transition:all .3s cubic-bezier(.34,1.56,.64,1)}
+#tutorial-bubble.minimized{width:48px;height:48px;border-radius:50%;overflow:hidden;box-shadow:0 4px 16px rgba(26,80,160,.25)}
+.tut-header{background:linear-gradient(135deg,#1a50a0,#2563d4);padding:12px 14px;display:flex;align-items:center;gap:8px}
+.tut-header-icon{font-size:18px}
+.tut-header-title{font-size:13px;font-weight:600;color:#fff;flex:1}
+.tut-header-btns{display:flex;gap:4px}
+.tut-btn{background:rgba(255,255,255,.2);border:none;color:#fff;width:24px;height:24px;border-radius:50%;cursor:pointer;font-size:12px;display:flex;align-items:center;justify-content:center;transition:background .15s}
+.tut-btn:hover{background:rgba(255,255,255,.35)}
+.tut-body{padding:14px 16px}
+.tut-step{font-size:12px;color:#8a96a8;margin-bottom:6px;font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+.tut-text{font-size:13px;color:#1a2236;line-height:1.6}
+.tut-nav{display:flex;align-items:center;gap:8px;margin-top:12px;padding-top:10px;border-top:1px solid #f0f4fa}
+.tut-dots{display:flex;gap:4px;flex:1}
+.tut-dot{width:6px;height:6px;border-radius:50%;background:#e4ebf5;transition:all .2s}
+.tut-dot.active{background:#1a50a0;width:18px;border-radius:3px}
+.tut-nav-btn{background:none;border:1.5px solid #e4ebf5;border-radius:8px;padding:4px 10px;font-size:12px;color:#5a6478;cursor:pointer;transition:all .15s}
+.tut-nav-btn:hover{border-color:#3a7bd5;color:#1a50a0}
+.tut-nav-btn:disabled{opacity:.4;cursor:default}
+.tut-min-icon{width:48px;height:48px;background:linear-gradient(135deg,#1a50a0,#2563d4);display:flex;align-items:center;justify-content:center;font-size:20px;cursor:pointer;position:absolute;inset:0;border-radius:50%}
 
 /* RESPONSIVE */
 @media(max-width:800px){
@@ -209,7 +240,7 @@ tr:hover td{background:#f8fafd}
   <div id="sidebar">
     <div class="brand">
       <div class="brand-logo">SM</div>
-      <div><div class="brand-name">SZM</div></div>
+      <div><div class="brand-name">Quản lý đào tạo</div></div>
     </div>
     <div class="nav-section">Menu</div>
     <div class="nav-item active" data-page="dashboard">
@@ -271,6 +302,30 @@ tr:hover td{background:#f8fafd}
 </div>
 <div id="toast"></div>
 
+<!-- TUTORIAL BUBBLE -->
+<div id="tutorial-bubble" style="display:none">
+  <div class="tut-min-icon" id="tut-min-icon" onclick="tutExpand()" style="display:none">💡</div>
+  <div id="tut-content">
+    <div class="tut-header">
+      <span class="tut-header-icon">💡</span>
+      <span class="tut-header-title">Hướng dẫn sử dụng</span>
+      <div class="tut-header-btns">
+        <button class="tut-btn" onclick="tutMinimize()" title="Thu nhỏ">−</button>
+        <button class="tut-btn" onclick="tutClose()" title="Đóng">✕</button>
+      </div>
+    </div>
+    <div class="tut-body">
+      <div class="tut-step" id="tut-step-label"></div>
+      <div class="tut-text" id="tut-text"></div>
+      <div class="tut-nav">
+        <div class="tut-dots" id="tut-dots"></div>
+        <button class="tut-nav-btn" id="tut-prev" onclick="tutNav(-1)">←</button>
+        <button class="tut-nav-btn" id="tut-next" onclick="tutNav(1)">→</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <script>
 const GCI = '39863848508-e8iffhhvlv2h7l06395vunsp2i3ksnh8.apps.googleusercontent.com';
@@ -326,6 +381,10 @@ async function startApp(){
   rp.textContent=ROLES_VI[USER.role]||USER.role;rp.className='role-pill r-'+USER.role;
   applyRoleNav();
   await loadLops();
+  if(['admin','giaovien','quanly'].includes(USER.role)){
+    const tk=await call({action:'getTaiKhoanList'});
+    window.ALL_ACCOUNTS = tk.ok?tk.data:[];
+  }
   navTo('dashboard');
 }
 
@@ -397,6 +456,7 @@ function navTo(page){
   document.getElementById('filter-ngay').style.display='none';
   document.getElementById('btn-add').style.display=['lophoc','hocvien','taikhoan'].includes(page)&&USER.role!=='phuhuynh'?'':'none';
   document.getElementById('tab-bar').style.display=page==='hocvien'?'':'none';
+  tutInit(page);
   renderCurrentPage();
 }
 
@@ -586,7 +646,12 @@ async function openModalLop(lopId){
   let l=null;
   if(lopId) l=LOP_DATA.find(x=>x.lopId===lopId)||null;
   const tvList=await call({action:'getTaiKhoanList'});
-  const gvList=tvList.ok?tvList.data.filter(t=>t.role==='giaovien'):[];
+  const gvList=tvList.ok?tvList.data.filter(t=>['giaovien','admin'].includes(t.role)):[];
+  CA_HOC_GV_LIST = gvList;
+  let caHocList = [];
+  try{ caHocList = l?.caHoc ? JSON.parse(l.caHoc) : []; }catch(e){ caHocList = []; }
+  if(caHocList.length===0) caHocList=[{ten:'',nguoiDay:''}];
+
   showModal(l?'Sửa lớp':'Thêm lớp mới',`
     <div class="form-grid2">
       <div class="form-row"><label>Tên lớp *</label><input id="f-tenLop" value="${l?.tenLop||''}"></div>
@@ -598,16 +663,26 @@ async function openModalLop(lopId){
       <div class="form-row"><label>Ngày bắt đầu</label><input type="date" id="f-ngayBD" value="${l?.ngayBatDau||''}"></div>
       <div class="form-row"><label>Ngày kết thúc (dự kiến)</label><input type="date" id="f-ngayKT" value="${l?.ngayKetThuc||''}"></div>
     </div>
-    <div class="form-row"><label>Giáo viên phụ trách</label>
+    <div class="form-row"><label>Giáo viên chủ nhiệm</label>
       <select id="f-gv">
         <option value="">— Chọn giáo viên —</option>
         ${gvList.map(gv=>`<option value="${gv.email}" ${l?.giaoVienEmail===gv.email?'selected':''}>${gv.hoTen} (${gv.email})</option>`).join('')}
       </select>
     </div>
-    <div class="form-row"><label>Ghi chú</label><textarea id="f-ghiChu" rows="2">${l?.ghiChu||''}</textarea></div>
-    <div class="hint">Ngày kiểm tra giữa kỳ sẽ được tính tự động = 50% thời gian lớp học. Cảnh báo sẽ hiện khi còn ≤ 7 ngày.</div>
+
+    <div class="form-row">
+      <label>Các ca học trong tuần <span style="font-weight:400;color:#8a96a8">(vd: Sáng - Trợ giảng, Chiều - GV Việt...)</span></label>
+      <div id="ca-hoc-list">
+        ${caHocList.map((ca,i)=>caHocRow(ca,i,gvList)).join('')}
+      </div>
+      <button type="button" class="btn btn-sm" style="margin-top:6px" onclick="addCaHocRow()">+ Thêm ca học</button>
+    </div>
+
+    <div class="form-row" style="margin-top:10px"><label>Ghi chú</label><textarea id="f-ghiChu" rows="2">${l?.ghiChu||''}</textarea></div>
+    <div class="hint">Ngày kiểm tra giữa kỳ sẽ được tính tự động = 50% thời gian lớp học. Cảnh báo sẽ hiện khi còn ≤ 7 ngày. Khi điểm danh, giáo viên/trợ giảng sẽ chọn đúng ca học đang dạy.</div>
   `,async()=>{
-    const body={tenLop:document.getElementById('f-tenLop').value.trim(),capDo:document.getElementById('f-capDo').value,ngayBatDau:document.getElementById('f-ngayBD').value,ngayKetThuc:document.getElementById('f-ngayKT').value,giaoVienEmail:document.getElementById('f-gv').value,ghiChu:document.getElementById('f-ghiChu').value.trim()};
+    const caHoc = collectCaHocList();
+    const body={tenLop:document.getElementById('f-tenLop').value.trim(),capDo:document.getElementById('f-capDo').value,ngayBatDau:document.getElementById('f-ngayBD').value,ngayKetThuc:document.getElementById('f-ngayKT').value,giaoVienEmail:document.getElementById('f-gv').value,ghiChu:document.getElementById('f-ghiChu').value.trim(),caHoc:JSON.stringify(caHoc)};
     if(!body.tenLop){toast('Nhập tên lớp','error');return;}
     if(l){body.lopId=lopId;await call({action:'updateLop',...body});}
     else await call({action:'addLop',...body});
@@ -619,6 +694,41 @@ async function deleteLop(lopId){
   if(!confirm('Xóa lớp này? Dữ liệu học viên không bị xóa.')) return;
   await call({action:'deleteLop',lopId});
   toast('Đã xóa lớp','success');await loadLops();renderLopHoc();
+}
+
+// ── CA HOC (quản lý các ca trong tuần của 1 lớp) ──
+let CA_HOC_COUNTER = 0;
+function caHocRow(ca,i,gvList){
+  const rowId = 'ca-row-'+i+'-'+(CA_HOC_COUNTER++);
+  return `<div class="ca-hoc-row" data-rowid="${rowId}" style="display:flex;gap:8px;margin-bottom:6px;align-items:center">
+    <input class="ca-ten" placeholder="Tên ca (vd: Sáng - Trợ giảng)" value="${ca.ten||''}" style="flex:1.2">
+    <select class="ca-nguoidạy" style="flex:1">
+      <option value="">— Người dạy —</option>
+      ${gvList.map(gv=>`<option value="${gv.email}" ${ca.nguoiDay===gv.email?'selected':''}>${gv.hoTen}</option>`).join('')}
+    </select>
+    <button type="button" class="btn btn-sm btn-danger" onclick="removeCaHocRow('${rowId}')" style="flex-shrink:0">✕</button>
+  </div>`;
+}
+function addCaHocRow(){
+  const wrap=document.getElementById('ca-hoc-list');
+  const div=document.createElement('div');
+  div.innerHTML=caHocRow({ten:'',nguoiDay:''},Date.now(),CA_HOC_GV_LIST||[]);
+  wrap.appendChild(div.firstElementChild);
+}
+let CA_HOC_GV_LIST=[];
+function removeCaHocRow(rowId){
+  const row=document.querySelector(`.ca-hoc-row[data-rowid="${rowId}"]`);
+  if(row) row.remove();
+}
+function collectCaHocList(){
+  const rows=document.querySelectorAll('.ca-hoc-row');
+  const list=[];
+  rows.forEach(row=>{
+    const ten=row.querySelector('.ca-ten')?.value?.trim();
+    const nguoiDay=row.querySelector('.ca-nguoidạy')?.value||'';
+    if(ten) list.push({ten,nguoiDay});
+  });
+  return list;
 }
 
 // ── HOC VIEN ──
@@ -865,6 +975,9 @@ function switchLopTab(tab){
 }
 
 // ── TAB DIEM DANH ──
+let LOP_DD_DATE = '';
+let LOP_DD_CA = '';
+
 async function renderTabDiemDanh(lop){
   const wrap = document.getElementById('lop-detail-content');
   wrap.innerHTML = '<div class="empty">Đang tải...</div>';
@@ -872,9 +985,19 @@ async function renderTabDiemDanh(lop){
   const ngay = LOP_DD_DATE || todayStr();
   LOP_DD_DATE = ngay;
 
+  let caHocList = [];
+  try{ caHocList = lop.caHoc ? JSON.parse(lop.caHoc) : []; }catch(e){ caHocList = []; }
+
+  // Nếu lớp chưa có ca học nào → dùng 1 ca mặc định "Buổi học" để vẫn điểm danh được
+  if(caHocList.length===0) caHocList=[{ten:'Buổi học',nguoiDay:''}];
+
+  // Mặc định chọn ca đầu tiên nếu chưa chọn
+  if(!LOP_DD_CA || !caHocList.find(c=>caKey(c)===LOP_DD_CA)) LOP_DD_CA = caKey(caHocList[0]);
+  const caId = LOP_DD_CA;
+
   const [hvR,ddR,cbR] = await Promise.all([
     call({action:'getHocVienByLop',lop:lop.tenLop}),
-    call({action:'getDiemDanhByLop',lop:lop.tenLop,ngay}),
+    call({action:'getDiemDanhByLop',lop:lop.tenLop,ngay,caId}),
     call({action:'getThongKeCanhBao',lop:lop.tenLop}),
   ]);
   const hvList = (hvR.ok?hvR.data:[]).filter(hv=>hv.trangThai==='danghoc'||!hv.trangThai);
@@ -883,13 +1006,13 @@ async function renderTabDiemDanh(lop){
   const cbMap={}; cbList.forEach(c=>cbMap[c.studentId]=c);
   const canEdit = ['admin','giaovien'].includes(USER.role);
 
-  // Cảnh báo: học viên nghỉ nhiều / đi trễ nhiều trong lớp này
+  // Cảnh báo: học viên nghỉ nhiều / đi trễ nhiều trong lớp này (tổng tất cả các ca)
   const canhBaoList = cbList.filter(c=>c.diemViPham>0).sort((a,b)=>b.diemViPham-a.diemViPham);
 
   wrap.innerHTML = `
     ${canhBaoList.length>0?`
     <div class="table-wrap" style="margin-bottom:14px;padding:14px 16px">
-      <div style="font-size:13px;font-weight:600;color:#0d2d5e;margin-bottom:10px">⚠ Học viên nghỉ nhiều / đi trễ nhiều</div>
+      <div style="font-size:13px;font-weight:600;color:#0d2d5e;margin-bottom:10px">⚠ Học viên nghỉ nhiều / đi trễ nhiều (tổng các buổi)</div>
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px">
         ${canhBaoList.map(c=>`<div style="background:${c.loaiCanhBao==='canh_bao_2'?'#fef0ee':'#faeeda'};border-radius:8px;padding:10px 12px">
           <div style="font-size:13px;font-weight:600">${c.hoTen}</div>
@@ -899,9 +1022,12 @@ async function renderTabDiemDanh(lop){
     </div>`:''}
 
     <div class="table-wrap">
-      <div class="table-toolbar">
-        <span style="font-size:13px;font-weight:600">Điểm danh ngày</span>
+      <div class="table-toolbar" style="flex-wrap:wrap">
+        <span style="font-size:13px;font-weight:600">Điểm danh</span>
         <input type="date" id="dd-date-picker" value="${ngay}" style="width:150px" onchange="changeDDDate(this.value)">
+        <select id="dd-ca-picker" style="min-width:180px" onchange="changeDDCa(this.value)">
+          ${caHocList.map(ca=>`<option value="${caKey(ca)}" ${caKey(ca)===caId?'selected':''}>${ca.ten}${ca.nguoiDay?' · '+nguoiDayName(ca.nguoiDay):''}</option>`).join('')}
+        </select>
         <span style="flex:1"></span>
         ${canEdit?`<button class="btn btn-primary btn-sm" onclick="saveDD()">💾 Lưu điểm danh</button>`:''}
       </div>
@@ -923,17 +1049,27 @@ async function renderTabDiemDanh(lop){
   `;
 }
 
-let LOP_DD_DATE = '';
+function caKey(ca){
+  // Khóa định danh ổn định cho 1 ca: dựa trên tên (vì admin có thể đổi người dạy nhưng tên ca giữ nguyên)
+  return 'ca_' + (ca.ten||'').trim().toLowerCase().replace(/\s+/g,'_');
+}
+function nguoiDayName(email){
+  const acc = (window.ALL_ACCOUNTS||[]).find(a=>a.email===email);
+  return acc ? acc.hoTen : email;
+}
+
 function changeDDDate(val){ LOP_DD_DATE = val; const lop=LOP_DATA.find(l=>l.lopId===LOP_DETAIL_ID); renderTabDiemDanh(lop); }
+function changeDDCa(val){ LOP_DD_CA = val; const lop=LOP_DATA.find(l=>l.lopId===LOP_DETAIL_ID); renderTabDiemDanh(lop); }
 
 async function saveDD(){
   const lop = LOP_DATA.find(l=>l.lopId===LOP_DETAIL_ID);
   const ngay = LOP_DD_DATE || todayStr();
+  const caId = LOP_DD_CA;
   const records=[];
   document.querySelectorAll('.dd-sel').forEach(sel=>{
     const sid=sel.dataset.sid;
     const note=document.querySelector(`.dd-note[data-sid="${sid}"]`)?.value||'';
-    records.push({studentId:sid,ngay,trangThai:sel.value,ghiChu:note});
+    records.push({studentId:sid,ngay,caId,trangThai:sel.value,ghiChu:note});
   });
   const r=await call({action:'saveDiemDanh',records});
   if(r.ok){toast('Đã lưu điểm danh','success');renderTabDiemDanh(lop);}
@@ -1191,6 +1327,126 @@ function toast(msg,type=''){
   el.className='toast-item'+(type?' '+type:'');el.textContent=msg;
   document.getElementById('toast').appendChild(el);
   setTimeout(()=>el.remove(),3000);
+}
+
+// ── TUTORIAL BUBBLE ──
+const TUTORIALS = {
+  admin: {
+    dashboard: [
+      {s:'Bước 1/3', t:'Đây là Dashboard tổng quan. Bạn có thể xem số học viên, tỷ lệ chuyên cần, điểm trung bình và cảnh báo cần xử lý.'},
+      {s:'Bước 2/3', t:'Nếu có lớp sắp đến kỳ kiểm tra (≤7 ngày), banner cảnh báo màu vàng sẽ xuất hiện ở đầu trang với chấm đỏ nhấp nháy trong sidebar.'},
+      {s:'Bước 3/3', t:'Mỗi role (Admin, Giáo viên, Quản lý, Phụ huynh) sẽ thấy dashboard khác nhau phù hợp với công việc của mình.'},
+    ],
+    lophoc: [
+      {s:'Bước 1/4', t:'Đây là danh sách các lớp học đang và đã có của trung tâm. Mỗi thẻ lớp hiện tiến độ khóa học và cảnh báo kiểm tra.'},
+      {s:'Bước 2/4', t:'Nhấn "Thêm" để tạo lớp mới. Trong form tạo lớp, bạn có thể set nhiều ca học (sáng/chiều/tối) với giáo viên/trợ giảng riêng cho từng ca.'},
+      {s:'Bước 3/4', t:'Nhấn "Vào lớp" để xem chi tiết: Tab Điểm danh (chọn ngày + ca học → điểm danh từng học viên) và Tab Bảng điểm.'},
+      {s:'Bước 4/4', t:'Nút "✉️ Gửi tin nhắn" cho phép admin/quản lý gửi thông báo đến phụ huynh của 1 lớp hoặc tất cả các lớp.'},
+    ],
+    hocvien: [
+      {s:'Bước 1/3', t:'Trang Học viên quản lý thông tin chi tiết. Tab "Thông tin chung" xem theo trạng thái (tốt/cần theo dõi/cần liên hệ). Tab "Danh sách" xem bảng đầy đủ.'},
+      {s:'Bước 2/3', t:'Trong bảng Danh sách, bạn có thể đánh dấu đã đóng tiền, đổi trạng thái (đang học/nghỉ/bảo lưu) trực tiếp không cần mở form.'},
+      {s:'Bước 3/3', t:'Nút "✉️ Nhắn tin phụ huynh" trên từng học viên cho phép gửi tin nhắn riêng cho phụ huynh của học viên đó.'},
+    ],
+    taikhoan: [
+      {s:'Bước 1/2', t:'Trang Tài khoản chỉ Admin thấy. Tại đây thêm tài khoản cho Giáo viên, Quản lý, Phụ huynh và cấp quyền tương ứng.'},
+      {s:'Bước 2/2', t:'Giáo viên: chỉ thấy lớp được assign trong Lớp học. Quản lý: xem báo cáo, gửi tin nhắn. Phụ huynh: chỉ xem thông tin con mình.'},
+    ],
+  },
+  giaovien: {
+    dashboard: [
+      {s:'Bước 1/2', t:'Dashboard hiện thông tin các lớp bạn đang phụ trách. Nếu có lớp sắp đến kỳ kiểm tra, bạn sẽ thấy cảnh báo tại đây.'},
+      {s:'Bước 2/2', t:'Click vào tên lớp trong sidebar hoặc trong danh sách để vào điểm danh và nhập điểm cho lớp đó.'},
+    ],
+    lophoc: [
+      {s:'Bước 1/3', t:'Đây là các lớp bạn được phân công phụ trách. Nhấn "Vào lớp" để thao tác.'},
+      {s:'Bước 2/3', t:'Tab Điểm danh: chọn đúng ngày và ca học (sáng/chiều/tối) trước khi điểm danh để tránh nhầm lẫn giữa các ca.'},
+      {s:'Bước 3/3', t:'Tab Bảng điểm: nhập điểm Giữa kỳ, Cuối kỳ cho cả lớp cùng lúc. Checkbox "Không làm BTVN" để ghi nhận theo từng buổi.'},
+    ],
+    hocvien: [
+      {s:'Bước 1/2', t:'Xem thông tin học viên và liên hệ phụ huynh khi cần. Dùng nút "✉️ Nhắn tin" để gửi tin nhắn trực tiếp.'},
+      {s:'Bước 2/2', t:'Cảnh báo màu cam/đỏ trên thẻ học viên cho thấy học viên đó đang có vấn đề về chuyên cần — cần chú ý liên hệ.'},
+    ],
+  },
+  quanly: {
+    dashboard: [
+      {s:'Bước 1/2', t:'Dashboard hiện tổng quan toàn trung tâm: số học viên, chuyên cần, điểm số và cảnh báo. Dùng để theo dõi sức khỏe chung của trung tâm.'},
+      {s:'Bước 2/2', t:'Khi có lớp sắp đến kỳ kiểm tra, hệ thống tự cảnh báo để bạn nhắc giáo viên chuẩn bị.'},
+    ],
+    lophoc: [
+      {s:'Bước 1/2', t:'Xem tổng quan các lớp, tiến độ từng khóa học và cảnh báo kiểm tra. Dùng nút "✉️ Gửi tin nhắn" để thông báo cho phụ huynh theo lớp.'},
+      {s:'Bước 2/2', t:'Chọn gửi tin cho 1 lớp cụ thể hoặc tất cả phụ huynh. Phụ huynh sẽ thấy tin nhắn trong Dashboard của họ.'},
+    ],
+  },
+  phuhuynh: {
+    dashboard: [
+      {s:'Bước 1/3', t:'Đây là trang chính của bạn. Bạn có thể xem thông tin học tập của con mình: điểm số gần đây và tình trạng chuyên cần.'},
+      {s:'Bước 2/3', t:'Phần "Tin nhắn từ trung tâm" hiện các thông báo từ giáo viên hoặc quản lý gửi đến bạn. Tin chưa đọc có viền xanh.'},
+      {s:'Bước 3/3', t:'Nếu có cảnh báo chuyên cần (nghỉ quá nhiều), bạn sẽ nhận email tự động từ trung tâm.'},
+    ],
+  },
+};
+
+let TUT_STEP = 0;
+let TUT_PAGE = '';
+let TUT_STEPS = [];
+
+function tutInit(page){
+  if(localStorage.getItem('szm_tut_closed')==='1') return;
+  const role = USER?.role || 'admin';
+  const pageTuts = TUTORIALS[role]?.[page];
+  if(!pageTuts||pageTuts.length===0) return;
+  if(page===TUT_PAGE) return; // không reset nếu vẫn cùng trang
+  TUT_PAGE = page;
+  TUT_STEP = 0;
+  TUT_STEPS = pageTuts;
+  tutRender();
+  const bubble = document.getElementById('tutorial-bubble');
+  bubble.style.display = '';
+  // Restore minimized state
+  if(localStorage.getItem('szm_tut_min')==='1') tutMinimize();
+}
+
+function tutRender(){
+  if(!TUT_STEPS.length) return;
+  const step = TUT_STEPS[TUT_STEP];
+  document.getElementById('tut-step-label').textContent = step.s;
+  document.getElementById('tut-text').textContent = step.t;
+  // Dots
+  const dots = document.getElementById('tut-dots');
+  dots.innerHTML = TUT_STEPS.map((_,i)=>`<div class="tut-dot ${i===TUT_STEP?'active':''}"></div>`).join('');
+  document.getElementById('tut-prev').disabled = TUT_STEP===0;
+  document.getElementById('tut-next').disabled = TUT_STEP===TUT_STEPS.length-1;
+}
+
+function tutNav(dir){
+  TUT_STEP = Math.max(0, Math.min(TUT_STEPS.length-1, TUT_STEP+dir));
+  tutRender();
+}
+
+function tutMinimize(){
+  const bubble = document.getElementById('tutorial-bubble');
+  const content = document.getElementById('tut-content');
+  const icon = document.getElementById('tut-min-icon');
+  bubble.classList.add('minimized');
+  content.style.display='none';
+  icon.style.display='flex';
+  localStorage.setItem('szm_tut_min','1');
+}
+
+function tutExpand(){
+  const bubble = document.getElementById('tutorial-bubble');
+  const content = document.getElementById('tut-content');
+  const icon = document.getElementById('tut-min-icon');
+  bubble.classList.remove('minimized');
+  content.style.display='';
+  icon.style.display='none';
+  localStorage.removeItem('szm_tut_min');
+}
+
+function tutClose(){
+  document.getElementById('tutorial-bubble').style.display='none';
+  localStorage.setItem('szm_tut_closed','1');
 }
 
 window.addEventListener('load',()=>{
