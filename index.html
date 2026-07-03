@@ -346,7 +346,7 @@ function startGoogleLogin(){
   google.accounts.oauth2.initTokenClient({client_id:GCI,scope:'profile email',callback:onToken}).requestAccessToken();
 }
 async function onToken(t){
-  showLoginError('Đang xác thực...');
+  // showLoginError('Đang xác thực...'); // ẩn để tránh nhầm lỗi
   try{
     const res=await fetch('https://www.googleapis.com/oauth2/v3/userinfo',{headers:{Authorization:'Bearer '+t.access_token}});
     const info=await res.json();
@@ -370,6 +370,13 @@ async function call(params){
 }
 
 // ── BOOT ──
+function dismissAlert(lopId){
+  const d = JSON.parse(localStorage.getItem('szm_alert_dismissed')||'{}');
+  d[lopId] = Date.now();
+  localStorage.setItem('szm_alert_dismissed', JSON.stringify(d));
+  loadLops(); // reload để cập nhật banner
+}
+
 async function startApp(){
   document.getElementById('login-screen').style.display='none';
   document.getElementById('app-shell').style.display='flex';
@@ -403,16 +410,32 @@ async function loadLops(){
   renderLopNav();
   renderFilterLop();
   // Cảnh báo kiểm tra
-  const alerts=LOP_DATA.filter(l=>l.canhBaoGiuaKy||l.canhBaoCuoiKy);
+  // Lọc các cảnh báo còn hiệu lực (chưa quá hạn) và chưa bị tắt
+  const dismissed = JSON.parse(localStorage.getItem('szm_alert_dismissed')||'{}');
+  const alerts = LOP_DATA.filter(l=>{
+    if(l.daQuaGiuaKy && l.daQuaCuoiKy) return false; // đã quá hạn cả 2 → tự tắt
+    if(dismissed[l.lopId]) return false; // đã bị tắt thủ công
+    return l.canhBaoGiuaKy || l.canhBaoCuoiKy;
+  });
   if(alerts.length>0){
     document.getElementById('badge-lop').style.display='';
-    const msgs=alerts.map(l=>{
-      if(l.canhBaoCuoiKy) return `${l.tenLop}: Cuối kỳ còn ${l.soNgayConCuoiKy} ngày!`;
-      return `${l.tenLop}: Giữa kỳ còn ${l.soNgayConGiuaKy} ngày!`;
-    });
-    const banner=document.getElementById('alert-banner');
-    document.getElementById('alert-text').textContent='⚠ Sắp đến kỳ kiểm tra: '+msgs.join(' · ');
+    const banner = document.getElementById('alert-banner');
     banner.style.display='flex';
+    banner.style.flexDirection='column';
+    banner.style.gap='4px';
+    banner.innerHTML = alerts.map(l=>{
+      const msg = l.canhBaoCuoiKy
+        ? `🔴 <strong>${l.tenLop}</strong>: Cuối kỳ còn <strong>${l.soNgayConCuoiKy} ngày</strong>!`
+        : `🟡 <strong>${l.tenLop}</strong>: Giữa kỳ còn <strong>${l.soNgayConGiuaKy} ngày</strong>!`;
+      return `<div style="display:flex;align-items:center;gap:10px;padding:2px 0">
+        <span class="alert-blink"></span>
+        <span style="flex:1;font-size:13px">${msg}</span>
+        <button onclick="dismissAlert('${l.lopId}')" style="background:none;border:1.5px solid rgba(125,78,10,.3);border-radius:6px;padding:2px 8px;font-size:11px;color:#7d4e0a;cursor:pointer">✕ Tắt</button>
+      </div>`;
+    }).join('');
+  } else {
+    document.getElementById('badge-lop').style.display='none';
+    document.getElementById('alert-banner').style.display='none';
   }
 }
 
@@ -1048,53 +1071,81 @@ async function renderTabDiemDanh(lop){
   // Cảnh báo: học viên nghỉ nhiều / đi trễ nhiều trong lớp này (tổng tất cả các ca)
   const canhBaoList = cbList.filter(c=>c.diemViPham>0).sort((a,b)=>b.diemViPham-a.diemViPham);
 
+  // Chỉ render lịch tuần - click vào ô để điểm danh
   wrap.innerHTML = `
-    ${canhBaoList.length>0?`
-    <div class="table-wrap" style="margin-bottom:14px;padding:14px 16px">
-      <div style="font-size:13px;font-weight:600;color:#0d2d5e;margin-bottom:10px">⚠ Học viên nghỉ nhiều / đi trễ nhiều (tổng các buổi)</div>
-      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px">
-        ${canhBaoList.map(c=>`<div style="background:${c.loaiCanhBao==='canh_bao_2'?'#fef0ee':'#faeeda'};border-radius:8px;padding:10px 12px">
-          <div style="font-size:13px;font-weight:600">${c.hoTen}</div>
-          <div style="font-size:11px;margin-top:3px;color:${c.loaiCanhBao==='canh_bao_2'?'#993c1d':'#7d4e0a'}">${c.diemViPham} điểm VP${c.emailDaGui?' · Email đã gửi':''}</div>
-        </div>`).join('')}
-      </div>
-    </div>`:''}
-
-    <div class="table-wrap">
-      <div class="table-toolbar" style="flex-wrap:wrap">
-        <span style="font-size:13px;font-weight:600">Điểm danh</span>
-        <input type="date" id="dd-date-picker" value="${ngay}" style="width:150px" onchange="changeDDDate(this.value)">
-        <select id="dd-ca-picker" style="min-width:180px" onchange="changeDDCa(this.value)">
-          ${caHocList.map(ca=>`<option value="${caKey(ca)}" ${caKey(ca)===caId?'selected':''}>${ca.ten}${ca.nguoiDay?' · '+nguoiDayName(ca.nguoiDay):''}</option>`).join('')}
-        </select>
-        <span style="flex:1"></span>
-        ${canEdit?`<button class="btn btn-primary btn-sm" onclick="saveDD()">💾 Lưu điểm danh</button>`:''}
-      </div>
-      <table>
-        <thead><tr><th>Học viên</th><th>Trạng thái</th><th>Tổng VP</th><th>Ghi chú</th></tr></thead>
-        <tbody>
-          ${hvList.length===0?'<tr><td colspan="4" style="text-align:center;padding:24px;color:#8a96a8">Lớp chưa có học viên</td></tr>':hvList.map(hv=>{
-            const dd=ddMap[hv.studentId]; const cb=cbMap[hv.studentId]; const cur=dd?.trangThai||'co_mat';
-            return `<tr>
-              <td><div style="display:flex;align-items:center;gap:8px"><div class="avatar" style="width:26px;height:26px;font-size:10px;background:#e8f0fb;color:#1a50a0">${ini(hv.hoTen)}</div><div><div style="font-weight:500">${hv.hoTen}</div><div style="font-size:11px;color:#8a96a8">${hv.emailPhuHuynh||''}</div></div></div></td>
-              <td>${canEdit?`<select class="dd-sel" data-sid="${hv.studentId}" style="min-width:155px"><option value="co_mat" ${cur==='co_mat'?'selected':''}>Có mặt</option><option value="vang_phep" ${cur==='vang_phep'?'selected':''}>Nghỉ có phép</option><option value="vang_khong_phep" ${cur==='vang_khong_phep'?'selected':''}>Nghỉ không phép</option><option value="di_tre" ${cur==='di_tre'?'selected':''}>Đi trễ >15'</option></select>`:`<span class="badge ${ddClass(cur)}">${TRANG_THAI_DD[cur]||cur}</span>`}</td>
-              <td><span style="font-weight:600;color:${(cb?.diemViPham||0)>=3?'#e24b4a':'#1a2236'}">${cb?.diemViPham||0}</span></td>
-              <td>${canEdit?`<input class="dd-note" data-sid="${hv.studentId}" value="${dd?.ghiChu||''}" placeholder="Ghi chú..." style="width:130px;font-size:12px">`:`<span style="font-size:12px">${dd?.ghiChu||'—'}</span>`}</td>
-            </tr>`;
-          }).join('')}
-        </tbody>
-      </table>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+      <select id="dd-ca-picker" style="min-width:180px" onchange="changeDDCa(this.value)">
+        ${caHocList.map(ca=>`<option value="${caKey(ca)}" ${caKey(ca)===caId?'selected':''}>${ca.ten}${ca.nguoiDay?' · '+nguoiDayName(ca.nguoiDay):''}</option>`).join('')}
+      </select>
+      <span style="font-size:12px;color:#8a96a8">Chọn ca học, sau đó click vào ô trong lịch để điểm danh</span>
     </div>
+    <div id="lich-tuan-wrap"><div class="empty">Đang tải...</div></div>
   `;
 
-  // Thêm lịch tuần bên dưới (async, load riêng)
-  if(hvList.length>0){
-    renderLichTuan(lop, hvList, ngay).then(html=>{
-      const existing = wrap.querySelector('#lich-tuan-wrap');
-      if(existing) existing.outerHTML = html;
-      else wrap.insertAdjacentHTML('beforeend', `<div id="lich-tuan-wrap">${html}</div>`);
+  renderLichTuan(lop, hvList, ngay, caId).then(html=>{
+    document.getElementById('lich-tuan-wrap').innerHTML = html;
+  });
+}
+
+// Modal điểm danh nhanh (mở khi bấm nút "Điểm danh hôm nay")
+async function openDiemDanhModal(){
+  const lop = LOP_DATA.find(l=>l.lopId===LOP_DETAIL_ID);
+  const ngay = LOP_DD_DATE || todayStr();
+  const caId = LOP_DD_CA;
+  let caHocList = [];
+  try{ caHocList = lop.caHoc ? JSON.parse(lop.caHoc) : []; }catch(e){ caHocList=[]; }
+  if(caHocList.length===0) caHocList=[{ten:'Buổi học',nguoiDay:''}];
+  const curCa = caHocList.find(ca=>caKey(ca)===caId)||caHocList[0];
+
+  const [hvR, ddR] = await Promise.all([
+    call({action:'getHocVienByLop',lop:lop.tenLop}),
+    call({action:'getDiemDanhByLop',lop:lop.tenLop,ngay,caId}),
+  ]);
+  const hvList = (hvR.ok?hvR.data:[]).filter(hv=>hv.trangThai==='danghoc'||!hv.trangThai);
+  const ddMap={}; if(ddR.ok) ddR.data.forEach(d=>ddMap[d.studentId]=d);
+
+  showModal(`📋 Điểm danh — ${lop.tenLop} · ${curCa.ten} · ${fmtDate(ngay)}`, `
+    <div style="margin-bottom:12px;display:flex;gap:8px;align-items:center">
+      <input type="date" id="modal-dd-date" value="${ngay}" style="flex:1"
+        onchange="LOP_DD_DATE=this.value;closeModal();setTimeout(openDiemDanhModal,50)">
+      <select id="modal-dd-ca" style="flex:1.2" onchange="LOP_DD_CA=this.value;closeModal();setTimeout(openDiemDanhModal,50)">
+        ${caHocList.map(ca=>`<option value="${caKey(ca)}" ${caKey(ca)===caId?'selected':''}>${ca.ten}</option>`).join('')}
+      </select>
+    </div>
+    <table style="width:100%">
+      <thead><tr><th style="text-align:left;padding:6px 8px;font-size:11px;color:#8a96a8">Học viên</th><th style="text-align:left;padding:6px 8px;font-size:11px;color:#8a96a8">Trạng thái</th><th style="padding:6px 8px;font-size:11px;color:#8a96a8">Ghi chú</th></tr></thead>
+      <tbody>
+        ${hvList.map(hv=>{const dd=ddMap[hv.studentId];const cur=dd?.trangThai||'co_mat';
+          return `<tr style="border-top:1px solid #f0f4fa">
+            <td style="padding:7px 8px;font-size:13px;font-weight:500">${hv.hoTen}</td>
+            <td style="padding:7px 8px">
+              <select class="dd-sel" data-sid="${hv.studentId}" style="font-size:12px;width:100%">
+                <option value="co_mat" ${cur==='co_mat'?'selected':''}>✓ Có mặt</option>
+                <option value="vang_phep" ${cur==='vang_phep'?'selected':''}>Nghỉ có phép</option>
+                <option value="vang_khong_phep" ${cur==='vang_khong_phep'?'selected':''}>Nghỉ không phép</option>
+                <option value="di_tre" ${cur==='di_tre'?'selected':''}>Đi trễ >15'</option>
+              </select>
+            </td>
+            <td style="padding:7px 8px"><input class="dd-note" data-sid="${hv.studentId}" value="${dd?.ghiChu||''}" placeholder="..." style="width:100%;font-size:12px"></td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table>
+  `, async()=>{
+    const records=[];
+    document.querySelectorAll('.dd-sel').forEach(sel=>{
+      const sid=sel.dataset.sid;
+      const note=document.querySelector(`.dd-note[data-sid="${sid}"]`)?.value||'';
+      records.push({studentId:sid,ngay:LOP_DD_DATE||ngay,caId:LOP_DD_CA||caId,trangThai:sel.value,ghiChu:note});
     });
-  }
+    const r=await call({action:'saveDiemDanh',records});
+    if(r.ok){
+      closeModal();
+      toast('Đã lưu điểm danh','success');
+      const lopObj=LOP_DATA.find(l=>l.lopId===LOP_DETAIL_ID);
+      renderTabDiemDanh(lopObj);
+    } else toast('Lỗi lưu','error');
+  });
 }
 
 function caKey(ca){
@@ -1125,99 +1176,219 @@ async function saveDD(){
 }
 
 // ── LỊCH TUẦN ──
-function getWeekDates(dateStr){
+let LICH_WEEK_OFFSET = 0; // 0 = tuần hiện tại, -1 = tuần trước...
+
+function getWeekDates(dateStr, offset=0){
   const d = new Date(dateStr);
-  const day = d.getDay(); // 0=CN, 1=T2...
+  const day = d.getDay();
   const mon = new Date(d);
-  mon.setDate(d.getDate() - (day===0?6:day-1)); // về thứ 2
+  mon.setDate(d.getDate() - (day===0?6:day-1) + offset*7);
   return Array.from({length:7},(_,i)=>{
     const dd=new Date(mon); dd.setDate(mon.getDate()+i);
     return dd.toISOString().slice(0,10);
   });
 }
 
-async function renderLichTuan(lop, hvList, selectedNgay){
-  const weekDates = getWeekDates(selectedNgay||todayStr());
-  const thuLabels = ['T2','T3','T4','T5','T6','T7','CN'];
+async function renderLichTuan(lop, hvList, selectedNgay, activeCaId){
+  const weekDates = getWeekDates(selectedNgay||todayStr(), LICH_WEEK_OFFSET);
+  const thuLabels = ['Thứ 2','Thứ 3','Thứ 4','Thứ 5','Thứ 6','Thứ 7','Chủ nhật'];
+  const today = todayStr();
 
-  // Lấy tất cả điểm danh của lớp trong tuần này (tất cả ca)
-  const allDD = await Promise.all(weekDates.map(ngay=>call({action:'getDiemDanhByLop',lop:lop.tenLop,ngay,caId:''})));
-  // Map: ngay → {studentId → trangThai}
-  const ddByDate = {};
+  // Load điểm danh cả tuần song song
+  const allDDRes = await Promise.all(
+    weekDates.map(ngay=>call({action:'getDiemDanhByLop',lop:lop.tenLop,ngay,caId:''}))
+  );
+  const ddByDate={};
   weekDates.forEach((ngay,i)=>{
     ddByDate[ngay]={};
-    if(allDD[i].ok) allDD[i].data.forEach(d=>{ ddByDate[ngay][d.studentId]=d.trangThai; });
+    if(allDDRes[i].ok) allDDRes[i].data.forEach(d=>{
+      // Lấy trạng thái xấu nhất nếu có nhiều ca trong ngày
+      const existing = ddByDate[ngay][d.studentId];
+      const rank = {vang_khong_phep:3,vang_phep:2,di_tre:1,co_mat:0};
+      if(!existing || (rank[d.trangThai]||0) > (rank[existing]||0))
+        ddByDate[ngay][d.studentId] = d.trangThai;
+    });
   });
 
-  // Đếm số lần nghỉ liên tiếp của từng học viên (tính đến ngày hiện tại)
-  function demNghiLienTiep(sid){
-    let count=0;
+  function cellInfo(sid){
+    // Tính chuỗi nghỉ liên tiếp (tính ngược từ hôm nay)
+    let streak=0;
     for(let i=weekDates.length-1;i>=0;i--){
+      if(weekDates[i]>today) continue;
       const tt=ddByDate[weekDates[i]][sid];
-      if(tt&&tt!=='co_mat') count++; else break;
+      if(tt&&tt!=='co_mat') streak++; else if(tt) break;
     }
-    return count;
+    return streak;
   }
 
-  function cellColor(tt, nghiLienTiep){
-    if(!tt) return {bg:'#f1f5f9',text:'#94a3b8',label:'—'};
-    if(tt==='co_mat') return {bg:'#fef9c3',text:'#854d0e',label:'✓'};
-    if(nghiLienTiep>=3) return {bg:'#fee2e2',text:'#991b1b',label:'✗✗✗'};
-    if(nghiLienTiep===2) return {bg:'#fed7aa',text:'#9a3412',label:'✗✗'};
-    return {bg:'#ffedd5',text:'#c2410c',label:'✗'};
+  function dayCell(sid, ngay, streak){
+    const tt = ddByDate[ngay][sid];
+    const isFuture = ngay > today;
+    const isToday = ngay === today;
+    if(isFuture) return {bg:'#f8fafd',text:'#cbd5e1',border:'#e4ebf5',icon:'',tip:'Chưa đến'};
+    if(!tt) return {bg:'#f1f5f9',text:'#94a3b8',border:'#e4ebf5',icon:'·',tip:'Chưa điểm danh'};
+    if(tt==='co_mat') return {bg:'#fef9c3',text:'#78350f',border:'#fcd34d',icon:'✓',tip:'Có mặt'};
+    if(streak>=3) return {bg:'#fee2e2',text:'#991b1b',border:'#fca5a5',icon:'✗',tip:'Nghỉ 3+ lần liên tiếp!'};
+    if(streak===2) return {bg:'#fed7aa',text:'#9a3412',border:'#fb923c',icon:'✗',tip:'Nghỉ 2 lần liên tiếp'};
+    if(tt==='vang_khong_phep') return {bg:'#ffedd5',text:'#c2410c',border:'#fdba74',icon:'✗',tip:'Nghỉ không phép'};
+    if(tt==='vang_phep') return {bg:'#e0f2fe',text:'#0369a1',border:'#7dd3fc',icon:'~',tip:'Nghỉ có phép'};
+    if(tt==='di_tre') return {bg:'#fef3c7',text:'#92400e',border:'#fcd34d',icon:'⏰',tip:'Đi trễ'};
+    return {bg:'#f1f5f9',text:'#94a3b8',border:'#e4ebf5',icon:'?',tip:''};
   }
 
   const rows = hvList.map(hv=>{
-    const nghiLT = demNghiLienTiep(hv.studentId);
+    const streak = cellInfo(hv.studentId);
+    const hasAlert = streak >= 3;
     const cells = weekDates.map((ngay,i)=>{
-      const tt = ddByDate[ngay][hv.studentId];
-      const {bg,text,label} = cellColor(tt, nghiLT);
-      const isToday = ngay===todayStr();
-      return `<td style="text-align:center;padding:6px 4px">
-        <div style="width:36px;height:36px;border-radius:8px;background:${bg};color:${text};
-          display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;
-          margin:0 auto;${isToday?'outline:2px solid #3a7bd5;outline-offset:1px':''}
-          cursor:pointer" onclick="selectDDDate('${ngay}')" title="${ngay}">${label}</div>
+      const {bg,text,border,icon,tip} = dayCell(hv.studentId, ngay, streak);
+      const isToday = ngay===today;
+      const isFuture = ngay > today;
+      const clickFn = isFuture ? '' :
+        `onclick="openDiemDanhNgayHV('${hv.studentId}','${escapeAttr(hv.hoTen)}','${ngay}','${activeCaId||''}')"`;
+      return `<td style="padding:4px 3px;text-align:center">
+        <div ${clickFn} title="${tip}${!isFuture?' (click để điểm danh)':''}" style="
+          width:44px;height:44px;border-radius:10px;border:2px solid ${border};
+          background:${bg};color:${text};
+          display:flex;flex-direction:column;align-items:center;justify-content:center;
+          margin:0 auto;${!isFuture?'cursor:pointer;':'cursor:default;'}transition:transform .12s;
+          ${isToday?'box-shadow:0 0 0 2.5px #3a7bd5,0 2px 8px rgba(58,123,213,.2);':''}
+          font-size:15px;font-weight:700;line-height:1"
+          ${!isFuture?`onmouseover="this.style.transform='scale(1.08)'" onmouseout="this.style.transform='scale(1)'"`:''}>
+          ${icon}
+          <span style="font-size:8px;font-weight:400;opacity:.65;margin-top:1px">${ngay.slice(8)}</span>
+        </div>
       </td>`;
     }).join('');
-    const hasAlert = nghiLT>=3;
-    return `<tr>
-      <td style="padding:6px 10px;font-size:12px;font-weight:500;white-space:nowrap">
-        ${hv.hoTen}
-        ${hasAlert?`<button class="btn btn-sm" style="margin-left:6px;font-size:10px;background:#fee2e2;border-color:#fca5a5;color:#991b1b"
-          onclick="promptGuiTinNghiNhieu('${hv.studentId}','${hv.hoTen}')">⚠ Gửi tin PH</button>`:''}
+    return `<tr style="border-bottom:1px solid #f0f4fa">
+      <td style="padding:8px 12px;min-width:150px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <div class="avatar" style="width:28px;height:28px;font-size:10px;background:#e8f0fb;color:#1a50a0;flex-shrink:0">${ini(hv.hoTen)}</div>
+          <div>
+            <div style="font-size:13px;font-weight:500">${hv.hoTen}</div>
+            ${hasAlert?`<button class="btn btn-sm" style="margin-top:3px;font-size:10px;padding:2px 7px;background:#fee2e2;border-color:#fca5a5;color:#991b1b"
+              onclick="promptGuiTinNghiNhieu('${hv.studentId}','${hv.hoTen}')">⚠ Báo phụ huynh</button>`:''}
+          </div>
+        </div>
       </td>
       ${cells}
     </tr>`;
   }).join('');
 
-  return `<div class="table-wrap" style="margin-top:14px;overflow-x:auto">
+  const weekLabel = `${fmtDate(weekDates[0])} — ${fmtDate(weekDates[6])}`;
+
+  return `<div class="table-wrap" style="overflow-x:auto">
     <div class="table-toolbar">
-      <span style="font-size:13px;font-weight:600;color:#0d2d5e">📅 Lịch tuần</span>
-      <span style="font-size:11px;color:#8a96a8">${fmtDate(weekDates[0])} — ${fmtDate(weekDates[6])}</span>
+      <button class="btn btn-sm" onclick="changeWeek(-1)">← Tuần trước</button>
+      <span style="font-size:13px;font-weight:600;color:#0d2d5e;min-width:200px;text-align:center">${weekLabel}</span>
+      <button class="btn btn-sm" onclick="changeWeek(1)" ${LICH_WEEK_OFFSET>=0?'disabled':''}>Tuần sau →</button>
       <span style="flex:1"></span>
-      <div style="display:flex;gap:10px;font-size:11px;align-items:center">
-        <span style="display:flex;align-items:center;gap:4px"><span style="width:12px;height:12px;border-radius:3px;background:#fef9c3;display:inline-block"></span>Có mặt</span>
-        <span style="display:flex;align-items:center;gap:4px"><span style="width:12px;height:12px;border-radius:3px;background:#ffedd5;display:inline-block"></span>Nghỉ</span>
-        <span style="display:flex;align-items:center;gap:4px"><span style="width:12px;height:12px;border-radius:3px;background:#fed7aa;display:inline-block"></span>Nghỉ 2 lần</span>
-        <span style="display:flex;align-items:center;gap:4px"><span style="width:12px;height:12px;border-radius:3px;background:#fee2e2;display:inline-block"></span>Nghỉ 3+ lần</span>
+      <button class="btn btn-sm" onclick="LICH_WEEK_OFFSET=0;const l=LOP_DATA.find(x=>x.lopId===LOP_DETAIL_ID);renderTabDiemDanh(l)">Tuần này</button>
+      <div style="display:flex;gap:8px;font-size:11px;align-items:center">
+        <span title="Có mặt">🟡</span>
+        <span title="Nghỉ">🟠</span>
+        <span title="Nghỉ 2 lần liên tiếp" style="opacity:.8">🔶</span>
+        <span title="Nghỉ 3+ lần — cần báo PH">🔴</span>
       </div>
     </div>
-    <table style="min-width:500px">
-      <thead><tr>
-        <th style="min-width:140px">Học viên</th>
-        ${thuLabels.map((t,i)=>`<th style="text-align:center;width:50px;${weekDates[i]===todayStr()?'color:#1a50a0':''}">${t}<div style="font-size:9px;color:#a0aab8;font-weight:400">${weekDates[i].slice(5)}</div></th>`).join('')}
+    <table style="min-width:600px;border-collapse:collapse">
+      <thead><tr style="background:linear-gradient(180deg,#fafbfd,#f5f8fc)">
+        <th style="padding:10px 12px;text-align:left;font-size:11px;color:#8a96a8;font-weight:700;text-transform:uppercase">Học viên</th>
+        ${thuLabels.map((t,i)=>`<th style="text-align:center;padding:8px 3px;font-size:11px;color:${weekDates[i]===today?'#1a50a0':'#8a96a8'};font-weight:${weekDates[i]===today?'700':'600'}">${t}</th>`).join('')}
       </tr></thead>
       <tbody>${rows}</tbody>
     </table>
   </div>`;
 }
 
-function selectDDDate(ngay){
-  LOP_DD_DATE = ngay;
-  document.getElementById('dd-date-picker').value = ngay;
+function changeWeek(dir){
+  LICH_WEEK_OFFSET = Math.min(0, LICH_WEEK_OFFSET + dir);
   const lop = LOP_DATA.find(l=>l.lopId===LOP_DETAIL_ID);
   renderTabDiemDanh(lop);
+}
+
+function selectDDDate(ngay){
+  LOP_DD_DATE = ngay;
+  const lop = LOP_DATA.find(l=>l.lopId===LOP_DETAIL_ID);
+  renderTabDiemDanh(lop);
+}
+
+function escapeAttr(s){ return (s||'').replace(/'/g,'&#39;').replace(/"/g,'&quot;'); }
+
+// Click vào ô học sinh trong lịch → modal điểm danh riêng cho học sinh đó ngày đó
+async function openDiemDanhNgayHV(studentId, hoTen, ngay, caId){
+  const lop = LOP_DATA.find(l=>l.lopId===LOP_DETAIL_ID);
+  let caHocList=[];
+  try{ caHocList=lop.caHoc?JSON.parse(lop.caHoc):[]; }catch(e){ caHocList=[]; }
+  if(caHocList.length===0) caHocList=[{ten:'Buổi học',nguoiDay:''}];
+
+  // Lấy trạng thái hiện tại của học sinh này ngày này
+  const ddR = await call({action:'getDiemDanhByLop',lop:lop.tenLop,ngay,caId});
+  const existing = ddR.ok ? ddR.data.find(d=>d.studentId===studentId) : null;
+  const curTT = existing?.trangThai || 'co_mat';
+  const curNote = existing?.ghiChu || '';
+
+  showModal(`📋 Điểm danh — ${hoTen}`, `
+    <div style="display:flex;gap:10px;margin-bottom:16px;flex-wrap:wrap">
+      <div style="background:#f5f8fd;border-radius:10px;padding:10px 16px;flex:1;min-width:120px">
+        <div style="font-size:11px;color:#8a96a8;margin-bottom:2px">Ngày</div>
+        <div style="font-weight:600;color:#0d2d5e">${fmtDate(ngay)}</div>
+      </div>
+      <div style="background:#f5f8fd;border-radius:10px;padding:10px 16px;flex:1;min-width:120px">
+        <div style="font-size:11px;color:#8a96a8;margin-bottom:2px">Ca học</div>
+        <select id="modal-ca-sel" style="font-size:13px;font-weight:600;color:#0d2d5e;border:none;background:transparent;padding:0;width:100%">
+          ${caHocList.map(ca=>`<option value="${caKey(ca)}" ${caKey(ca)===caId?'selected':''}>${ca.ten}</option>`).join('')}
+        </select>
+      </div>
+    </div>
+    <div class="form-row"><label>Trạng thái</label>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px" id="tt-grid">
+        ${[
+          {v:'co_mat',l:'✓ Có mặt',bg:'#dcfce7',bc:'#86efac',tc:'#166534'},
+          {v:'vang_phep',l:'~ Nghỉ có phép',bg:'#dbeafe',bc:'#93c5fd',tc:'#1e40af'},
+          {v:'vang_khong_phep',l:'✗ Nghỉ không phép',bg:'#fee2e2',bc:'#fca5a5',tc:'#991b1b'},
+          {v:'di_tre',l:'⏰ Đi trễ >15\'',bg:'#fef3c7',bc:'#fcd34d',tc:'#92400e'},
+        ].map(opt=>`<button type="button" id="tt-${opt.v}"
+          onclick="selectTT('${opt.v}')"
+          style="padding:10px;border-radius:10px;border:2px solid ${curTT===opt.v?opt.bc:'#e4ebf5'};
+            background:${curTT===opt.v?opt.bg:'#fff'};color:${curTT===opt.v?opt.tc:'#5a6478'};
+            font-size:13px;font-weight:600;cursor:pointer;transition:all .15s">
+          ${opt.l}
+        </button>`).join('')}
+      </div>
+    </div>
+    <div class="form-row" style="margin-top:12px"><label>Ghi chú</label>
+      <input id="modal-note" value="${curNote}" placeholder="Ghi chú thêm...">
+    </div>
+    <input type="hidden" id="modal-tt-val" value="${curTT}">
+  `, async()=>{
+    const tt = document.getElementById('modal-tt-val').value;
+    const note = document.getElementById('modal-note').value.trim();
+    const selCa = document.getElementById('modal-ca-sel').value;
+    const r = await call({action:'saveDiemDanh',records:[{studentId,ngay,caId:selCa,trangThai:tt,ghiChu:note}]});
+    if(r.ok){
+      closeModal();
+      toast(`Đã điểm danh ${hoTen}`,'success');
+      const lopObj = LOP_DATA.find(l=>l.lopId===LOP_DETAIL_ID);
+      renderTabDiemDanh(lopObj);
+    } else toast('Lỗi lưu','error');
+  });
+}
+
+function selectTT(val){
+  document.getElementById('modal-tt-val').value = val;
+  const map = {
+    co_mat:{bg:'#dcfce7',bc:'#86efac',tc:'#166534'},
+    vang_phep:{bg:'#dbeafe',bc:'#93c5fd',tc:'#1e40af'},
+    vang_khong_phep:{bg:'#fee2e2',bc:'#fca5a5',tc:'#991b1b'},
+    di_tre:{bg:'#fef3c7',bc:'#fcd34d',tc:'#92400e'},
+  };
+  ['co_mat','vang_phep','vang_khong_phep','di_tre'].forEach(v=>{
+    const btn = document.getElementById('tt-'+v);
+    if(!btn) return;
+    const {bg,bc,tc} = map[v];
+    if(v===val){ btn.style.background=bg; btn.style.borderColor=bc; btn.style.color=tc; }
+    else { btn.style.background='#fff'; btn.style.borderColor='#e4ebf5'; btn.style.color='#5a6478'; }
+  });
 }
 
 async function promptGuiTinNghiNhieu(studentId, hoTen){
