@@ -643,7 +643,8 @@ function lopCard(l){
   const passed=dateDiff(l.ngayBatDau,todayStr());
   const pct=total>0?Math.max(0,Math.min(100,Math.round(passed/total*100))):0;
   const canEdit=['admin'].includes(USER.role);
-  return `<div class="lop-card ${l.canhBaoGiuaKy||l.canhBaoCuoiKy?'has-alert':''}">
+  return `<div class="lop-card ${l.canhBaoGiuaKy||l.canhBaoCuoiKy?'has-alert':''}"
+    onclick="openLopDetail('${l.lopId}')" style="cursor:pointer">
     ${canEdit?`<div class="lop-actions">
       <button class="btn btn-sm" onclick="event.stopPropagation();openModalLop('${l.lopId}')">Sửa</button>
       <button class="btn btn-danger btn-sm" onclick="event.stopPropagation();deleteLop('${l.lopId}')">Xóa</button>
@@ -661,7 +662,6 @@ function lopCard(l){
     `:''}
     ${l.canhBaoGiuaKy?`<div class="kt-alert giua">⚠ Giữa kỳ còn ${l.soNgayConGiuaKy} ngày!</div>`:''}
     ${l.canhBaoCuoiKy?`<div class="kt-alert cuoi">🔴 Cuối kỳ còn ${l.soNgayConCuoiKy} ngày!</div>`:''}
-    <div class="so-hv" style="margin-top:8px;cursor:pointer;font-weight:500;color:#1a50a0" onclick="openLopDetail('${l.lopId}')">Vào lớp →</div>
   </div>`;
 }
 
