@@ -182,6 +182,11 @@ tr:hover td{background:#f8faff}
 .btn-google{display:flex;align-items:center;gap:10px;background:#fff;border:1.5px solid #e4ebf5;border-radius:12px;padding:13px 24px;font-size:14px;font-weight:600;color:#1a2236;cursor:pointer;width:100%;justify-content:center;transition:all .18s;box-shadow:0 2px 8px rgba(0,0,0,.08)}
 .btn-google:hover{border-color:#3a7bd5;box-shadow:0 4px 16px rgba(58,123,213,.18);transform:translateY(-1px)}
 .login-error{margin-top:14px;font-size:13px;color:#993c1d;background:#fef2f2;border-radius:10px;padding:10px 14px;display:none;text-align:left;border-left:3px solid #e24b4a}
+.login-loading{margin-top:16px;display:none}
+.loading-label{font-size:12px;color:#5a6478;margin-bottom:8px;display:flex;justify-content:space-between}
+.loading-track{height:6px;background:#f0f4fa;border-radius:3px;overflow:hidden}
+.loading-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,#1a50a0,#3a7bd5,#60a5fa);background-size:200%;animation:shimmer 1.5s infinite;width:0%;transition:width .4s ease}
+@keyframes shimmer{0%{background-position:100%}100%{background-position:-100%}}
 .login-note{margin-top:18px;font-size:11px;color:#a0aab8}
 
 /* EMPTY */
@@ -231,6 +236,13 @@ tr:hover td{background:#f8faff}
       Đăng nhập bằng Google
     </button>
     <div class="login-error" id="login-error"></div>
+    <div class="login-loading" id="login-loading">
+      <div class="loading-label">
+        <span id="loading-msg">Đang kết nối...</span>
+        <span id="loading-pct">0%</span>
+      </div>
+      <div class="loading-track"><div class="loading-fill" id="loading-fill"></div></div>
+    </div>
     <p class="login-note">Chỉ email được cấp phép mới có thể truy cập</p>
   </div>
 </div>
@@ -343,6 +355,7 @@ let USER=null, LOPS=[], LOP_DATA=[], CURRENT_PAGE='dashboard', CURRENT_LOP='', C
 
 // ── AUTH ──
 function startGoogleLogin(){
+  startLoading();
   google.accounts.oauth2.initTokenClient({client_id:GCI,scope:'profile email',callback:onToken}).requestAccessToken();
 }
 async function onToken(t){
@@ -354,10 +367,49 @@ async function onToken(t){
     const r=await call({action:'whoami',email:info.email});
     if(!r.ok){showLoginError(r.error||'Email không được phép');return;}
     USER={email:info.email,role:r.data.role,hoTen:r.data.hoTen||info.name,lopPhuTrach:r.data.lopPhuTrach||''};
-    startApp();
+    completeLoading();
+    setTimeout(startApp, 300);
   }catch(e){showLoginError('Lỗi: '+e.message);}
 }
-function showLoginError(msg){const el=document.getElementById('login-error');el.textContent=msg;el.style.display='block';}
+function showLoginError(msg){
+  stopLoading();
+  const el=document.getElementById('login-error');
+  el.textContent=msg;el.style.display='block';
+}
+
+let _loadTimer=null;
+function startLoading(){
+  document.getElementById('login-btn').disabled=true;
+  document.getElementById('login-btn').style.opacity='.6';
+  document.getElementById('login-error').style.display='none';
+  document.getElementById('login-loading').style.display='block';
+  const steps=[
+    {pct:15,msg:'Đang kết nối Google...',t:300},
+    {pct:35,msg:'Xác thực tài khoản...',t:800},
+    {pct:60,msg:'Kiểm tra quyền truy cập...',t:1400},
+    {pct:80,msg:'Tải dữ liệu...',t:2200},
+    {pct:92,msg:'Chuẩn bị giao diện...',t:3200},
+  ];
+  steps.forEach(({pct,msg,t})=>{
+    const id=setTimeout(()=>{
+      document.getElementById('loading-fill').style.width=pct+'%';
+      document.getElementById('loading-msg').textContent=msg;
+      document.getElementById('loading-pct').textContent=pct+'%';
+    },t);
+    _loadTimer=id;
+  });
+}
+function stopLoading(){
+  document.getElementById('login-btn').disabled=false;
+  document.getElementById('login-btn').style.opacity='1';
+  document.getElementById('login-loading').style.display='none';
+  document.getElementById('loading-fill').style.width='0%';
+}
+function completeLoading(){
+  document.getElementById('loading-fill').style.width='100%';
+  document.getElementById('loading-msg').textContent='Hoàn tất!';
+  document.getElementById('loading-pct').textContent='100%';
+}
 function logout(){USER=null;document.getElementById('app-shell').style.display='none';document.getElementById('login-screen').style.display='flex';document.getElementById('login-error').style.display='none';}
 
 // ── API ──
