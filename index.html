@@ -1430,8 +1430,14 @@ async function openDiemDanhNgayHV(studentId, hoTen, ngay, caId){
       </div>
       <div class="hint" style="margin-top:8px">💡 Gõ <strong>P</strong>, <strong>K</strong>, <strong>T</strong> để chọn nhanh. Bấm <strong>Enter</strong> để lưu. Không chọn = mặc định Có mặt.</div>
     </div>
+    <div class="hint" style="margin-bottom:12px">
+      💡 Gõ <kbd style="border:1px solid #d1dae8;border-radius:4px;padding:1px 5px;font-size:11px">P</kbd> Nghỉ phép &nbsp;
+      <kbd style="border:1px solid #d1dae8;border-radius:4px;padding:1px 5px;font-size:11px">K</kbd> Không phép &nbsp;
+      <kbd style="border:1px solid #d1dae8;border-radius:4px;padding:1px 5px;font-size:11px">T</kbd> Đi trễ &nbsp;
+      <kbd style="border:1px solid #d1dae8;border-radius:4px;padding:1px 5px;font-size:11px">Enter</kbd> Lưu
+    </div>
     <div class="form-row"><label>Ghi chú</label>
-      <input id="modal-note" value="${curNote}" placeholder="Ghi chú thêm...">
+      <input id="modal-note" value="${curNote}" placeholder="Ghi chú...">
     </div>
     <input type="hidden" id="modal-tt-val" value="${curTT}">
   `, async()=>{
