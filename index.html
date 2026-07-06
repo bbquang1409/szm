@@ -39,6 +39,7 @@ textarea{resize:vertical}
 
 /* alert dot cho lớp có cảnh báo kiểm tra */
 .nav-lop .alert-dot{width:7px;height:7px;border-radius:50%;background:#fbbf24;margin-left:auto;flex-shrink:0;animation:pulse 1.5s infinite;box-shadow:0 0 6px #fbbf24}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:0}}
 @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.6;transform:scale(1.3)}}
 
 .sidebar-footer{margin-top:auto;padding:12px;border-top:1px solid rgba(255,255,255,.1)}
@@ -413,6 +414,19 @@ function completeLoading(){
 function logout(){USER=null;document.getElementById('app-shell').style.display='none';document.getElementById('login-screen').style.display='flex';document.getElementById('login-error').style.display='none';}
 
 // ── API ──
+async function callPost(params){
+  // Dùng POST để tránh giới hạn URL với JSON lớn (caHoc)
+  const {action,...rest} = params;
+  const email = USER?.email||'';
+  const r = await fetch(API+'?action='+encodeURIComponent(action)+'&email='+encodeURIComponent(email), {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({...rest,action,email})
+  });
+  if(!r.ok) throw new Error('HTTP '+r.status);
+  return r.json();
+}
+
 async function call(params){
   const p={email:USER?.email||'',...params};
   const qs=Object.entries(p).map(([k,v])=>encodeURIComponent(k)+'='+encodeURIComponent(typeof v==='object'?JSON.stringify(v):String(v))).join('&');
@@ -759,8 +773,8 @@ async function openModalLop(lopId){
     const caHoc = collectCaHocList();
     const body={tenLop:document.getElementById('f-tenLop').value.trim(),capDo:document.getElementById('f-capDo').value,ngayBatDau:document.getElementById('f-ngayBD').value,ngayKetThuc:document.getElementById('f-ngayKT').value,giaoVienEmail:document.getElementById('f-gv').value,ghiChu:document.getElementById('f-ghiChu').value.trim(),caHoc:JSON.stringify(caHoc)};
     if(!body.tenLop){toast('Nhập tên lớp','error');return;}
-    if(l){body.lopId=lopId;await call({action:'updateLop',...body});}
-    else await call({action:'addLop',...body});
+    if(l){body.lopId=lopId;await callPost({action:'updateLop',...body});}
+    else await callPost({action:'addLop',...body});
     closeModal();toast(l?'Đã cập nhật lớp':'Đã thêm lớp','success');
     await loadLops();renderLopHoc();
   });
@@ -1124,12 +1138,15 @@ async function renderTabDiemDanh(lop){
   const canhBaoList = cbList.filter(c=>c.diemViPham>0).sort((a,b)=>b.diemViPham-a.diemViPham);
 
   // Chỉ render lịch tuần - click vào ô để điểm danh
+  // Hiện ca đang active
+  const activeCaLabel = caHocList.find(ca=>caKey(ca)===caId)?.ten||'Buổi học';
   wrap.innerHTML = `
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
-      <select id="dd-ca-picker" style="min-width:180px" onchange="changeDDCa(this.value)">
-        ${caHocList.map(ca=>`<option value="${caKey(ca)}" ${caKey(ca)===caId?'selected':''}>${ca.ten}${ca.nguoiDay?' · '+nguoiDayName(ca.nguoiDay):''}</option>`).join('')}
-      </select>
-      <span style="font-size:12px;color:#8a96a8">Chọn ca học, sau đó click vào ô trong lịch để điểm danh</span>
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap">
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        ${caHocList.map(ca=>`<button class="btn btn-sm ${caKey(ca)===caId?'btn-primary':''}"
+          onclick="changeDDCa('${caKey(ca)}')">${ca.ten}</button>`).join('')}
+      </div>
+      <span style="font-size:12px;color:#8a96a8;margin-left:4px">← chọn ca, click ô để điểm danh</span>
     </div>
     <div id="lich-tuan-wrap"><div class="empty">Đang tải...</div></div>
   `;
@@ -1292,9 +1309,9 @@ async function renderLichTuan(lop, hvList, selectedNgay, activeCaId){
     const isFuture = ngay > today;
     if(isFuture) return {bg:'#f8fafd',text:'#cbd5e1',border:'#e4ebf5',icon:'',tip:'Chưa đến'};
     if(!tt) return {bg:'#f1f5f9',text:'#94a3b8',border:'#e4ebf5',icon:'·',tip:'Chưa điểm danh (mặc định: Có mặt)'};
-    if(tt==='co_mat') return {bg:'#fef9c3',text:'#78350f',border:'#fcd34d',icon:'✓',tip:'Có mặt'};
+    if(tt==='co_mat') return {bg:'#dcfce7',text:'#166534',border:'#86efac',icon:'✓',tip:'Có mặt'};
     // Ưu tiên cảnh báo đỏ: nghỉ 3+ liên tiếp HOẶC >10% tổng buổi
-    if(streak>=3||over10pct) return {bg:'#fee2e2',text:'#991b1b',border:'#fca5a5',icon:tt==='vang_phep'?'P':tt==='di_tre'?'T':'K',tip:streak>=3?'Nghỉ 3+ buổi liên tiếp!':'Nghỉ >10% tổng buổi!'};
+    if(streak>=3||over10pct) return {bg:'#fee2e2',text:'#991b1b',border:'#fca5a5',icon:'!',blink:true,tip:streak>=3?'NGHỈ 3+ BUỔI LIÊN TIẾP!':'NGHỈ >10% TỔNG BUỔI!'};
     if(streak===2) return {bg:'#fed7aa',text:'#9a3412',border:'#fb923c',icon:'K',tip:'Nghỉ 2 lần liên tiếp'};
     if(tt==='vang_khong_phep') return {bg:'#ffedd5',text:'#c2410c',border:'#fdba74',icon:'K',tip:'K — Nghỉ không phép'};
     if(tt==='vang_phep') return {bg:'#e0f2fe',text:'#0369a1',border:'#7dd3fc',icon:'P',tip:'P — Nghỉ có phép'};
@@ -1307,7 +1324,7 @@ async function renderLichTuan(lop, hvList, selectedNgay, activeCaId){
     const hasAlert = info.streak >= 3 || info.over10pct;
     const alertTip = info.over10pct ? `Nghỉ ${Math.round(info.tongVang/tongBuoiDiemDanh*100)}% tổng buổi` : `Nghỉ ${info.streak} buổi liên tiếp`;
     const cells = weekDates.map((ngay,i)=>{
-      const {bg,text,border,icon,tip} = dayCell(hv.studentId, ngay, info);
+      const cellData = dayCell(hv.studentId, ngay, info); const {bg,text,border,icon,tip} = cellData; const blinkOn = cellData.blink||false;
       const isToday = ngay===today;
       const isFuture = ngay > today;
       const clickFn = isFuture ? '' :
@@ -1349,14 +1366,14 @@ async function renderLichTuan(lop, hvList, selectedNgay, activeCaId){
       <button class="btn btn-sm" onclick="changeWeek(-1)" style="min-width:110px">← Tuần trước</button>
       <div style="flex:1;text-align:center">
         <div style="font-size:15px;font-weight:700;color:#0d2d5e">${weekLabel}</div>
-        <div style="font-size:11px;color:#8a96a8;margin-top:2px">T2 ${weekDates[0].slice(5)} → CN ${weekDates[6].slice(5)}</div>
+        <div style="font-size:11px;color:#8a96a8;margin-top:2px">T2 ${weekDates[0].slice(8)}/${weekDates[0].slice(5,7)} → CN ${weekDates[6].slice(8)}/${weekDates[6].slice(5,7)}</div>
       </div>
       <button class="btn btn-sm" onclick="changeWeek(1)" ${LICH_WEEK_OFFSET>=0?'disabled':''} style="min-width:100px">Tuần sau →</button>
       <button class="btn btn-sm btn-primary" onclick="LICH_WEEK_OFFSET=0;const l=LOP_DATA.find(x=>x.lopId===LOP_DETAIL_ID);renderTabDiemDanh(l)" style="min-width:90px">Hôm nay</button>
     </div>
     <!-- Chú thích -->
     <div style="padding:8px 16px;border-bottom:1px solid #f0f4fa;display:flex;gap:16px;flex-wrap:wrap;font-size:11px;color:#5a6478;background:#fafbfd">
-      <span><span style="display:inline-block;width:16px;height:16px;border-radius:4px;background:#fef9c3;border:1.5px solid #fcd34d;vertical-align:middle;margin-right:4px"></span>Có mặt (mặc định)</span>
+      <span><span style="display:inline-block;width:16px;height:16px;border-radius:4px;background:#dcfce7;border:1.5px solid #86efac;vertical-align:middle;margin-right:4px"></span>Có mặt (mặc định)</span>
       <span><span style="display:inline-block;width:16px;height:16px;border-radius:4px;background:#dbeafe;border:1.5px solid #93c5fd;vertical-align:middle;margin-right:4px"></span><strong>P</strong> = Nghỉ có phép</span>
       <span><span style="display:inline-block;width:16px;height:16px;border-radius:4px;background:#ffedd5;border:1.5px solid #fdba74;vertical-align:middle;margin-right:4px"></span><strong>K</strong> = Nghỉ không phép</span>
       <span><span style="display:inline-block;width:16px;height:16px;border-radius:4px;background:#fef3c7;border:1.5px solid #fcd34d;vertical-align:middle;margin-right:4px"></span><strong>T</strong> = Đi trễ >15'</span>
@@ -1365,7 +1382,7 @@ async function renderLichTuan(lop, hvList, selectedNgay, activeCaId){
     <table style="min-width:640px;border-collapse:collapse">
       <thead><tr style="background:linear-gradient(180deg,#fafbfd,#f5f8fc)">
         <th style="padding:10px 16px;text-align:left;font-size:11px;color:#8a96a8;font-weight:700;text-transform:uppercase;min-width:170px;position:sticky;left:0;background:#f8fafd;z-index:2">HỌC VIÊN</th>
-        ${thuLabels.map((t,i)=>`<th style="text-align:center;padding:10px 4px;font-size:12px;color:${weekDates[i]===today?'#1a50a0':'#8a96a8'};font-weight:700;min-width:72px">${t.replace('Thứ ','T')}<br><span style="font-size:10px;font-weight:400;color:${weekDates[i]===today?'#3a7bd5':'#b0b8c8'}">${weekDates[i].slice(5).replace('-','/')}</span></th>`).join('')}
+        ${thuLabels.map((t,i)=>`<th style="text-align:center;padding:10px 4px;font-size:12px;color:${weekDates[i]===today?'#1a50a0':'#8a96a8'};font-weight:700;min-width:72px">${t.replace('Thứ ','T')}<br><span style="font-size:10px;font-weight:400;color:${weekDates[i]===today?'#3a7bd5':'#b0b8c8'}">${weekDates[i].slice(8)}/${weekDates[i].slice(5,7)}</span></th>`).join('')}
       </tr></thead>
       <tbody>${rows}</tbody>
     </table>
@@ -1430,14 +1447,8 @@ async function openDiemDanhNgayHV(studentId, hoTen, ngay, caId){
       </div>
       <div class="hint" style="margin-top:8px">💡 Gõ <strong>P</strong>, <strong>K</strong>, <strong>T</strong> để chọn nhanh. Bấm <strong>Enter</strong> để lưu. Không chọn = mặc định Có mặt.</div>
     </div>
-    <div class="hint" style="margin-bottom:12px">
-      💡 Gõ <kbd style="border:1px solid #d1dae8;border-radius:4px;padding:1px 5px;font-size:11px">P</kbd> Nghỉ phép &nbsp;
-      <kbd style="border:1px solid #d1dae8;border-radius:4px;padding:1px 5px;font-size:11px">K</kbd> Không phép &nbsp;
-      <kbd style="border:1px solid #d1dae8;border-radius:4px;padding:1px 5px;font-size:11px">T</kbd> Đi trễ &nbsp;
-      <kbd style="border:1px solid #d1dae8;border-radius:4px;padding:1px 5px;font-size:11px">Enter</kbd> Lưu
-    </div>
     <div class="form-row"><label>Ghi chú</label>
-      <input id="modal-note" value="${curNote}" placeholder="Ghi chú...">
+      <input id="modal-note" value="${curNote}" placeholder="Ghi chú thêm...">
     </div>
     <input type="hidden" id="modal-tt-val" value="${curTT}">
   `, async()=>{
