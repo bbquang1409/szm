@@ -1138,17 +1138,43 @@ async function renderTabDiemDanh(lop){
   const canhBaoList = cbList.filter(c=>c.diemViPham>0).sort((a,b)=>b.diemViPham-a.diemViPham);
 
   // Chỉ render lịch tuần - click vào ô để điểm danh
-  // Hiện ca đang active
-  const activeCaLabel = caHocList.find(ca=>caKey(ca)===caId)?.ten||'Buổi học';
+  // Layout 2 cột: trái = info lớp + danh sách HV, phải = lịch tuần
+  // Parse ca học của lớp để hiện thông tin
+  let caHocNames = caHocList.map(ca=>{
+    const nguoi = ca.nguoiDay ? (window.ALL_ACCOUNTS||[]).find(a=>a.email===ca.nguoiDay)?.hoTen||ca.nguoiDay : '';
+    return `<div style="font-size:12px;color:#5a6478;margin-top:3px">• ${ca.ten}${nguoi?' — '+nguoi:''}</div>`;
+  }).join('');
+
   wrap.innerHTML = `
-    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap">
-      <div style="display:flex;gap:6px;flex-wrap:wrap">
-        ${caHocList.map(ca=>`<button class="btn btn-sm ${caKey(ca)===caId?'btn-primary':''}"
-          onclick="changeDDCa('${caKey(ca)}')">${ca.ten}</button>`).join('')}
+    <div style="display:flex;gap:0;min-height:400px">
+      <!-- CỘT TRÁI: Thông tin lớp + danh sách học viên -->
+      <div style="width:200px;flex-shrink:0;border-right:2px solid #e4ebf5;background:#f8fafd">
+        <!-- Thông tin lớp -->
+        <div style="padding:14px 14px 10px;border-bottom:1px solid #e4ebf5">
+          <div style="font-size:18px;font-weight:800;color:#0d2d5e">${lop.tenLop}</div>
+          <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;
+            background:${CAP_DO_COLORS[lop.capDo]||'#f0f4fa'};color:${CAP_DO_TEXT[lop.capDo]||'#5a6478'};
+            display:inline-block;margin-top:4px">${lop.capDo||''}</span>
+          ${lop.ngayBatDau?`<div style="font-size:11px;color:#8a96a8;margin-top:6px">
+            📅 ${fmtDate(lop.ngayBatDau)}<br>đến ${fmtDate(lop.ngayKetThuc||'')}</div>`:''}
+          ${caHocNames?`<div style="margin-top:8px">${caHocNames}</div>`:''}
+        </div>
+        <!-- Danh sách học viên (sticky header) -->
+        <div style="padding:8px 14px 6px;font-size:10px;font-weight:700;color:#8a96a8;text-transform:uppercase;letter-spacing:.06em;background:#f8fafd">
+          HỌC VIÊN
+        </div>
+        ${hvList.map(hv=>`
+          <div style="display:flex;align-items:center;gap:8px;padding:8px 14px;border-top:1px solid #f0f4fa">
+            <div class="avatar" style="width:28px;height:28px;font-size:10px;background:#e8f0fb;color:#1a50a0;flex-shrink:0">${ini(hv.hoTen)}</div>
+            <div style="font-size:13px;font-weight:500;color:#1a2236;line-height:1.3">${hv.hoTen}</div>
+          </div>`).join('')}
       </div>
-      <span style="font-size:12px;color:#8a96a8;margin-left:4px">← chọn ca, click ô để điểm danh</span>
+
+      <!-- CỘT PHẢI: Lịch tuần -->
+      <div style="flex:1;overflow-x:auto">
+        <div id="lich-tuan-wrap"><div class="empty" style="padding:40px">Đang tải lịch...</div></div>
+      </div>
     </div>
-    <div id="lich-tuan-wrap"><div class="empty">Đang tải...</div></div>
   `;
 
   renderLichTuan(lop, hvList, ngay, caId).then(html=>{
@@ -1311,7 +1337,7 @@ async function renderLichTuan(lop, hvList, selectedNgay, activeCaId){
     if(!tt) return {bg:'#f1f5f9',text:'#94a3b8',border:'#e4ebf5',icon:'·',tip:'Chưa điểm danh (mặc định: Có mặt)'};
     if(tt==='co_mat') return {bg:'#dcfce7',text:'#166534',border:'#86efac',icon:'✓',tip:'Có mặt'};
     // Ưu tiên cảnh báo đỏ: nghỉ 3+ liên tiếp HOẶC >10% tổng buổi
-    if(streak>=3||over10pct) return {bg:'#fee2e2',text:'#991b1b',border:'#fca5a5',icon:'!',blink:true,tip:streak>=3?'NGHỈ 3+ BUỔI LIÊN TIẾP!':'NGHỈ >10% TỔNG BUỔI!'};
+    if(streak>=3||over10pct) return {bg:'#fee2e2',text:'#991b1b',border:'#fca5a5',icon:streak>=3?'3+':Math.round(info.tongVang/(tongBuoiDiemDanh||1)*100)+'%',blink:true,tip:streak>=3?'NGHỈ 3+ BUỔI LIÊN TIẾP!':'NGHỈ >10% TỔNG BUỔI!'};
     if(streak===2) return {bg:'#fed7aa',text:'#9a3412',border:'#fb923c',icon:'K',tip:'Nghỉ 2 lần liên tiếp'};
     if(tt==='vang_khong_phep') return {bg:'#ffedd5',text:'#c2410c',border:'#fdba74',icon:'K',tip:'K — Nghỉ không phép'};
     if(tt==='vang_phep') return {bg:'#e0f2fe',text:'#0369a1',border:'#7dd3fc',icon:'P',tip:'P — Nghỉ có phép'};
@@ -1344,16 +1370,10 @@ async function renderLichTuan(lop, hvList, selectedNgay, activeCaId){
       </td>`;
     }).join('');
     return `<tr style="border-bottom:1px solid #f0f4fa">
-      <td style="padding:8px 16px;position:sticky;left:0;background:#fff;z-index:1;border-right:1px solid #f0f4fa">
-        <div style="display:flex;align-items:center;gap:9px;min-width:155px">
-          <div class="avatar" style="width:30px;height:30px;font-size:11px;background:#e8f0fb;color:#1a50a0;flex-shrink:0">${ini(hv.hoTen)}</div>
-          <div>
-            <div style="font-size:13px;font-weight:600;color:#1a2236">${hv.hoTen}</div>
-            ${hasAlert?`<button class="btn btn-sm" style="margin-top:3px;font-size:10px;padding:2px 7px;background:#fee2e2;border-color:#fca5a5;color:#991b1b"
-              onclick="promptGuiTinNghiNhieu('${hv.studentId}','${hv.hoTen}')" title="${alertTip}">⚠ Báo PH</button>`:''}
-          </div>
-        </div>
-      </td>
+      ${hasAlert?`<td style="padding:2px 4px;width:24px">
+        <button class="btn btn-sm" style="font-size:9px;padding:2px 4px;background:#fee2e2;border-color:#fca5a5;color:#991b1b"
+          onclick="promptGuiTinNghiNhieu('${hv.studentId}','${hv.hoTen}')" title="${alertTip}">⚠</button>
+      </td>`:`<td style="padding:0;width:0"></td>`}
       ${cells}
     </tr>`;
   }).join('');
@@ -1381,7 +1401,7 @@ async function renderLichTuan(lop, hvList, selectedNgay, activeCaId){
     </div>
     <table style="min-width:640px;border-collapse:collapse">
       <thead><tr style="background:linear-gradient(180deg,#fafbfd,#f5f8fc)">
-        <th style="padding:10px 16px;text-align:left;font-size:11px;color:#8a96a8;font-weight:700;text-transform:uppercase;min-width:170px;position:sticky;left:0;background:#f8fafd;z-index:2">HỌC VIÊN</th>
+
         ${thuLabels.map((t,i)=>`<th style="text-align:center;padding:10px 4px;font-size:12px;color:${weekDates[i]===today?'#1a50a0':'#8a96a8'};font-weight:700;min-width:72px">${t.replace('Thứ ','T')}<br><span style="font-size:10px;font-weight:400;color:${weekDates[i]===today?'#3a7bd5':'#b0b8c8'}">${weekDates[i].slice(8)}/${weekDates[i].slice(5,7)}</span></th>`).join('')}
       </tr></thead>
       <tbody>${rows}</tbody>
