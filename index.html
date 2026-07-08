@@ -82,6 +82,13 @@ textarea{resize:vertical}
 
 /* CONTENT */
 #content{flex:1;overflow:auto;padding:24px}
+/* Scrollbar mảnh, không có nút mũi tên lên/xuống (nút "roll" gây khó hiểu trên Windows/Chrome) */
+#content::-webkit-scrollbar{width:9px;height:9px}
+#content::-webkit-scrollbar-button{display:none;width:0;height:0}
+#content::-webkit-scrollbar-track{background:transparent}
+#content::-webkit-scrollbar-thumb{background:#c7d2e0;border-radius:20px;border:2px solid transparent;background-clip:padding-box}
+#content::-webkit-scrollbar-thumb:hover{background:#a8b8cc;background-clip:padding-box}
+#content{scrollbar-width:thin;scrollbar-color:#c7d2e0 transparent}
 
 /* STATS */
 .stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px}
@@ -1085,31 +1092,24 @@ async function renderLopDetail(){
   const lop = LOP_DATA.find(l=>l.lopId===LOP_DETAIL_ID);
   if(!lop){ setContent('<div class="empty">Không tìm thấy lớp</div>'); return; }
 
-  // Thông tin ca học của lớp (dùng chung cho cả 2 tab, ghi 1 chỗ duy nhất — tránh lặp)
-  let caHocList = [];
-  try{ caHocList = lop.caHoc ? JSON.parse(lop.caHoc) : []; }catch(e){ caHocList = []; }
-  const caHocInfo = caHocList.map(ca=>{
-    const nguoi = ca.nguoiDay ? (window.ALL_ACCOUNTS||[]).find(a=>a.email===ca.nguoiDay)?.hoTen||ca.nguoiDay : '';
-    return `${ca.ten}${nguoi?' ('+nguoi+')':''}`;
-  }).join(' · ');
-
   setContent(`
-    <div style="margin-bottom:16px">
-      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px">
-        <button class="btn btn-sm" onclick="navTo('lophoc')">← Tất cả lớp</button>
-        <span style="font-size:22px;font-weight:800;color:#0d2d5e">${lop.tenLop}</span>
-        <span style="font-size:13px;font-weight:700;padding:4px 12px;border-radius:20px;background:${CAP_DO_COLORS[lop.capDo]||'#f0f4fa'};color:${CAP_DO_TEXT[lop.capDo]||'#5a6478'}">Trình độ ${lop.capDo||'—'}</span>
-        ${lop.canhBaoGiuaKy?`<span class="badge b-warn1" style="animation:pulse 1.5s infinite">Giữa kỳ còn ${lop.soNgayConGiuaKy} ngày</span>`:''}
-        ${lop.canhBaoCuoiKy?`<span class="badge b-warn2" style="animation:pulse 1.5s infinite">Cuối kỳ còn ${lop.soNgayConCuoiKy} ngày</span>`:''}
+    <div style="display:grid;grid-template-columns:1fr auto 1fr;align-items:start;gap:10px;margin-bottom:18px">
+      <div><button class="btn btn-sm" onclick="navTo('lophoc')">← Tất cả lớp</button></div>
+      <div style="text-align:center">
+        <div style="font-size:26px;font-weight:800;color:#0d2d5e;text-transform:uppercase;letter-spacing:.02em">Lớp ${lop.tenLop}</div>
+        <div style="display:flex;justify-content:center;gap:8px;margin-top:8px;flex-wrap:wrap">
+          <span style="font-size:13px;font-weight:700;padding:4px 12px;border-radius:20px;background:${CAP_DO_COLORS[lop.capDo]||'#f0f4fa'};color:${CAP_DO_TEXT[lop.capDo]||'#5a6478'}">Trình độ ${lop.capDo||'—'}</span>
+          ${lop.canhBaoGiuaKy?`<span class="badge b-warn1" style="animation:pulse 1.5s infinite">Giữa kỳ còn ${lop.soNgayConGiuaKy} ngày</span>`:''}
+          ${lop.canhBaoCuoiKy?`<span class="badge b-warn2" style="animation:pulse 1.5s infinite">Cuối kỳ còn ${lop.soNgayConCuoiKy} ngày</span>`:''}
+        </div>
       </div>
-      <div style="font-size:14px;color:#5a6478;display:flex;gap:22px;flex-wrap:wrap;padding-left:2px">
-        ${lop.ngayBatDau?`<span>📅 Thời gian học: <strong style="color:#1a2236">${fmtDate(lop.ngayBatDau)} – ${fmtDate(lop.ngayKetThuc||'')}</strong></span>`:''}
-        ${caHocInfo?`<span>🕐 Ca học: <strong style="color:#1a2236">${caHocInfo}</strong></span>`:''}
-      </div>
+      <div></div>
     </div>
-    <div class="tab-bar" style="display:flex;margin-bottom:16px;padding:0;border-bottom:1.5px solid #e4ebf5;background:transparent">
-      <div class="tab ${LOP_DETAIL_TAB==='diemdanh'?'active':''}" onclick="switchLopTab('diemdanh')">📋 Điểm danh</div>
-      <div class="tab ${LOP_DETAIL_TAB==='diem'?'active':''}" onclick="switchLopTab('diem')">📊 Bảng điểm</div>
+    <div style="display:flex;justify-content:center;margin-bottom:18px">
+      <div style="display:flex;gap:6px;padding:4px;background:#f0f4fa;border-radius:12px">
+        <div onclick="switchLopTab('diemdanh')" style="padding:9px 20px;border-radius:9px;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;${LOP_DETAIL_TAB==='diemdanh'?'background:#1a50a0;color:#fff;box-shadow:0 2px 8px rgba(26,80,160,.3)':'color:#5a6478'}">📋 Điểm danh</div>
+        <div onclick="switchLopTab('diem')" style="padding:9px 20px;border-radius:9px;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;${LOP_DETAIL_TAB==='diem'?'background:#1a50a0;color:#fff;box-shadow:0 2px 8px rgba(26,80,160,.3)':'color:#5a6478'}">📊 Bảng điểm</div>
+      </div>
     </div>
     <div id="lop-detail-content"></div>
   `);
@@ -1319,72 +1319,105 @@ async function renderLichTuan(lop, hvList, selectedNgay, activeCaId){
     return {bg:'#f1f5f9',text:'#94a3b8',border:'#e4ebf5',icon:'?',tip:''};
   }
 
-  const rows = hvList.map(hv=>{
+  // Thông tin lớp hiển thị to, rõ ở ô trên-trái
+  let caHocList = [];
+  try{ caHocList = lop.caHoc ? JSON.parse(lop.caHoc) : []; }catch(e){ caHocList = []; }
+  const caHocInfoHtml = caHocList.map(ca=>{
+    const nguoi = ca.nguoiDay ? (window.ALL_ACCOUNTS||[]).find(a=>a.email===ca.nguoiDay)?.hoTen||ca.nguoiDay : '';
+    return `<div>${ca.ten}${nguoi?' — '+nguoi:''}</div>`;
+  }).join('');
+
+  const ROW_H = 54, HEAD_H = 46; // chiều cao cố định — dùng chung cho cả 2 cột để hàng luôn khớp nhau
+
+  // Cột trái: danh sách học viên (mỗi dòng cao đúng ROW_H, tên bị cắt bớt "..." thay vì xuống dòng để không phá vỡ chiều cao)
+  const nameRows = hvList.map(hv=>{
     const info = cellInfo(hv.studentId);
     const hasAlert = info.streak >= 3 || info.over10pct;
     const alertTip = info.over10pct ? `Nghỉ ${Math.round(info.tongVang/tongBuoiDiemDanh*100)}% tổng buổi` : `Nghỉ ${info.streak} buổi liên tiếp`;
+    return `<div style="height:${ROW_H}px;box-sizing:border-box;display:flex;align-items:center;gap:8px;padding:0 14px;border-bottom:1px solid #f0f4fa;overflow:hidden">
+      <div class="avatar" style="width:26px;height:26px;font-size:10px;background:#e8f0fb;color:#1a50a0;flex-shrink:0">${ini(hv.hoTen)}</div>
+      <div style="font-size:13px;font-weight:500;color:#1a2236;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${escapeAttr(hv.hoTen)}">${hv.hoTen}</div>
+      ${hasAlert?`<button class="btn btn-sm" style="font-size:9px;padding:2px 5px;margin-left:auto;flex-shrink:0;background:#fee2e2;border-color:#fca5a5;color:#991b1b"
+        onclick="promptGuiTinNghiNhieu('${hv.studentId}','${escapeAttr(hv.hoTen)}')" title="${alertTip}">⚠</button>`:''}
+    </div>`;
+  }).join('');
+
+  // Cột phải: lịch — mỗi dòng cũng cao đúng ROW_H, khớp tuyệt đối với cột tên bên trái
+  const calRows = hvList.map(hv=>{
+    const info = cellInfo(hv.studentId);
     const cells = weekDates.map((ngay)=>{
       const cellData = dayCell(hv.studentId, ngay, info); const {bg,text,border,icon,tip} = cellData;
       const isToday = ngay===today;
       const isFuture = ngay > today;
       const clickFn = isFuture ? '' :
         `onclick="openDiemDanhNgayHV('${hv.studentId}','${escapeAttr(hv.hoTen)}','${ngay}','${activeCaId||''}')"`;
-      return `<td style="padding:4px 3px;text-align:center;border-bottom:1px solid #f0f4fa">
+      return `<div style="flex:1;min-width:52px;box-sizing:border-box;display:flex;align-items:center;justify-content:center">
         <div ${clickFn} title="${tip}${!isFuture?' — click để điểm danh':''}" style="
-          width:40px;height:40px;border-radius:9px;border:2px solid ${border};
+          width:38px;height:38px;border-radius:9px;border:2px solid ${border};
           background:${bg};color:${text};
           display:flex;align-items:center;justify-content:center;
-          margin:0 auto;${!isFuture?'cursor:pointer;':'cursor:default;'}transition:all .15s;
+          ${!isFuture?'cursor:pointer;':'cursor:default;'}transition:all .15s;
           ${isToday?'box-shadow:0 0 0 2.5px #3a7bd5,0 2px 8px rgba(58,123,213,.25);':''}
-          font-size:15px;font-weight:800;line-height:1"
+          font-size:14px;font-weight:800;line-height:1"
           ${!isFuture?`onmouseover="this.style.transform='scale(1.12)';this.style.boxShadow='0 4px 14px rgba(0,0,0,.15)'" onmouseout="this.style.transform='scale(1)';this.style.boxShadow='${isToday?'0 0 0 2.5px #3a7bd5':'none'}'"`:''}>
           ${icon}
         </div>
-      </td>`;
+      </div>`;
     }).join('');
-    // Tên học viên + cảnh báo (nếu có) nằm CHUNG 1 ô đầu hàng, cùng hàng <tr> với các ô ngày
-    // → không còn 2 bảng riêng bị lệch hàng, và số cột luôn khớp với header (sửa lỗi lệch cột)
-    return `<tr>
-      <td style="position:sticky;left:0;z-index:1;background:#fff;padding:8px 12px;border-bottom:1px solid #f0f4fa;border-right:2px solid #e4ebf5;min-width:180px">
-        <div style="display:flex;align-items:center;gap:8px">
-          <div class="avatar" style="width:28px;height:28px;font-size:10px;background:#e8f0fb;color:#1a50a0;flex-shrink:0">${ini(hv.hoTen)}</div>
-          <div style="font-size:13px;font-weight:500;color:#1a2236">${hv.hoTen}</div>
-          ${hasAlert?`<button class="btn btn-sm" style="font-size:9px;padding:2px 5px;margin-left:auto;flex-shrink:0;background:#fee2e2;border-color:#fca5a5;color:#991b1b"
-            onclick="promptGuiTinNghiNhieu('${hv.studentId}','${escapeAttr(hv.hoTen)}')" title="${alertTip}">⚠</button>`:''}
-        </div>
-      </td>
-      ${cells}
-    </tr>`;
+    return `<div style="height:${ROW_H}px;box-sizing:border-box;display:flex;border-bottom:1px solid #f0f4fa">${cells}</div>`;
   }).join('');
 
   const weekLabel = `${fmtDate(weekDates[0])} — ${fmtDate(weekDates[6])}`;
 
   return `<div class="table-wrap">
-    <!-- Chú thích: cố định phía trên, không cuộn ngang theo bảng nữa -->
-    <div style="padding:10px 16px;border-bottom:1px solid #f0f4fa;display:flex;gap:16px;flex-wrap:wrap;font-size:11px;color:#5a6478;background:#fafbfd">
-      <span><span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#dcfce7;border:1.5px solid #86efac;vertical-align:middle;margin-right:4px"></span>Có mặt (mặc định)</span>
-      <span><span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#dbeafe;border:1.5px solid #93c5fd;vertical-align:middle;margin-right:4px"></span><strong>P</strong> Nghỉ có phép</span>
-      <span><span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#ffedd5;border:1.5px solid #fdba74;vertical-align:middle;margin-right:4px"></span><strong>K</strong> Nghỉ không phép</span>
-      <span><span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#fef3c7;border:1.5px solid #fcd34d;vertical-align:middle;margin-right:4px"></span><strong>T</strong> Đi trễ >15'</span>
-      <span><span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#fee2e2;border:1.5px solid #fca5a5;vertical-align:middle;margin-right:4px"></span>Nghỉ 3+ liên tiếp / >10% tổng buổi → cảnh báo đỏ</span>
-    </div>
-    <!-- Điều hướng tuần: bỏ nút "Hôm nay" nổi vô nghĩa, thay bằng link nhỏ chỉ hiện khi đang xem tuần khác -->
-    <div style="display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid #f0f4fa;flex-wrap:wrap">
-      <button class="btn btn-sm" onclick="changeWeek(-1)" style="min-width:110px">← Tuần trước</button>
-      <div style="flex:1;text-align:center">
-        <div style="font-size:14px;font-weight:700;color:#0d2d5e">${weekLabel}</div>
-        ${LICH_WEEK_OFFSET<0?`<span style="font-size:11px;color:#3a7bd5;cursor:pointer" onclick="LICH_WEEK_OFFSET=0;const l=LOP_DATA.find(x=>x.lopId===LOP_DETAIL_ID);renderTabDiemDanh(l)">↺ Về tuần hiện tại</span>`:''}
+    <!-- HÀNG TRÊN: bảng 1 = thông tin lớp (trái), chú thích + điều hướng tuần (phải) -->
+    <div style="display:flex;border-bottom:2px solid #e4ebf5">
+      <div style="width:230px;flex-shrink:0;padding:16px;border-right:2px solid #e4ebf5;background:#f8fafd;box-sizing:border-box">
+        <div style="font-size:11px;color:#8a96a8;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px">Thông tin lớp</div>
+        ${lop.ngayBatDau?`<div style="margin-bottom:12px">
+          <div style="font-size:12px;color:#8a96a8;margin-bottom:2px">📅 Thời gian học</div>
+          <div style="font-size:16px;font-weight:700;color:#1a2236">${fmtDate(lop.ngayBatDau)} – ${fmtDate(lop.ngayKetThuc||'')}</div>
+        </div>`:''}
+        ${caHocInfoHtml?`<div>
+          <div style="font-size:12px;color:#8a96a8;margin-bottom:2px">🕐 Ca học</div>
+          <div style="font-size:15px;font-weight:700;color:#1a2236;line-height:1.5">${caHocInfoHtml}</div>
+        </div>`:''}
       </div>
-      <button class="btn btn-sm" onclick="changeWeek(1)" ${LICH_WEEK_OFFSET>=0?'disabled':''} style="min-width:100px">Tuần sau →</button>
+      <div style="flex:1;padding:14px 16px;box-sizing:border-box;min-width:0">
+        <div style="display:flex;gap:14px;flex-wrap:wrap;font-size:11px;color:#5a6478;margin-bottom:14px">
+          <span><span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#dcfce7;border:1.5px solid #86efac;vertical-align:middle;margin-right:4px"></span>Có mặt (mặc định)</span>
+          <span><span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#dbeafe;border:1.5px solid #93c5fd;vertical-align:middle;margin-right:4px"></span><strong>P</strong> Nghỉ có phép</span>
+          <span><span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#ffedd5;border:1.5px solid #fdba74;vertical-align:middle;margin-right:4px"></span><strong>K</strong> Nghỉ không phép</span>
+          <span><span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#fef3c7;border:1.5px solid #fcd34d;vertical-align:middle;margin-right:4px"></span><strong>T</strong> Đi trễ >15'</span>
+          <span><span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#fee2e2;border:1.5px solid #fca5a5;vertical-align:middle;margin-right:4px"></span>Nghỉ 3+ liên tiếp / >10% tổng buổi → cảnh báo đỏ</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <button class="btn btn-sm" onclick="changeWeek(-1)" style="min-width:110px">← Tuần trước</button>
+          <div style="flex:1;text-align:center;min-width:140px">
+            <div style="font-size:14px;font-weight:700;color:#0d2d5e">${weekLabel}</div>
+            ${LICH_WEEK_OFFSET<0?`<span style="font-size:11px;color:#3a7bd5;cursor:pointer" onclick="LICH_WEEK_OFFSET=0;const l=LOP_DATA.find(x=>x.lopId===LOP_DETAIL_ID);renderTabDiemDanh(l)">↺ Về tuần hiện tại</span>`:''}
+          </div>
+          <button class="btn btn-sm" onclick="changeWeek(1)" ${LICH_WEEK_OFFSET>=0?'disabled':''} style="min-width:100px">Tuần sau →</button>
+        </div>
+      </div>
     </div>
-    <div style="overflow-x:auto">
-      <table style="border-collapse:collapse;width:100%">
-        <thead><tr style="background:linear-gradient(180deg,#fafbfd,#f5f8fc)">
-          <th style="position:sticky;left:0;z-index:2;background:#f5f8fc;text-align:left;padding:9px 12px;font-size:11px;color:#8a96a8;font-weight:700;text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid #e4ebf5;border-right:2px solid #e4ebf5;min-width:180px">Học viên</th>
-          ${thuLabels.map((t,i)=>`<th style="text-align:center;padding:9px 4px;font-size:12px;color:${weekDates[i]===today?'#1a50a0':'#8a96a8'};font-weight:700;border-bottom:1px solid #e4ebf5;min-width:52px">${t}<br><span style="font-size:10px;font-weight:400;color:${weekDates[i]===today?'#3a7bd5':'#b0b8c8'}">${weekDates[i].slice(8)}/${weekDates[i].slice(5,7)}</span></th>`).join('')}
-        </tr></thead>
-        <tbody>${rows}</tbody>
-      </table>
+    <!-- HÀNG DƯỚI: bảng 2 = danh sách học viên (trái), bảng 3 = lịch điểm danh (phải) — chiều cao dòng khớp tuyệt đối -->
+    <div style="display:flex">
+      <div style="width:230px;flex-shrink:0;border-right:2px solid #e4ebf5;box-sizing:border-box">
+        <div style="height:${HEAD_H}px;box-sizing:border-box;display:flex;align-items:center;padding:0 14px;font-size:11px;font-weight:700;color:#8a96a8;text-transform:uppercase;letter-spacing:.05em;background:#f5f8fc;border-bottom:1px solid #e4ebf5">Học viên</div>
+        ${nameRows}
+      </div>
+      <div style="flex:1;overflow-x:auto">
+        <div style="min-width:400px">
+          <div style="height:${HEAD_H}px;box-sizing:border-box;display:flex;background:linear-gradient(180deg,#fafbfd,#f5f8fc);border-bottom:1px solid #e4ebf5">
+            ${thuLabels.map((t,i)=>`<div style="flex:1;min-width:52px;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;justify-content:center">
+              <span style="font-size:12px;font-weight:700;color:${weekDates[i]===today?'#1a50a0':'#8a96a8'}">${t}</span>
+              <span style="font-size:10px;font-weight:400;color:${weekDates[i]===today?'#3a7bd5':'#b0b8c8'}">${weekDates[i].slice(8)}/${weekDates[i].slice(5,7)}</span>
+            </div>`).join('')}
+          </div>
+          ${calRows}
+        </div>
+      </div>
     </div>
   </div>`;
 }
