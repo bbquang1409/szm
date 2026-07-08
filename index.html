@@ -365,9 +365,11 @@ async function onToken(t){
     const res=await fetch('https://www.googleapis.com/oauth2/v3/userinfo',{headers:{Authorization:'Bearer '+t.access_token}});
     const info=await res.json();
     if(!info.email){showLoginError('Không lấy được email');return;}
-    const r=await call({action:'whoami',email:info.email});
+    const r=await call({action:'whoami',email:info.email,token:t.access_token});
     if(!r.ok){showLoginError(r.error||'Email không được phép');return;}
-    USER={email:info.email,role:r.data.role,hoTen:r.data.hoTen||info.name,lopPhuTrach:r.data.lopPhuTrach||''};
+    // Lưu access_token thật để mọi request sau đều được backend xác thực,
+    // thay vì chỉ tin vào chuỗi email (tránh giả mạo email để leo quyền).
+    USER={email:info.email,role:r.data.role,hoTen:r.data.hoTen||info.name,lopPhuTrach:r.data.lopPhuTrach||'',token:t.access_token};
     completeLoading();
     setTimeout(startApp, 300);
   }catch(e){showLoginError('Lỗi: '+e.message);}
@@ -418,21 +420,26 @@ async function callPost(params){
   // Dùng POST để tránh giới hạn URL với JSON lớn (caHoc)
   const {action,...rest} = params;
   const email = USER?.email||'';
+  const token = rest.token || USER?.token || '';
   const r = await fetch(API+'?action='+encodeURIComponent(action)+'&email='+encodeURIComponent(email), {
     method:'POST',
     headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({...rest,action,email})
+    body: JSON.stringify({...rest,action,email,token})
   });
   if(!r.ok) throw new Error('HTTP '+r.status);
-  return r.json();
+  const res = await r.json();
+  if(!res.ok && /dang nhap|token/i.test(res.error||'')){ toast('Phiên đăng nhập hết hạn, vui lòng đăng nhập lại','error'); logout(); }
+  return res;
 }
 
 async function call(params){
-  const p={email:USER?.email||'',...params};
+  const p={email:USER?.email||'',token:USER?.token||'',...params};
   const qs=Object.entries(p).map(([k,v])=>encodeURIComponent(k)+'='+encodeURIComponent(typeof v==='object'?JSON.stringify(v):String(v))).join('&');
   const r=await fetch(API+'?'+qs);
   if(!r.ok) throw new Error('HTTP '+r.status);
-  return r.json();
+  const res = await r.json();
+  if(!res.ok && /dang nhap|token/i.test(res.error||'') && params.action!=='whoami'){ toast('Phiên đăng nhập hết hạn, vui lòng đăng nhập lại','error'); logout(); }
+  return res;
 }
 
 // ── BOOT ──
@@ -1078,13 +1085,27 @@ async function renderLopDetail(){
   const lop = LOP_DATA.find(l=>l.lopId===LOP_DETAIL_ID);
   if(!lop){ setContent('<div class="empty">Không tìm thấy lớp</div>'); return; }
 
+  // Thông tin ca học của lớp (dùng chung cho cả 2 tab, ghi 1 chỗ duy nhất — tránh lặp)
+  let caHocList = [];
+  try{ caHocList = lop.caHoc ? JSON.parse(lop.caHoc) : []; }catch(e){ caHocList = []; }
+  const caHocInfo = caHocList.map(ca=>{
+    const nguoi = ca.nguoiDay ? (window.ALL_ACCOUNTS||[]).find(a=>a.email===ca.nguoiDay)?.hoTen||ca.nguoiDay : '';
+    return `${ca.ten}${nguoi?' ('+nguoi+')':''}`;
+  }).join(' · ');
+
   setContent(`
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
-      <button class="btn btn-sm" onclick="navTo('lophoc')">← Tất cả lớp</button>
-      <span style="font-size:16px;font-weight:600;color:#0d2d5e">${lop.tenLop}</span>
-      <span class="lop-cap" style="background:${CAP_DO_COLORS[lop.capDo]||'#f0f4fa'};color:${CAP_DO_TEXT[lop.capDo]||'#5a6478'}">${lop.capDo||''}</span>
-      ${lop.canhBaoGiuaKy?`<span class="badge b-warn1" style="animation:pulse 1.5s infinite">Giữa kỳ còn ${lop.soNgayConGiuaKy} ngày</span>`:''}
-      ${lop.canhBaoCuoiKy?`<span class="badge b-warn2" style="animation:pulse 1.5s infinite">Cuối kỳ còn ${lop.soNgayConCuoiKy} ngày</span>`:''}
+    <div style="margin-bottom:16px">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px">
+        <button class="btn btn-sm" onclick="navTo('lophoc')">← Tất cả lớp</button>
+        <span style="font-size:22px;font-weight:800;color:#0d2d5e">${lop.tenLop}</span>
+        <span style="font-size:13px;font-weight:700;padding:4px 12px;border-radius:20px;background:${CAP_DO_COLORS[lop.capDo]||'#f0f4fa'};color:${CAP_DO_TEXT[lop.capDo]||'#5a6478'}">Trình độ ${lop.capDo||'—'}</span>
+        ${lop.canhBaoGiuaKy?`<span class="badge b-warn1" style="animation:pulse 1.5s infinite">Giữa kỳ còn ${lop.soNgayConGiuaKy} ngày</span>`:''}
+        ${lop.canhBaoCuoiKy?`<span class="badge b-warn2" style="animation:pulse 1.5s infinite">Cuối kỳ còn ${lop.soNgayConCuoiKy} ngày</span>`:''}
+      </div>
+      <div style="font-size:14px;color:#5a6478;display:flex;gap:22px;flex-wrap:wrap;padding-left:2px">
+        ${lop.ngayBatDau?`<span>📅 Thời gian học: <strong style="color:#1a2236">${fmtDate(lop.ngayBatDau)} – ${fmtDate(lop.ngayKetThuc||'')}</strong></span>`:''}
+        ${caHocInfo?`<span>🕐 Ca học: <strong style="color:#1a2236">${caHocInfo}</strong></span>`:''}
+      </div>
     </div>
     <div class="tab-bar" style="display:flex;margin-bottom:16px;padding:0;border-bottom:1.5px solid #e4ebf5;background:transparent">
       <div class="tab ${LOP_DETAIL_TAB==='diemdanh'?'active':''}" onclick="switchLopTab('diemdanh')">📋 Điểm danh</div>
@@ -1123,59 +1144,12 @@ async function renderTabDiemDanh(lop){
   if(!LOP_DD_CA || !caHocList.find(c=>caKey(c)===LOP_DD_CA)) LOP_DD_CA = caKey(caHocList[0]);
   const caId = LOP_DD_CA;
 
-  const [hvR,ddR,cbR] = await Promise.all([
-    call({action:'getHocVienByLop',lop:lop.tenLop}),
-    call({action:'getDiemDanhByLop',lop:lop.tenLop,ngay,caId}),
-    call({action:'getThongKeCanhBao',lop:lop.tenLop}),
-  ]);
+  const hvR = await call({action:'getHocVienByLop',lop:lop.tenLop});
   const hvList = (hvR.ok?hvR.data:[]).filter(hv=>hv.trangThai==='danghoc'||!hv.trangThai);
-  const ddMap={}; if(ddR.ok) ddR.data.forEach(d=>ddMap[d.studentId]=d);
-  const cbList = cbR.ok?cbR.data:[];
-  const cbMap={}; cbList.forEach(c=>cbMap[c.studentId]=c);
-  const canEdit = ['admin','giaovien'].includes(USER.role);
 
-  // Cảnh báo: học viên nghỉ nhiều / đi trễ nhiều trong lớp này (tổng tất cả các ca)
-  const canhBaoList = cbList.filter(c=>c.diemViPham>0).sort((a,b)=>b.diemViPham-a.diemViPham);
-
-  // Chỉ render lịch tuần - click vào ô để điểm danh
-  // Layout 2 cột: trái = info lớp + danh sách HV, phải = lịch tuần
-  // Parse ca học của lớp để hiện thông tin
-  let caHocNames = caHocList.map(ca=>{
-    const nguoi = ca.nguoiDay ? (window.ALL_ACCOUNTS||[]).find(a=>a.email===ca.nguoiDay)?.hoTen||ca.nguoiDay : '';
-    return `<div style="font-size:12px;color:#5a6478;margin-top:3px">• ${ca.ten}${nguoi?' — '+nguoi:''}</div>`;
-  }).join('');
-
-  wrap.innerHTML = `
-    <div style="display:flex;gap:0;min-height:400px">
-      <!-- CỘT TRÁI: Thông tin lớp + danh sách học viên -->
-      <div style="width:200px;flex-shrink:0;border-right:2px solid #e4ebf5;background:#f8fafd">
-        <!-- Thông tin lớp -->
-        <div style="padding:14px 14px 10px;border-bottom:1px solid #e4ebf5">
-          <div style="font-size:18px;font-weight:800;color:#0d2d5e">${lop.tenLop}</div>
-          <span style="font-size:10px;font-weight:700;padding:2px 8px;border-radius:10px;
-            background:${CAP_DO_COLORS[lop.capDo]||'#f0f4fa'};color:${CAP_DO_TEXT[lop.capDo]||'#5a6478'};
-            display:inline-block;margin-top:4px">${lop.capDo||''}</span>
-          ${lop.ngayBatDau?`<div style="font-size:11px;color:#8a96a8;margin-top:6px">
-            📅 ${fmtDate(lop.ngayBatDau)}<br>đến ${fmtDate(lop.ngayKetThuc||'')}</div>`:''}
-          ${caHocNames?`<div style="margin-top:8px">${caHocNames}</div>`:''}
-        </div>
-        <!-- Danh sách học viên (sticky header) -->
-        <div style="padding:8px 14px 6px;font-size:10px;font-weight:700;color:#8a96a8;text-transform:uppercase;letter-spacing:.06em;background:#f8fafd">
-          HỌC VIÊN
-        </div>
-        ${hvList.map(hv=>`
-          <div style="display:flex;align-items:center;gap:8px;padding:8px 14px;border-top:1px solid #f0f4fa">
-            <div class="avatar" style="width:28px;height:28px;font-size:10px;background:#e8f0fb;color:#1a50a0;flex-shrink:0">${ini(hv.hoTen)}</div>
-            <div style="font-size:13px;font-weight:500;color:#1a2236;line-height:1.3">${hv.hoTen}</div>
-          </div>`).join('')}
-      </div>
-
-      <!-- CỘT PHẢI: Lịch tuần -->
-      <div style="flex:1;overflow-x:auto">
-        <div id="lich-tuan-wrap"><div class="empty" style="padding:40px">Đang tải lịch...</div></div>
-      </div>
-    </div>
-  `;
+  // Bảng học viên + lịch tuần được gộp làm MỘT bảng duy nhất (renderLichTuan)
+  // để hàng tên học viên luôn khớp hàng ô điểm danh, không còn lệch nhau.
+  wrap.innerHTML = `<div id="lich-tuan-wrap"><div class="empty" style="padding:40px">Đang tải lịch...</div></div>`;
 
   renderLichTuan(lop, hvList, ngay, caId).then(html=>{
     document.getElementById('lich-tuan-wrap').innerHTML = html;
@@ -1286,7 +1260,7 @@ function getWeekDates(dateStr, offset=0){
 
 async function renderLichTuan(lop, hvList, selectedNgay, activeCaId){
   const weekDates = getWeekDates(selectedNgay||todayStr(), LICH_WEEK_OFFSET);
-  const thuLabels = ['Thứ 2','Thứ 3','Thứ 4','Thứ 5','Thứ 6','Thứ 7','Chủ nhật'];
+  const thuLabels = ['T2','T3','T4','T5','T6','T7','CN'];
   const today = todayStr();
 
   // Load điểm danh cả tuần song song
@@ -1349,63 +1323,69 @@ async function renderLichTuan(lop, hvList, selectedNgay, activeCaId){
     const info = cellInfo(hv.studentId);
     const hasAlert = info.streak >= 3 || info.over10pct;
     const alertTip = info.over10pct ? `Nghỉ ${Math.round(info.tongVang/tongBuoiDiemDanh*100)}% tổng buổi` : `Nghỉ ${info.streak} buổi liên tiếp`;
-    const cells = weekDates.map((ngay,i)=>{
-      const cellData = dayCell(hv.studentId, ngay, info); const {bg,text,border,icon,tip} = cellData; const blinkOn = cellData.blink||false;
+    const cells = weekDates.map((ngay)=>{
+      const cellData = dayCell(hv.studentId, ngay, info); const {bg,text,border,icon,tip} = cellData;
       const isToday = ngay===today;
       const isFuture = ngay > today;
       const clickFn = isFuture ? '' :
         `onclick="openDiemDanhNgayHV('${hv.studentId}','${escapeAttr(hv.hoTen)}','${ngay}','${activeCaId||''}')"`;
-      return `<td style="padding:4px 3px;text-align:center">
+      return `<td style="padding:4px 3px;text-align:center;border-bottom:1px solid #f0f4fa">
         <div ${clickFn} title="${tip}${!isFuture?' — click để điểm danh':''}" style="
-          width:56px;height:56px;border-radius:12px;border:2px solid ${border};
+          width:40px;height:40px;border-radius:9px;border:2px solid ${border};
           background:${bg};color:${text};
-          display:flex;flex-direction:column;align-items:center;justify-content:center;
+          display:flex;align-items:center;justify-content:center;
           margin:0 auto;${!isFuture?'cursor:pointer;':'cursor:default;'}transition:all .15s;
-          ${isToday?'box-shadow:0 0 0 3px #3a7bd5,0 2px 10px rgba(58,123,213,.25);':''}
-          font-size:18px;font-weight:800;line-height:1"
-          ${!isFuture?`onmouseover="this.style.transform='scale(1.1)';this.style.boxShadow='0 4px 14px rgba(0,0,0,.15)'" onmouseout="this.style.transform='scale(1)';this.style.boxShadow='${isToday?'0 0 0 3px #3a7bd5':'none'}'"`:''}>
+          ${isToday?'box-shadow:0 0 0 2.5px #3a7bd5,0 2px 8px rgba(58,123,213,.25);':''}
+          font-size:15px;font-weight:800;line-height:1"
+          ${!isFuture?`onmouseover="this.style.transform='scale(1.12)';this.style.boxShadow='0 4px 14px rgba(0,0,0,.15)'" onmouseout="this.style.transform='scale(1)';this.style.boxShadow='${isToday?'0 0 0 2.5px #3a7bd5':'none'}'"`:''}>
           ${icon}
-          <span style="font-size:9px;font-weight:500;opacity:.7;margin-top:2px">${ngay.slice(8)}</span>
         </div>
       </td>`;
     }).join('');
-    return `<tr style="border-bottom:1px solid #f0f4fa">
-      ${hasAlert?`<td style="padding:2px 4px;width:24px">
-        <button class="btn btn-sm" style="font-size:9px;padding:2px 4px;background:#fee2e2;border-color:#fca5a5;color:#991b1b"
-          onclick="promptGuiTinNghiNhieu('${hv.studentId}','${hv.hoTen}')" title="${alertTip}">⚠</button>
-      </td>`:`<td style="padding:0;width:0"></td>`}
+    // Tên học viên + cảnh báo (nếu có) nằm CHUNG 1 ô đầu hàng, cùng hàng <tr> với các ô ngày
+    // → không còn 2 bảng riêng bị lệch hàng, và số cột luôn khớp với header (sửa lỗi lệch cột)
+    return `<tr>
+      <td style="position:sticky;left:0;z-index:1;background:#fff;padding:8px 12px;border-bottom:1px solid #f0f4fa;border-right:2px solid #e4ebf5;min-width:180px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <div class="avatar" style="width:28px;height:28px;font-size:10px;background:#e8f0fb;color:#1a50a0;flex-shrink:0">${ini(hv.hoTen)}</div>
+          <div style="font-size:13px;font-weight:500;color:#1a2236">${hv.hoTen}</div>
+          ${hasAlert?`<button class="btn btn-sm" style="font-size:9px;padding:2px 5px;margin-left:auto;flex-shrink:0;background:#fee2e2;border-color:#fca5a5;color:#991b1b"
+            onclick="promptGuiTinNghiNhieu('${hv.studentId}','${escapeAttr(hv.hoTen)}')" title="${alertTip}">⚠</button>`:''}
+        </div>
+      </td>
       ${cells}
     </tr>`;
   }).join('');
 
   const weekLabel = `${fmtDate(weekDates[0])} — ${fmtDate(weekDates[6])}`;
 
-  return `<div class="table-wrap" style="overflow-x:auto">
-    <!-- Header điều hướng tuần -->
-    <div style="display:flex;align-items:center;gap:10px;padding:12px 16px;border-bottom:1px solid #f0f4fa;flex-wrap:wrap">
+  return `<div class="table-wrap">
+    <!-- Chú thích: cố định phía trên, không cuộn ngang theo bảng nữa -->
+    <div style="padding:10px 16px;border-bottom:1px solid #f0f4fa;display:flex;gap:16px;flex-wrap:wrap;font-size:11px;color:#5a6478;background:#fafbfd">
+      <span><span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#dcfce7;border:1.5px solid #86efac;vertical-align:middle;margin-right:4px"></span>Có mặt (mặc định)</span>
+      <span><span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#dbeafe;border:1.5px solid #93c5fd;vertical-align:middle;margin-right:4px"></span><strong>P</strong> Nghỉ có phép</span>
+      <span><span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#ffedd5;border:1.5px solid #fdba74;vertical-align:middle;margin-right:4px"></span><strong>K</strong> Nghỉ không phép</span>
+      <span><span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#fef3c7;border:1.5px solid #fcd34d;vertical-align:middle;margin-right:4px"></span><strong>T</strong> Đi trễ >15'</span>
+      <span><span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#fee2e2;border:1.5px solid #fca5a5;vertical-align:middle;margin-right:4px"></span>Nghỉ 3+ liên tiếp / >10% tổng buổi → cảnh báo đỏ</span>
+    </div>
+    <!-- Điều hướng tuần: bỏ nút "Hôm nay" nổi vô nghĩa, thay bằng link nhỏ chỉ hiện khi đang xem tuần khác -->
+    <div style="display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid #f0f4fa;flex-wrap:wrap">
       <button class="btn btn-sm" onclick="changeWeek(-1)" style="min-width:110px">← Tuần trước</button>
       <div style="flex:1;text-align:center">
-        <div style="font-size:15px;font-weight:700;color:#0d2d5e">${weekLabel}</div>
-        <div style="font-size:11px;color:#8a96a8;margin-top:2px">T2 ${weekDates[0].slice(8)}/${weekDates[0].slice(5,7)} → CN ${weekDates[6].slice(8)}/${weekDates[6].slice(5,7)}</div>
+        <div style="font-size:14px;font-weight:700;color:#0d2d5e">${weekLabel}</div>
+        ${LICH_WEEK_OFFSET<0?`<span style="font-size:11px;color:#3a7bd5;cursor:pointer" onclick="LICH_WEEK_OFFSET=0;const l=LOP_DATA.find(x=>x.lopId===LOP_DETAIL_ID);renderTabDiemDanh(l)">↺ Về tuần hiện tại</span>`:''}
       </div>
       <button class="btn btn-sm" onclick="changeWeek(1)" ${LICH_WEEK_OFFSET>=0?'disabled':''} style="min-width:100px">Tuần sau →</button>
-      <button class="btn btn-sm btn-primary" onclick="LICH_WEEK_OFFSET=0;const l=LOP_DATA.find(x=>x.lopId===LOP_DETAIL_ID);renderTabDiemDanh(l)" style="min-width:90px">Hôm nay</button>
     </div>
-    <!-- Chú thích -->
-    <div style="padding:8px 16px;border-bottom:1px solid #f0f4fa;display:flex;gap:16px;flex-wrap:wrap;font-size:11px;color:#5a6478;background:#fafbfd">
-      <span><span style="display:inline-block;width:16px;height:16px;border-radius:4px;background:#dcfce7;border:1.5px solid #86efac;vertical-align:middle;margin-right:4px"></span>Có mặt (mặc định)</span>
-      <span><span style="display:inline-block;width:16px;height:16px;border-radius:4px;background:#dbeafe;border:1.5px solid #93c5fd;vertical-align:middle;margin-right:4px"></span><strong>P</strong> = Nghỉ có phép</span>
-      <span><span style="display:inline-block;width:16px;height:16px;border-radius:4px;background:#ffedd5;border:1.5px solid #fdba74;vertical-align:middle;margin-right:4px"></span><strong>K</strong> = Nghỉ không phép</span>
-      <span><span style="display:inline-block;width:16px;height:16px;border-radius:4px;background:#fef3c7;border:1.5px solid #fcd34d;vertical-align:middle;margin-right:4px"></span><strong>T</strong> = Đi trễ >15'</span>
-      <span><span style="display:inline-block;width:16px;height:16px;border-radius:4px;background:#fee2e2;border:1.5px solid #fca5a5;vertical-align:middle;margin-right:4px"></span>Nghỉ 3+ buổi liên tiếp / >10% tổng buổi → Cảnh báo đỏ</span>
+    <div style="overflow-x:auto">
+      <table style="border-collapse:collapse;width:100%">
+        <thead><tr style="background:linear-gradient(180deg,#fafbfd,#f5f8fc)">
+          <th style="position:sticky;left:0;z-index:2;background:#f5f8fc;text-align:left;padding:9px 12px;font-size:11px;color:#8a96a8;font-weight:700;text-transform:uppercase;letter-spacing:.05em;border-bottom:1px solid #e4ebf5;border-right:2px solid #e4ebf5;min-width:180px">Học viên</th>
+          ${thuLabels.map((t,i)=>`<th style="text-align:center;padding:9px 4px;font-size:12px;color:${weekDates[i]===today?'#1a50a0':'#8a96a8'};font-weight:700;border-bottom:1px solid #e4ebf5;min-width:52px">${t}<br><span style="font-size:10px;font-weight:400;color:${weekDates[i]===today?'#3a7bd5':'#b0b8c8'}">${weekDates[i].slice(8)}/${weekDates[i].slice(5,7)}</span></th>`).join('')}
+        </tr></thead>
+        <tbody>${rows}</tbody>
+      </table>
     </div>
-    <table style="min-width:640px;border-collapse:collapse">
-      <thead><tr style="background:linear-gradient(180deg,#fafbfd,#f5f8fc)">
-
-        ${thuLabels.map((t,i)=>`<th style="text-align:center;padding:10px 4px;font-size:12px;color:${weekDates[i]===today?'#1a50a0':'#8a96a8'};font-weight:700;min-width:72px">${t.replace('Thứ ','T')}<br><span style="font-size:10px;font-weight:400;color:${weekDates[i]===today?'#3a7bd5':'#b0b8c8'}">${weekDates[i].slice(8)}/${weekDates[i].slice(5,7)}</span></th>`).join('')}
-      </tr></thead>
-      <tbody>${rows}</tbody>
-    </table>
   </div>`;
 }
 
