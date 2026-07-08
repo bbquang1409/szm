@@ -1387,27 +1387,29 @@ async function renderLichTuan(lop, hvList, selectedNgay, activeCaId){
         </div>`:''}
       </div>
       <div style="flex:1;padding:14px 16px;box-sizing:border-box;min-width:0">
-        <div style="display:flex;gap:14px;flex-wrap:wrap;font-size:11px;color:#5a6478;margin-bottom:14px">
-          <span><span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#dcfce7;border:1.5px solid #86efac;vertical-align:middle;margin-right:4px"></span>Có mặt (mặc định)</span>
-          <span><span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#dbeafe;border:1.5px solid #93c5fd;vertical-align:middle;margin-right:4px"></span><strong>P</strong> Nghỉ có phép</span>
-          <span><span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#ffedd5;border:1.5px solid #fdba74;vertical-align:middle;margin-right:4px"></span><strong>K</strong> Nghỉ không phép</span>
-          <span><span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#fef3c7;border:1.5px solid #fcd34d;vertical-align:middle;margin-right:4px"></span><strong>T</strong> Đi trễ >15'</span>
-          <span><span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#fee2e2;border:1.5px solid #fca5a5;vertical-align:middle;margin-right:4px"></span>Nghỉ 3+ liên tiếp / >10% tổng buổi → cảnh báo đỏ</span>
+        <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;font-size:11px;color:#5a6478;margin-bottom:8px">
+          <span style="white-space:nowrap"><span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#dcfce7;border:1.5px solid #86efac;vertical-align:middle;margin-right:4px"></span>Có mặt (mặc định)</span>
+          <span style="white-space:nowrap"><span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#dbeafe;border:1.5px solid #93c5fd;vertical-align:middle;margin-right:4px"></span><strong>P</strong> Nghỉ có phép</span>
+          <span style="white-space:nowrap"><span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#ffedd5;border:1.5px solid #fdba74;vertical-align:middle;margin-right:4px"></span><strong>K</strong> Nghỉ không phép</span>
+          <span style="white-space:nowrap"><span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#fef3c7;border:1.5px solid #fcd34d;vertical-align:middle;margin-right:4px"></span><strong>T</strong> Đi trễ >15'</span>
         </div>
-        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-          <button class="btn btn-sm" onclick="changeWeek(-1)" style="min-width:110px">← Tuần trước</button>
-          <div style="flex:1;text-align:center;min-width:140px">
+        <div style="font-size:11px;color:#5a6478;margin-bottom:14px">
+          <span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#fee2e2;border:1.5px solid #fca5a5;vertical-align:middle;margin-right:4px"></span>Nghỉ 3+ liên tiếp / >10% tổng buổi → cảnh báo đỏ
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;align-items:center;gap:10px">
+          <button class="btn btn-sm" onclick="changeWeek(-1)">← Tuần trước</button>
+          <div style="text-align:center">
             <div style="font-size:14px;font-weight:700;color:#0d2d5e">${weekLabel}</div>
             ${LICH_WEEK_OFFSET<0?`<span style="font-size:11px;color:#3a7bd5;cursor:pointer" onclick="LICH_WEEK_OFFSET=0;const l=LOP_DATA.find(x=>x.lopId===LOP_DETAIL_ID);renderTabDiemDanh(l)">↺ Về tuần hiện tại</span>`:''}
           </div>
-          <button class="btn btn-sm" onclick="changeWeek(1)" ${LICH_WEEK_OFFSET>=0?'disabled':''} style="min-width:100px">Tuần sau →</button>
+          <button class="btn btn-sm" onclick="changeWeek(1)" ${LICH_WEEK_OFFSET>=0?'disabled':''} style="justify-self:end">Tuần sau →</button>
         </div>
       </div>
     </div>
     <!-- HÀNG DƯỚI: bảng 2 = danh sách học viên (trái), bảng 3 = lịch điểm danh (phải) — chiều cao dòng khớp tuyệt đối -->
     <div style="display:flex">
       <div style="width:230px;flex-shrink:0;border-right:2px solid #e4ebf5;box-sizing:border-box">
-        <div style="height:${HEAD_H}px;box-sizing:border-box;display:flex;align-items:center;padding:0 14px;font-size:11px;font-weight:700;color:#8a96a8;text-transform:uppercase;letter-spacing:.05em;background:#f5f8fc;border-bottom:1px solid #e4ebf5">Học viên</div>
+        <div style="height:${HEAD_H}px;box-sizing:border-box;display:flex;align-items:center;padding:0 14px;font-size:13px;font-weight:700;font-style:italic;color:#5a6478;background:#f5f8fc;border-bottom:1px solid #e4ebf5">Danh sách lớp</div>
         ${nameRows}
       </div>
       <div style="flex:1;overflow-x:auto">
