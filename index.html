@@ -689,11 +689,12 @@ async function renderLopHoc(){
   const r=await call({action:'getLopList'});
   LOP_DATA=r.ok?r.data:[];
   document.getElementById('btn-add').onclick=()=>openModalLop(null);
+  document.getElementById('btn-add').textContent='+ Thêm lớp';
   const canMsg=['admin','quanly'].includes(USER.role);
   if(LOP_DATA.length===0){setContent('<div class="empty"><p>Chưa có lớp nào. Thêm lớp đầu tiên!</p></div>');return;}
   setContent(`
     ${canMsg?`<div style="margin-bottom:14px;display:flex;justify-content:flex-end">
-      <button class="btn" onclick="openModalGuiTinLop()">✉️ Gửi tin nhắn cho lớp</button>
+      <button class="btn btn-primary" onclick="openModalGuiTinLop()">✉️ Gửi tin nhắn cho lớp</button>
     </div>`:''}
     <div class="lop-grid">${LOP_DATA.map(l=>lopCard(l)).join('')}</div>
   `);
@@ -884,6 +885,7 @@ async function renderHocVien(){
     <div class="tab ${CURRENT_TAB==='list'?'active':''}" onclick="switchTab('list')">Danh sách</div>
   `;
   document.getElementById('btn-add').onclick=()=>openModalHV(null);
+  document.getElementById('btn-add').textContent='+ Thêm học viên';
   if(CURRENT_TAB==='list') await renderHVList();
   else await renderHVKanban();
 }
@@ -1713,6 +1715,7 @@ async function renderTaiKhoan(){
   const r=await call({action:'getTaiKhoanList'});
   const list=r.ok?r.data:[];
   document.getElementById('btn-add').onclick=()=>openModalTK(null);
+  document.getElementById('btn-add').textContent='+ Thêm tài khoản';
   setContent(`
     <div class="table-wrap">
       <div class="table-toolbar"><span style="font-size:13px;font-weight:600">Danh sách tài khoản — ${list.length}</span></div>
