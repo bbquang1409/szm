@@ -300,9 +300,11 @@ tr:hover td{background:#f8faff}
       <span id="alert-text"></span>
     </div>
     <div id="topbar">
+      <button class="btn btn-sm" id="btn-back" style="display:none">← Quay lại</button>
       <div class="page-title" id="page-title">Dashboard</div>
       <select id="filter-lop" style="width:150px;display:none"><option value="">Tất cả lớp</option></select>
       <input type="date" id="filter-ngay" style="display:none">
+      <button class="btn btn-primary" id="btn-msg" style="display:none">✉️ Gửi tin nhắn cho lớp</button>
       <button class="btn btn-primary" id="btn-add" style="display:none">+ Thêm</button>
     </div>
     <div class="tab-bar" id="tab-bar" style="display:none"></div>
@@ -555,6 +557,8 @@ function navTo(page){
   document.querySelectorAll('.nav-item[data-page]').forEach(el=>el.classList.toggle('active',el.dataset.page===page));
   const titles={dashboard:'Dashboard',lophoc:'Lớp học',hocvien:'Học viên',taikhoan:'Tài khoản'};
   document.getElementById('page-title').textContent=titles[page]||page;
+  document.getElementById('btn-back').style.display='none';
+  document.getElementById('btn-msg').style.display='none';
   document.getElementById('filter-lop').style.display=page==='hocvien'?'':'none';
   document.getElementById('filter-ngay').style.display='none';
   document.getElementById('btn-add').style.display=['lophoc','hocvien','taikhoan'].includes(page)&&USER.role!=='phuhuynh'?'':'none';
@@ -691,11 +695,10 @@ async function renderLopHoc(){
   document.getElementById('btn-add').onclick=()=>openModalLop(null);
   document.getElementById('btn-add').textContent='+ Thêm lớp';
   const canMsg=['admin','quanly'].includes(USER.role);
+  const btnMsg=document.getElementById('btn-msg');
+  if(canMsg){ btnMsg.style.display=''; btnMsg.onclick=openModalGuiTinLop; } else { btnMsg.style.display='none'; }
   if(LOP_DATA.length===0){setContent('<div class="empty"><p>Chưa có lớp nào. Thêm lớp đầu tiên!</p></div>');return;}
   setContent(`
-    ${canMsg?`<div style="margin-bottom:14px;display:flex;justify-content:flex-end">
-      <button class="btn btn-primary" onclick="openModalGuiTinLop()">✉️ Gửi tin nhắn cho lớp</button>
-    </div>`:''}
     <div class="lop-grid">${LOP_DATA.map(l=>lopCard(l)).join('')}</div>
   `);
 }
@@ -1083,6 +1086,9 @@ function openLopDetail(lopId){
   LOP_DETAIL_TAB = 'diemdanh';
   CURRENT_PAGE = 'lopdetail';
   document.getElementById('page-title').textContent = 'Lớp học';
+  const btnBack=document.getElementById('btn-back');
+  btnBack.style.display=''; btnBack.onclick=()=>navTo('lophoc');
+  document.getElementById('btn-msg').style.display='none';
   document.getElementById('filter-lop').style.display='none';
   document.getElementById('filter-ngay').style.display='none';
   document.getElementById('btn-add').style.display='none';
@@ -1094,26 +1100,16 @@ async function renderLopDetail(){
   const lop = LOP_DATA.find(l=>l.lopId===LOP_DETAIL_ID);
   if(!lop){ setContent('<div class="empty">Không tìm thấy lớp</div>'); return; }
 
+  const activeStyle = (tab)=> LOP_DETAIL_TAB===tab
+    ? 'background:#1a50a0;color:#fff'
+    : 'background:#f8fafd;color:#5a6478';
+
   setContent(`
-    <div style="display:grid;grid-template-columns:1fr auto 1fr;align-items:start;gap:10px;margin-bottom:18px">
-      <div><button class="btn btn-sm" onclick="navTo('lophoc')">← Tất cả lớp</button></div>
-      <div style="text-align:center">
-        <div style="font-size:26px;font-weight:800;color:#0d2d5e;text-transform:uppercase;letter-spacing:.02em">Lớp ${lop.tenLop}</div>
-        <div style="display:flex;justify-content:center;gap:8px;margin-top:8px;flex-wrap:wrap">
-          <span style="font-size:13px;font-weight:700;padding:4px 12px;border-radius:20px;background:${CAP_DO_COLORS[lop.capDo]||'#f0f4fa'};color:${CAP_DO_TEXT[lop.capDo]||'#5a6478'}">Trình độ ${lop.capDo||'—'}</span>
-          ${lop.canhBaoGiuaKy?`<span class="badge b-warn1" style="animation:pulse 1.5s infinite">Giữa kỳ còn ${lop.soNgayConGiuaKy} ngày</span>`:''}
-          ${lop.canhBaoCuoiKy?`<span class="badge b-warn2" style="animation:pulse 1.5s infinite">Cuối kỳ còn ${lop.soNgayConCuoiKy} ngày</span>`:''}
-        </div>
-      </div>
-      <div></div>
+    <div style="display:flex;border:1.5px solid #e4ebf5;border-bottom:none;border-radius:14px 14px 0 0;overflow:hidden">
+      <div onclick="switchLopTab('diemdanh')" style="flex:1;text-align:center;padding:13px;font-size:14px;font-weight:700;cursor:pointer;transition:all .15s;${activeStyle('diemdanh')}">📋 Điểm danh</div>
+      <div onclick="switchLopTab('diem')" style="flex:1;text-align:center;padding:13px;font-size:14px;font-weight:700;cursor:pointer;transition:all .15s;border-left:1.5px solid #e4ebf5;${activeStyle('diem')}">📊 Bảng điểm</div>
     </div>
-    <div style="display:flex;justify-content:center;margin-bottom:18px">
-      <div style="display:flex;gap:6px;padding:4px;background:#f0f4fa;border-radius:12px">
-        <div onclick="switchLopTab('diemdanh')" style="padding:9px 20px;border-radius:9px;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;${LOP_DETAIL_TAB==='diemdanh'?'background:#1a50a0;color:#fff;box-shadow:0 2px 8px rgba(26,80,160,.3)':'color:#5a6478'}">📋 Điểm danh</div>
-        <div onclick="switchLopTab('diem')" style="padding:9px 20px;border-radius:9px;font-size:13px;font-weight:600;cursor:pointer;transition:all .15s;${LOP_DETAIL_TAB==='diem'?'background:#1a50a0;color:#fff;box-shadow:0 2px 8px rgba(26,80,160,.3)':'color:#5a6478'}">📊 Bảng điểm</div>
-      </div>
-    </div>
-    <div id="lop-detail-content"></div>
+    <div id="lop-detail-content" style="border:1.5px solid #e4ebf5;border-top:none;border-radius:0 0 14px 14px;overflow:hidden;background:#fff"></div>
   `);
 
   if(LOP_DETAIL_TAB==='diemdanh') renderTabDiemDanh(lop);
@@ -1331,13 +1327,12 @@ async function renderLichTuan(lop, hvList, selectedNgay, activeCaId){
 
   const ROW_H = 54, HEAD_H = 46; // chiều cao cố định — dùng chung cho cả 2 cột để hàng luôn khớp nhau
 
-  // Cột trái: danh sách học viên (mỗi dòng cao đúng ROW_H, tên bị cắt bớt "..." thay vì xuống dòng để không phá vỡ chiều cao)
+  // Cột trái: danh sách học viên (chỉ ghi tên, bỏ avatar tròn — không có ý nghĩa)
   const nameRows = hvList.map(hv=>{
     const info = cellInfo(hv.studentId);
     const hasAlert = info.streak >= 3 || info.over10pct;
     const alertTip = info.over10pct ? `Nghỉ ${Math.round(info.tongVang/tongBuoiDiemDanh*100)}% tổng buổi` : `Nghỉ ${info.streak} buổi liên tiếp`;
     return `<div style="height:${ROW_H}px;box-sizing:border-box;display:flex;align-items:center;gap:8px;padding:0 14px;border-bottom:1px solid #f0f4fa;overflow:hidden">
-      <div class="avatar" style="width:26px;height:26px;font-size:10px;background:#e8f0fb;color:#1a50a0;flex-shrink:0">${ini(hv.hoTen)}</div>
       <div style="font-size:13px;font-weight:500;color:#1a2236;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${escapeAttr(hv.hoTen)}">${hv.hoTen}</div>
       ${hasAlert?`<button class="btn btn-sm" style="font-size:9px;padding:2px 5px;margin-left:auto;flex-shrink:0;background:#fee2e2;border-color:#fca5a5;color:#991b1b"
         onclick="promptGuiTinNghiNhieu('${hv.studentId}','${escapeAttr(hv.hoTen)}')" title="${alertTip}">⚠</button>`:''}
@@ -1375,7 +1370,13 @@ async function renderLichTuan(lop, hvList, selectedNgay, activeCaId){
     <!-- HÀNG TRÊN: bảng 1 = thông tin lớp (trái), chú thích + điều hướng tuần (phải) -->
     <div style="display:flex;border-bottom:2px solid #e4ebf5">
       <div style="width:230px;flex-shrink:0;padding:16px;border-right:2px solid #e4ebf5;background:#f8fafd;box-sizing:border-box">
-        <div style="font-size:11px;color:#8a96a8;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:10px">Thông tin lớp</div>
+        <div style="font-size:11px;color:#8a96a8;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Thông tin lớp</div>
+        <div style="font-size:19px;font-weight:800;color:#0d2d5e;text-transform:uppercase;margin-bottom:8px">Lớp ${lop.tenLop}</div>
+        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px">
+          <span style="font-size:12px;font-weight:700;padding:3px 10px;border-radius:20px;background:${CAP_DO_COLORS[lop.capDo]||'#f0f4fa'};color:${CAP_DO_TEXT[lop.capDo]||'#5a6478'}">Trình độ ${lop.capDo||'—'}</span>
+        </div>
+        ${lop.canhBaoGiuaKy?`<div class="badge b-warn1" style="animation:pulse 1.5s infinite;margin-bottom:6px">Giữa kỳ còn ${lop.soNgayConGiuaKy} ngày</div>`:''}
+        ${lop.canhBaoCuoiKy?`<div class="badge b-warn2" style="animation:pulse 1.5s infinite;margin-bottom:6px">Cuối kỳ còn ${lop.soNgayConCuoiKy} ngày</div>`:''}
         ${lop.ngayBatDau?`<div style="margin-bottom:12px">
           <div style="font-size:12px;color:#8a96a8;margin-bottom:2px">📅 Thời gian học</div>
           <div style="font-size:16px;font-weight:700;color:#1a2236">${fmtDate(lop.ngayBatDau)} – ${fmtDate(lop.ngayKetThuc||'')}</div>
@@ -1574,8 +1575,12 @@ async function renderTabBangDiem(lop){
   document.getElementById('btn-add').style.display='none';
 
   wrap.innerHTML = `
+    <div style="padding:12px 16px;border-bottom:1px solid #f0f4fa;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+      <span style="font-size:15px;font-weight:800;color:#0d2d5e;text-transform:uppercase">Lớp ${lop.tenLop}</span>
+      <span style="font-size:12px;font-weight:700;padding:3px 10px;border-radius:20px;background:${CAP_DO_COLORS[lop.capDo]||'#f0f4fa'};color:${CAP_DO_TEXT[lop.capDo]||'#5a6478'}">Trình độ ${lop.capDo||'—'}</span>
+    </div>
     ${canhBaoDiem.length>0?`
-    <div class="table-wrap" style="margin-bottom:14px;padding:14px 16px">
+    <div class="table-wrap" style="margin:14px 16px;padding:14px 16px">
       <div style="font-size:13px;font-weight:600;color:#0d2d5e;margin-bottom:10px">⚠ Cần lưu ý học tập</div>
       <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px">
         ${canhBaoDiem.map(c=>`<div style="background:#fef0ee;border-radius:8px;padding:10px 12px">
@@ -1587,7 +1592,7 @@ async function renderTabBangDiem(lop){
       </div>
     </div>`:''}
 
-    <div class="table-wrap" style="margin-bottom:14px;padding:14px 16px">
+    <div class="table-wrap" style="margin:0 16px 14px;padding:14px 16px">
       <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
         <span style="font-size:13px;font-weight:600;color:#0d2d5e">Nhập điểm hàng loạt</span>
         <select id="bd-loai" style="width:160px" onchange="renderBDInputType()">
@@ -1601,7 +1606,7 @@ async function renderTabBangDiem(lop){
       </div>
     </div>
 
-    <div class="table-wrap">
+    <div class="table-wrap" style="margin:0 16px 14px">
       <div style="overflow-x:auto">
       <table id="bd-grid">
         <thead><tr id="bd-grid-head">
@@ -1622,7 +1627,7 @@ async function renderTabBangDiem(lop){
       </div>
     </div>
 
-    <div class="table-wrap" style="margin-top:14px">
+    <div class="table-wrap" style="margin:0 16px 16px">
       <div class="table-toolbar"><span style="font-size:13px;font-weight:600;color:#0d2d5e">Lịch sử</span></div>
       <div style="overflow-x:auto">
       <table>
