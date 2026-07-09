@@ -863,12 +863,12 @@ async function renderLichTuan(lop, hvList, selectedNgay, activeCaId){
     const tt = ddByDate[ngay][sid];
     const isFuture = ngay > today;
     if(isFuture) return {bg:'#f8fafd',text:'#cbd5e1',border:'#e4ebf5',icon:'',tip:'Chưa đến'};
-    if(!tt) return {bg:'#f1f5f9',text:'#94a3b8',border:'#e4ebf5',icon:'·',tip:'Chưa điểm danh (mặc định: Có mặt)'};
+    if(!tt) return {bg:'#dcfce7',text:'#166534',border:'#86efac',icon:'·',tip:'Tự động điểm danh — mặc định Có mặt (chưa có ai điểm danh thủ công)'};
     if(tt==='co_mat') return {bg:'#dcfce7',text:'#166534',border:'#86efac',icon:'✓',tip:'Có mặt'};
     // Ưu tiên cảnh báo đỏ: nghỉ 3+ liên tiếp HOẶC >10% tổng buổi
     if(streak>=3||over10pct) return {bg:'#fee2e2',text:'#991b1b',border:'#fca5a5',icon:streak>=3?'3+':Math.round(info.tongVang/(tongBuoiDiemDanh||1)*100)+'%',blink:true,tip:streak>=3?'NGHỈ 3+ BUỔI LIÊN TIẾP!':'NGHỈ >10% TỔNG BUỔI!'};
     if(streak===2) return {bg:'#fed7aa',text:'#9a3412',border:'#fb923c',icon:'K',tip:'Nghỉ 2 lần liên tiếp'};
-    if(tt==='vang_khong_phep') return {bg:'#ffedd5',text:'#c2410c',border:'#fdba74',icon:'K',tip:'K — Nghỉ không phép'};
+    if(tt==='vang_khong_phep') return {bg:'#fed7aa',text:'#9a3412',border:'#f97316',icon:'K',tip:'K — Nghỉ không phép'};
     if(tt==='vang_phep') return {bg:'#e0f2fe',text:'#0369a1',border:'#7dd3fc',icon:'P',tip:'P — Nghỉ có phép'};
     if(tt==='di_tre') return {bg:'#fef3c7',text:'#92400e',border:'#fcd34d',icon:'T',tip:"T — Đi trễ >15'"};
     return {bg:'#f1f5f9',text:'#94a3b8',border:'#e4ebf5',icon:'?',tip:''};
@@ -951,7 +951,7 @@ async function renderLichTuan(lop, hvList, selectedNgay, activeCaId){
           </div>
           <div style="display:flex;gap:8px">
             <div style="flex:1;display:flex;align-items:center;gap:6px;padding:8px 10px;border:1.5px solid #e4ebf5;border-radius:9px;background:#fafbfd;font-size:12px;color:#5a6478;white-space:nowrap"><span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#dbeafe;border:1.5px solid #93c5fd;flex-shrink:0"></span><strong>P</strong>&nbsp;Nghỉ có phép</div>
-            <div style="flex:1;display:flex;align-items:center;gap:6px;padding:8px 10px;border:1.5px solid #e4ebf5;border-radius:9px;background:#fafbfd;font-size:12px;color:#5a6478;white-space:nowrap"><span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#ffedd5;border:1.5px solid #fdba74;flex-shrink:0"></span><strong>K</strong>&nbsp;Nghỉ không phép</div>
+            <div style="flex:1;display:flex;align-items:center;gap:6px;padding:8px 10px;border:1.5px solid #e4ebf5;border-radius:9px;background:#fafbfd;font-size:12px;color:#5a6478;white-space:nowrap"><span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#fed7aa;border:1.5px solid #f97316;flex-shrink:0"></span><strong>K</strong>&nbsp;Nghỉ không phép</div>
             <div style="flex:1;display:flex;align-items:center;gap:6px;padding:8px 10px;border:1.5px solid #e4ebf5;border-radius:9px;background:#fafbfd;font-size:12px;color:#5a6478;white-space:nowrap"><span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#fef3c7;border:1.5px solid #fcd34d;flex-shrink:0"></span><strong>T</strong>&nbsp;Đi trễ >15'</div>
           </div>
         </div>
@@ -1032,7 +1032,7 @@ async function openDiemDanhNgayHV(studentId, hoTen, ngay, caId){
         ${[
           {v:'co_mat',       l:'✓ Có mặt',         short:'',  bg:'#dcfce7',bc:'#86efac',tc:'#166534'},
           {v:'vang_phep',    l:'P — Nghỉ có phép',  short:'P', bg:'#dbeafe',bc:'#93c5fd',tc:'#1e40af'},
-          {v:'vang_khong_phep',l:'K — Nghỉ không phép',short:'K',bg:'#ffedd5',bc:'#fdba74',tc:'#9a3412'},
+          {v:'vang_khong_phep',l:'K — Nghỉ không phép',short:'K',bg:'#fed7aa',bc:'#f97316',tc:'#9a3412'},
           {v:'di_tre',       l:'T — Đi trễ >15\'', short:'T', bg:'#fef3c7',bc:'#fcd34d',tc:'#92400e'},
         ].map(opt=>`<button type="button" id="tt-${opt.v}"
           onclick="selectTT('${opt.v}')"
