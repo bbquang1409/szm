@@ -4,7 +4,7 @@ const LOP_COLORS    = ['#378add','#1d9e75','#ba7517','#d4537e','#7f77dd','#0f6e5
 const LOAI_DIEM     = {bai_tap:'Bài tập',giua_ky:'Giữa kỳ',cuoi_ky:'Cuối kỳ',khong_lam_btvn:'Không làm BTVN'};
 const TRANG_THAI_DD = {co_mat:'Có mặt',vang_phep:'Nghỉ có phép',vang_khong_phep:'Nghỉ không phép',di_tre:"Đi trễ >15'"};
 const TRANG_THAI_HV = {danghoc:'Đang học',nghi:'Đã nghỉ',baoluu:'Bảo lưu'};
-const ROLES_VI      = {admin:'Admin',giaovien:'Giáo viên',quanly:'Quản lý',phuhuynh:'Phụ huynh'};
+const ROLES_VI      = {admin:'Admin',giaovien:'Giáo viên',trogiang:'Trợ giảng',quanly:'Quản lý',phuhuynh:'Phụ huynh'};
 
 let LOPS=[], LOP_DATA=[], CURRENT_PAGE='dashboard', CURRENT_LOP='', CURRENT_TAB='', MODAL_CB=null;
 
@@ -38,6 +38,7 @@ function applyRoleNav(){
   const r=USER.role;
   if(r==='phuhuynh'){['nav-lophoc','nav-hocvien','nav-taikhoan','lop-section','lop-nav'].forEach(id=>{const el=document.getElementById(id);if(el)el.style.display='none';});}
   if(r==='giaovien') document.getElementById('nav-taikhoan').style.display='none';
+  if(r==='trogiang') document.getElementById('nav-taikhoan').style.display='none';
   if(r==='quanly') document.getElementById('nav-taikhoan').style.display='none';
 }
 
@@ -116,6 +117,7 @@ function navTo(page){
   document.getElementById('page-title').textContent=titles[page]||page;
   document.getElementById('btn-back').style.display='none';
   document.getElementById('btn-msg').style.display='none';
+  document.getElementById('btn-bulk').style.display='none';
   document.getElementById('filter-lop').style.display=page==='hocvien'?'':'none';
   document.getElementById('filter-ngay').style.display='none';
   document.getElementById('btn-add').style.display=['lophoc','hocvien','taikhoan'].includes(page)&&USER.role!=='phuhuynh'?'':'none';
@@ -310,7 +312,7 @@ async function openModalLop(lopId){
   let l=null;
   if(lopId) l=LOP_DATA.find(x=>x.lopId===lopId)||null;
   const tvList=await call({action:'getTaiKhoanList'});
-  const gvList=tvList.ok?tvList.data.filter(t=>['giaovien','admin'].includes(t.role)):[];
+  const gvList=tvList.ok?tvList.data.filter(t=>['giaovien','trogiang','admin'].includes(t.role)):[];
   CA_HOC_GV_LIST = gvList;
   let caHocList = [];
   try{ caHocList = l?.caHoc ? JSON.parse(l.caHoc) : []; }catch(e){ caHocList = []; }
@@ -446,6 +448,8 @@ async function renderHocVien(){
   `;
   document.getElementById('btn-add').onclick=()=>openModalHV(null);
   document.getElementById('btn-add').textContent='+ Thêm học viên';
+  const btnBulk=document.getElementById('btn-bulk');
+  if(['admin','giaovien','trogiang'].includes(USER.role)){ btnBulk.style.display=''; btnBulk.onclick=openModalBulkHV; } else { btnBulk.style.display='none'; }
   if(CURRENT_TAB==='list') await renderHVList();
   else await renderHVKanban();
 }
@@ -474,7 +478,7 @@ function hvCard(hv,cb,status){
   const dp=cb?cb.diemViPham:0;
   const pct=Math.max(0,Math.min(100,Math.round((1-dp/10)*100)));
   const clr=status==='ok'?'#1d9e75':status==='warn'?'#ba7517':'#e24b4a';
-  const canMsg = ['admin','quanly','giaovien'].includes(USER.role) && hv.emailPhuHuynh;
+  const canMsg = ['admin','quanly','giaovien','trogiang'].includes(USER.role) && hv.emailPhuHuynh;
   return `<div class="hv-card ${status!=='ok'?status:''}">
     <div onclick="openModalHV('${hv.studentId}')" style="cursor:pointer">
       <div class="hv-name"><div class="avatar" style="width:24px;height:24px;font-size:10px;background:#e8f0fb;color:#1a50a0">${ini(hv.hoTen)}</div>${hv.hoTen}${cb?.emailDaGui?'<span class="badge b-warn2" style="margin-left:auto;font-size:9px">Email PH</span>':''}</div>
@@ -491,8 +495,8 @@ async function renderHVList(){
   setContent('<div class="empty">Đang tải...</div>');
   const r=await call({action:'getHocVienByLop',lop:CURRENT_LOP});
   const hvList=r.ok?r.data:[];
-  const canEdit=['admin','giaovien'].includes(USER.role);
-  const canMsg=['admin','quanly','giaovien'].includes(USER.role);
+  const canEdit=['admin','giaovien','trogiang'].includes(USER.role);
+  const canMsg=['admin','quanly','giaovien','trogiang'].includes(USER.role);
   setContent(`
     <div class="table-wrap">
       <div class="table-toolbar">
@@ -614,6 +618,51 @@ async function deleteHV(studentId){
   if(!confirm('Xóa học viên này?')) return;
   await call({action:'deleteHocVien',studentId});
   closeModal();toast('Đã xóa','success');renderHocVien();
+}
+
+// ── THÊM HÀNG LOẠT HỌC VIÊN (dùng để tạo nhanh dữ liệu test hoặc nhập từ danh sách có sẵn) ──
+function openModalBulkHV(){
+  if(!['admin','giaovien','trogiang'].includes(USER.role)) return;
+  showModal('Thêm hàng loạt học viên',`
+    <div class="form-row">
+      <label>Lớp *</label>
+      <select id="bulk-lop">
+        ${LOPS.map(l=>`<option value="${l}">${l}</option>`).join('')}
+        <option value="__new__">+ Lớp mới...</option>
+      </select>
+    </div>
+    <div class="form-row" style="margin-top:10px">
+      <label>Danh sách học viên — mỗi dòng 1 người</label>
+      <textarea id="bulk-list" rows="10" placeholder="Chỉ cần họ tên, mỗi dòng 1 người:
+Nguyễn Văn A
+Trần Thị B
+Lê Văn C
+
+Hoặc ghi thêm SĐT/email phụ huynh, cách nhau bằng dấu phẩy:
+Nguyễn Văn A, 0901234567, mevanA@gmail.com"></textarea>
+    </div>
+    <div style="font-size:12px;color:#8a96a8;margin-top:8px">
+      💡 Dùng để tạo nhanh dữ liệu test (VD: dán 30 tên bất kỳ) hoặc nhập cả lớp cùng lúc. SĐT/email không bắt buộc — bỏ trống vẫn tạo được, chỉ không dùng được tính năng nhắn tin cho phụ huynh của học viên đó.
+    </div>
+  `,async()=>{
+    const lopVal=document.getElementById('bulk-lop').value;
+    const lop = lopVal==='__new__' ? (prompt('Tên lớp mới:')||'').trim() : lopVal;
+    if(!lop){toast('Chưa chọn lớp','error');return;}
+    const raw=document.getElementById('bulk-list').value;
+    const lines=raw.split('\n').map(l=>l.trim()).filter(Boolean);
+    if(lines.length===0){toast('Chưa nhập danh sách','error');return;}
+    const records=lines.map(line=>{
+      const parts=line.split(',').map(p=>p.trim());
+      return {hoTen:parts[0]||'',soDienThoaiPH:parts[1]||'',emailPhuHuynh:parts[2]||'',lop};
+    }).filter(r=>r.hoTen);
+    if(records.length===0){toast('Không đọc được tên nào hợp lệ','error');return;}
+    if(!confirm(`Tạo ${records.length} học viên vào lớp "${lop}"?`)) return;
+    const r=await callPost({action:'addHocVienBulk',records});
+    closeModal();
+    if(r.ok) toast(`Đã tạo ${r.data.count||records.length} học viên`,'success');
+    else toast(r.error||'Lỗi khi tạo hàng loạt','error');
+    renderHocVien();
+  });
 }
 
 // ── NHẮN TIN CHO PHỤ HUYNH (1 học viên cụ thể) ──
@@ -818,38 +867,43 @@ async function renderLichTuan(lop, hvList, selectedNgay, activeCaId){
   const thuLabels = ['T2','T3','T4','T5','T6','T7','CN'];
   const today = todayStr();
 
-  // Load điểm danh cả tuần song song
+  // Danh sách ca học của lớp — xác định TRƯỚC để biết đang xem/điểm danh đúng ca nào
+  let caHocList = [];
+  try{ caHocList = lop.caHoc ? JSON.parse(lop.caHoc) : []; }catch(e){ caHocList = []; }
+  if(caHocList.length===0) caHocList=[{ten:'Buổi học',nguoiDay:'',thu:''}];
+  const curCa = caHocList.find(c=>caKey(c)===activeCaId) || caHocList[0];
+  const curCaId = caKey(curCa);
+  // Ca này học vào những thứ nào trong tuần? Nếu chưa khai báo (thu rỗng) thì coi như học tất cả các ngày (không giới hạn)
+  const curCaThu = curCa.thu ? String(curCa.thu).split(',').filter(Boolean) : null;
+  const caHocMeetsDay = (i)=> !curCaThu || curCaThu.includes(thuLabels[i]);
+
+  // Load điểm danh cả tuần — CHỈ của ca đang chọn (trước đây gộp cả các ca khác vào,
+  // dẫn đến bấm vào ô lại sửa nhầm sang ca khác — giờ mỗi ca độc lập hoàn toàn)
   const allDDRes = await Promise.all(
-    weekDates.map(ngay=>call({action:'getDiemDanhByLop',lop:lop.tenLop,ngay,caId:''}))
+    weekDates.map(ngay=>call({action:'getDiemDanhByLop',lop:lop.tenLop,ngay,caId:curCaId}))
   );
   const ddByDate={};
   weekDates.forEach((ngay,i)=>{
     ddByDate[ngay]={};
-    if(allDDRes[i].ok) allDDRes[i].data.forEach(d=>{
-      // Lấy trạng thái xấu nhất nếu có nhiều ca trong ngày
-      const existing = ddByDate[ngay][d.studentId];
-      const rank = {vang_khong_phep:3,vang_phep:2,di_tre:1,co_mat:0};
-      if(!existing || (rank[d.trangThai]||0) > (rank[existing]||0))
-        ddByDate[ngay][d.studentId] = d.trangThai;
-    });
+    if(allDDRes[i].ok) allDDRes[i].data.forEach(d=>{ ddByDate[ngay][d.studentId] = d.trangThai; });
   });
 
-  // Tính tổng số buổi đã điểm danh của lớp (để tính 10%)
-  const tongBuoiDiemDanh = weekDates.filter(d=>d<=today).reduce((sum,ngay)=>{
+  // Tính tổng số buổi đã điểm danh của lớp (để tính 10%) — chỉ tính các ngày ca này thực sự có học
+  const tongBuoiDiemDanh = weekDates.filter((d,i)=>d<=today && caHocMeetsDay(i)).reduce((sum,ngay)=>{
     const hasAny = hvList.some(hv=>ddByDate[ngay][hv.studentId]);
     return sum + (hasAny?1:0);
   }, 0);
 
   function cellInfo(sid){
-    // 1. Chuỗi nghỉ liên tiếp gần nhất
+    // 1. Chuỗi nghỉ liên tiếp gần nhất (chỉ tính các ngày ca này có học)
     let streak=0;
     for(let i=weekDates.length-1;i>=0;i--){
-      if(weekDates[i]>today) continue;
+      if(weekDates[i]>today || !caHocMeetsDay(i)) continue;
       const tt=ddByDate[weekDates[i]][sid];
       if(tt&&tt!=='co_mat') streak++; else if(tt) break;
     }
     // 2. Tổng số lần vắng/trễ trong tuần
-    const tongVang = weekDates.filter(d=>d<=today).filter(ngay=>{
+    const tongVang = weekDates.filter((d,i)=>d<=today && caHocMeetsDay(i)).filter(ngay=>{
       const tt=ddByDate[ngay][sid];
       return tt && tt!=='co_mat';
     }).length;
@@ -858,10 +912,11 @@ async function renderLichTuan(lop, hvList, selectedNgay, activeCaId){
     return {streak, tongVang, over10pct};
   }
 
-  function dayCell(sid, ngay, info){
+  function dayCell(sid, ngay, info, dayIdx){
     const {streak, over10pct} = info;
     const tt = ddByDate[ngay][sid];
     const isFuture = ngay > today;
+    if(!caHocMeetsDay(dayIdx)) return {bg:'#f8fafd',text:'#c7d0dd',border:'#eef2f7',icon:'—',tip:`Ca "${curCa.ten}" không học ngày này`,offDay:true};
     if(isFuture) return {bg:'#f8fafd',text:'#cbd5e1',border:'#e4ebf5',icon:'',tip:'Chưa đến'};
     if(!tt) return {bg:'#dcfce7',text:'#166534',border:'#86efac',icon:'·',tip:'Tự động điểm danh — mặc định Có mặt (chưa có ai điểm danh thủ công)'};
     if(tt==='co_mat') return {bg:'#dcfce7',text:'#166534',border:'#86efac',icon:'✓',tip:'Có mặt'};
@@ -875,11 +930,9 @@ async function renderLichTuan(lop, hvList, selectedNgay, activeCaId){
   }
 
   // Thông tin lớp hiển thị to, rõ ở ô trên-trái
-  let caHocList = [];
-  try{ caHocList = lop.caHoc ? JSON.parse(lop.caHoc) : []; }catch(e){ caHocList = []; }
   const caHocInfoHtml = caHocList.map(ca=>{
     const nguoi = ca.nguoiDay ? (window.ALL_ACCOUNTS||[]).find(a=>a.email===ca.nguoiDay)?.hoTen||ca.nguoiDay : '';
-    return `<div>${ca.ten}${nguoi?' — '+nguoi:''}</div>`;
+    return `<div>${ca.ten}${nguoi?' — '+nguoi:''}${ca.thu?` <span style="color:#8a96a8;font-weight:400">(${String(ca.thu).split(',').join(', ')})</span>`:''}</div>`;
   }).join('');
 
   const ROW_H = 54, HEAD_H = 46; // chiều cao cố định — dùng chung cho cả 2 cột để hàng luôn khớp nhau
@@ -899,21 +952,23 @@ async function renderLichTuan(lop, hvList, selectedNgay, activeCaId){
   // Cột phải: lịch — mỗi dòng cũng cao đúng ROW_H, khớp tuyệt đối với cột tên bên trái
   const calRows = hvList.map(hv=>{
     const info = cellInfo(hv.studentId);
-    const cells = weekDates.map((ngay)=>{
-      const cellData = dayCell(hv.studentId, ngay, info); const {bg,text,border,icon,tip} = cellData;
+    const cells = weekDates.map((ngay,dayIdx)=>{
+      const cellData = dayCell(hv.studentId, ngay, info, dayIdx); const {bg,text,border,icon,tip,offDay} = cellData;
       const isToday = ngay===today;
       const isFuture = ngay > today;
-      const clickFn = isFuture ? '' :
-        `onclick="openDiemDanhNgayHV('${hv.studentId}','${escapeAttr(hv.hoTen)}','${ngay}','${activeCaId||''}')"`;
+      const clickable = !isFuture && !offDay;
+      const clickFn = clickable ?
+        `onclick="openDiemDanhNgayHV('${hv.studentId}','${escapeAttr(hv.hoTen)}','${ngay}','${curCaId}')"` : '';
       return `<div style="flex:1;min-width:52px;box-sizing:border-box;display:flex;align-items:center;justify-content:center">
-        <div ${clickFn} title="${tip}${!isFuture?' — click để điểm danh':''}" style="
+        <div ${clickFn} title="${tip}${clickable?' — click để điểm danh':''}" style="
           width:38px;height:38px;border-radius:9px;border:2px solid ${border};
           background:${bg};color:${text};
           display:flex;align-items:center;justify-content:center;
-          ${!isFuture?'cursor:pointer;':'cursor:default;'}transition:all .15s;
+          ${offDay?'background-image:repeating-linear-gradient(45deg,transparent,transparent 4px,#eef2f7 4px,#eef2f7 5px);':''}
+          ${clickable?'cursor:pointer;':'cursor:default;'}transition:all .15s;
           ${isToday?'box-shadow:0 0 0 2.5px #3a7bd5,0 2px 8px rgba(58,123,213,.25);':''}
           font-size:14px;font-weight:800;line-height:1"
-          ${!isFuture?`onmouseover="this.style.transform='scale(1.12)';this.style.boxShadow='0 4px 14px rgba(0,0,0,.15)'" onmouseout="this.style.transform='scale(1)';this.style.boxShadow='${isToday?'0 0 0 2.5px #3a7bd5':'none'}'"`:''}>
+          ${clickable?`onmouseover="this.style.transform='scale(1.12)';this.style.boxShadow='0 4px 14px rgba(0,0,0,.15)'" onmouseout="this.style.transform='scale(1)';this.style.boxShadow='${isToday?'0 0 0 2.5px #3a7bd5':'none'}'"`:''}>
           ${icon}
         </div>
       </div>`;
@@ -922,6 +977,21 @@ async function renderLichTuan(lop, hvList, selectedNgay, activeCaId){
   }).join('');
 
   const weekLabel = `${fmtDate(weekDates[0])} — ${fmtDate(weekDates[6])}`;
+
+  // Bộ chọn ca — chỉ hiện khi lớp có từ 2 ca trở lên (lớp 1 ca thì không cần, giữ giao diện gọn)
+  const caSelectorHtml = caHocList.length>1 ? `
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px">
+      ${caHocList.map(ca=>{
+        const key = caKey(ca);
+        const active = key===curCaId;
+        const nguoi = ca.nguoiDay ? (window.ALL_ACCOUNTS||[]).find(a=>a.email===ca.nguoiDay)?.hoTen||ca.nguoiDay : '';
+        return `<div onclick="LOP_DD_CA='${key}';const l=LOP_DATA.find(x=>x.lopId===LOP_DETAIL_ID);renderTabDiemDanh(l)"
+          style="padding:7px 14px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;
+          border:1.5px solid ${active?'#1a50a0':'#e4ebf5'};
+          background:${active?'#1a50a0':'#fff'};color:${active?'#fff':'#5a6478'}"
+          title="${escapeAttr(ca.ten)}${nguoi?' — '+escapeAttr(nguoi):''}">${ca.ten}</div>`;
+      }).join('')}
+    </div>` : '';
 
   return `<div class="table-wrap">
     <!-- HÀNG TRÊN: bảng 1 = thông tin lớp (trái), chú thích + điều hướng tuần (phải) -->
@@ -945,6 +1015,7 @@ async function renderLichTuan(lop, hvList, selectedNgay, activeCaId){
       </div>
       <div style="flex:1;padding:16px 16px 14px;box-sizing:border-box;min-width:0;display:flex;flex-direction:column;justify-content:space-between;height:100%">
         <div>
+          ${caSelectorHtml}
           <div style="display:flex;gap:8px;margin-bottom:8px">
             <div style="flex:1;display:flex;align-items:center;gap:6px;padding:8px 10px;border:1.5px solid #e4ebf5;border-radius:9px;background:#fafbfd;font-size:12px;color:#5a6478;white-space:nowrap"><span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#dcfce7;border:1.5px solid #86efac;flex-shrink:0"></span>Tự động điểm danh</div>
             <div style="flex:1;display:flex;align-items:center;gap:6px;padding:8px 10px;border:1.5px solid #fca5a5;border-radius:9px;background:#fff5f5;font-size:12px;color:#991b1b;white-space:nowrap"><span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#fee2e2;border:1.5px solid #fca5a5;flex-shrink:0"></span>Nghỉ 3+ liên tiếp / >10% tổng buổi → cảnh báo đỏ</div>
@@ -1108,7 +1179,7 @@ async function promptGuiTinNghiNhieu(studentId, hoTen){
 async function renderTabBangDiem(lop){
   const wrap = document.getElementById('lop-detail-content');
   wrap.innerHTML = '<div class="empty">Đang tải...</div>';
-  const canEdit = ['admin','giaovien'].includes(USER.role);
+  const canEdit = ['admin','giaovien','trogiang'].includes(USER.role);
 
   const [hvR,bdR] = await Promise.all([
     call({action:'getHocVienByLop',lop:lop.tenLop}),
@@ -1283,6 +1354,14 @@ async function renderTaiKhoan(){
   document.getElementById('btn-add').onclick=()=>openModalTK(null);
   document.getElementById('btn-add').textContent='+ Thêm tài khoản';
   setContent(`
+    <div class="table-wrap" style="margin-bottom:14px;padding:14px 16px">
+      <div style="font-size:13px;font-weight:600;color:#0d2d5e;margin-bottom:8px">🧪 Dữ liệu test</div>
+      <div style="font-size:12px;color:#5a6478;margin-bottom:10px">Tự tạo/xóa nhanh 30 học viên + 30 phụ huynh + 5 giáo viên + 5 trợ giảng + 2 admin để test, dùng mẹo Gmail +alias (không cần tạo email thật). Dữ liệu tạo ra được đánh dấu riêng — nút "Xóa" chỉ xóa đúng phần này, không đụng dữ liệu thật.</div>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn btn-primary" onclick="openModalSeedTest()">🧪 Tạo dữ liệu test</button>
+        <button class="btn btn-danger" onclick="clearTestData()">🗑️ Xóa dữ liệu test</button>
+      </div>
+    </div>
     <div class="table-wrap">
       <div class="table-toolbar"><span style="font-size:13px;font-weight:600">Danh sách tài khoản — ${list.length}</span></div>
       <table>
@@ -1304,6 +1383,44 @@ async function renderTaiKhoan(){
     </div>
   `);
 }
+
+// ── DU LIEU TEST ──
+function openModalSeedTest(){
+  showModal('Tạo dữ liệu test',`
+    <div class="form-row">
+      <label>Email Gmail của bạn *</label>
+      <input id="seed-email" placeholder="tenban@gmail.com" value="${USER.email.indexOf('+')===-1?USER.email:''}">
+    </div>
+    <div style="font-size:12px;color:#5a6478;margin:6px 0 12px">
+      Hệ thống sẽ tự sinh các email kiểu <code>tenban+ph1@gmail.com</code>, <code>+gv1</code>, <code>+tg1</code>, <code>+ad1</code>...
+      — tất cả đều gửi về đúng hộp thư Gmail này, dùng để đăng nhập test nhiều vai trò khác nhau.
+    </div>
+    <div class="form-row">
+      <label>Lớp để gán 30 học viên vào</label>
+      <select id="seed-lop">
+        ${LOPS.map(l=>`<option value="${l}">${l}</option>`).join('')}
+        <option value="" selected>+ Tự tạo "Lớp Test" mới</option>
+      </select>
+    </div>
+    <div style="font-size:12px;color:#5a6478;margin-top:10px">Sẽ tạo: 30 học viên, 30 phụ huynh, 5 giáo viên, 5 trợ giảng, 2 admin.</div>
+  `,async()=>{
+    const baseEmail=document.getElementById('seed-email').value.trim();
+    if(!baseEmail||baseEmail.indexOf('@')===-1){toast('Nhập email Gmail hợp lệ','error');return;}
+    const lop=document.getElementById('seed-lop').value;
+    const r=await call({action:'seedTestData',baseEmail,lop});
+    closeModal();
+    if(r.ok) toast(`Đã tạo ${r.data.hocVienCount} học viên + ${r.data.taiKhoanCount} tài khoản (lớp "${r.data.lop}")`,'success');
+    else toast(r.error||'Lỗi khi tạo dữ liệu test','error');
+    renderTaiKhoan();
+  });
+}
+async function clearTestData(){
+  if(!confirm('Xóa toàn bộ dữ liệu test đã tạo (học viên, phụ huynh, giáo viên, trợ giảng, admin test)? Không thể hoàn tác.')) return;
+  const r=await call({action:'clearTestData'});
+  if(r.ok) toast(`Đã xóa ${r.data.hocVien} học viên, ${r.data.taiKhoan} tài khoản, ${r.data.lop} lớp test`,'success');
+  else toast(r.error||'Lỗi khi xóa dữ liệu test','error');
+  renderTaiKhoan();
+}
 function openModalTK(email,hoTen,role){
   const isEdit=!!email;
   showModal(isEdit?'Sửa tài khoản':'Thêm tài khoản',`
@@ -1313,6 +1430,7 @@ function openModalTK(email,hoTen,role){
       <select id="f-role">
         <option value="admin" ${role==='admin'?'selected':''}>Admin</option>
         <option value="giaovien" ${role==='giaovien'?'selected':''}>Giáo viên</option>
+        <option value="trogiang" ${role==='trogiang'?'selected':''}>Trợ giảng</option>
         <option value="quanly" ${role==='quanly'?'selected':''}>Quản lý</option>
         <option value="phuhuynh" ${role==='phuhuynh'?'selected':''}>Phụ huynh / Người giới thiệu</option>
       </select>
@@ -1432,6 +1550,8 @@ const TUTORIALS = {
     ],
   },
 };
+// Trợ giảng dùng chung hướng dẫn với Giáo viên (quyền hạn giống nhau)
+TUTORIALS.trogiang = TUTORIALS.giaovien;
 
 let TUT_STEP = 0;
 let TUT_PAGE = '';
