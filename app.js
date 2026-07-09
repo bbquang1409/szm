@@ -925,7 +925,7 @@ async function renderLichTuan(lop, hvList, selectedNgay, activeCaId){
 
   return `<div class="table-wrap">
     <!-- HÀNG TRÊN: bảng 1 = thông tin lớp (trái), chú thích + điều hướng tuần (phải) -->
-    <div style="display:flex;border-bottom:2px solid #e4ebf5">
+    <div style="display:flex">
       <div style="width:230px;flex-shrink:0;padding:16px;border-right:2px solid #e4ebf5;background:#f8fafd;box-sizing:border-box">
         <div style="font-size:11px;color:#8a96a8;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Thông tin lớp</div>
         <div style="font-size:19px;font-weight:800;color:#0d2d5e;text-transform:uppercase;margin-bottom:8px">Lớp ${lop.tenLop}</div>
@@ -943,15 +943,19 @@ async function renderLichTuan(lop, hvList, selectedNgay, activeCaId){
           <div style="font-size:15px;font-weight:700;color:#1a2236;line-height:1.5">${caHocInfoHtml}</div>
         </div>`:''}
       </div>
-      <div style="flex:1;padding:16px 16px 18px;box-sizing:border-box;min-width:0;display:flex;flex-direction:column;justify-content:space-between;height:100%">
-        <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:8px">
-          <div style="display:flex;align-items:center;gap:6px;padding:8px 10px;border:1.5px solid #e4ebf5;border-radius:9px;background:#fafbfd;font-size:12px;color:#5a6478;white-space:nowrap"><span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#dcfce7;border:1.5px solid #86efac;flex-shrink:0"></span>Có mặt (mặc định)</div>
-          <div style="display:flex;align-items:center;gap:6px;padding:8px 10px;border:1.5px solid #e4ebf5;border-radius:9px;background:#fafbfd;font-size:12px;color:#5a6478;white-space:nowrap"><span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#dbeafe;border:1.5px solid #93c5fd;flex-shrink:0"></span><strong>P</strong>&nbsp;Nghỉ có phép</div>
-          <div style="display:flex;align-items:center;gap:6px;padding:8px 10px;border:1.5px solid #e4ebf5;border-radius:9px;background:#fafbfd;font-size:12px;color:#5a6478;white-space:nowrap"><span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#ffedd5;border:1.5px solid #fdba74;flex-shrink:0"></span><strong>K</strong>&nbsp;Nghỉ không phép</div>
-          <div style="display:flex;align-items:center;gap:6px;padding:8px 10px;border:1.5px solid #e4ebf5;border-radius:9px;background:#fafbfd;font-size:12px;color:#5a6478;white-space:nowrap"><span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#fef3c7;border:1.5px solid #fcd34d;flex-shrink:0"></span><strong>T</strong>&nbsp;Đi trễ >15'</div>
-          <div style="grid-column:span 2;display:flex;align-items:center;gap:6px;padding:8px 10px;border:1.5px solid #fca5a5;border-radius:9px;background:#fff5f5;font-size:12px;color:#991b1b"><span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#fee2e2;border:1.5px solid #fca5a5;flex-shrink:0"></span>Nghỉ 3+ liên tiếp / >10% tổng buổi → cảnh báo đỏ</div>
+      <div style="flex:1;padding:16px 16px 14px;box-sizing:border-box;min-width:0;display:flex;flex-direction:column;justify-content:space-between;height:100%">
+        <div>
+          <div style="display:flex;gap:8px;margin-bottom:8px">
+            <div style="flex:1;display:flex;align-items:center;gap:6px;padding:8px 10px;border:1.5px solid #e4ebf5;border-radius:9px;background:#fafbfd;font-size:12px;color:#5a6478;white-space:nowrap"><span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#dcfce7;border:1.5px solid #86efac;flex-shrink:0"></span>Tự động điểm danh</div>
+            <div style="flex:1;display:flex;align-items:center;gap:6px;padding:8px 10px;border:1.5px solid #fca5a5;border-radius:9px;background:#fff5f5;font-size:12px;color:#991b1b;white-space:nowrap"><span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#fee2e2;border:1.5px solid #fca5a5;flex-shrink:0"></span>Nghỉ 3+ liên tiếp / >10% tổng buổi → cảnh báo đỏ</div>
+          </div>
+          <div style="display:flex;gap:8px">
+            <div style="flex:1;display:flex;align-items:center;gap:6px;padding:8px 10px;border:1.5px solid #e4ebf5;border-radius:9px;background:#fafbfd;font-size:12px;color:#5a6478;white-space:nowrap"><span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#dbeafe;border:1.5px solid #93c5fd;flex-shrink:0"></span><strong>P</strong>&nbsp;Nghỉ có phép</div>
+            <div style="flex:1;display:flex;align-items:center;gap:6px;padding:8px 10px;border:1.5px solid #e4ebf5;border-radius:9px;background:#fafbfd;font-size:12px;color:#5a6478;white-space:nowrap"><span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#ffedd5;border:1.5px solid #fdba74;flex-shrink:0"></span><strong>K</strong>&nbsp;Nghỉ không phép</div>
+            <div style="flex:1;display:flex;align-items:center;gap:6px;padding:8px 10px;border:1.5px solid #e4ebf5;border-radius:9px;background:#fafbfd;font-size:12px;color:#5a6478;white-space:nowrap"><span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#fef3c7;border:1.5px solid #fcd34d;flex-shrink:0"></span><strong>T</strong>&nbsp;Đi trễ >15'</div>
+          </div>
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:20px">
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:14px">
           <button class="btn btn-sm" onclick="changeWeek(-1)" style="border:1.5px solid #e4ebf5;border-radius:9px;padding:12px;height:100%">← Tuần trước</button>
           <div style="border:1.5px solid #e4ebf5;border-radius:9px;padding:12px;background:#fafbfd;text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center">
             <div style="font-size:14px;font-weight:700;color:#0d2d5e">${weekLabel}</div>
