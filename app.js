@@ -561,17 +561,18 @@ async function toggleTrangThai(studentId,val){
   toast('Đã cập nhật trạng thái','success');
 }
 
-async function openModalHV(studentId){
+async function openModalHV(studentId, defaultLop){
   if(USER.role==='phuhuynh') return;
   let hv=null;
   if(studentId){const r=await call({action:'getHocVienById',studentId});if(r.ok)hv=r.data;}
   const isEdit=!!hv;
+  const preselectLop = hv?.lop || defaultLop || '';
   showModal(isEdit?'Sửa học viên':'Thêm học viên',`
     <div class="form-grid2">
       <div class="form-row"><label>Họ tên *</label><input id="f-hoTen" value="${hv?.hoTen||''}"></div>
       <div class="form-row"><label>Lớp *</label>
         <select id="f-lop">
-          ${LOPS.map(l=>`<option value="${l}" ${hv?.lop===l?'selected':''}>${l}</option>`).join('')}
+          ${LOPS.map(l=>`<option value="${l}" ${preselectLop===l?'selected':''}>${l}</option>`).join('')}
           <option value="__new__">+ Lớp mới...</option>
         </select>
       </div>
@@ -611,7 +612,9 @@ async function openModalHV(studentId){
     if(!body.hoTen||!body.lop){toast('Nhập đủ họ tên và lớp','error');return;}
     if(isEdit){body.studentId=studentId;await call({action:'updateHocVien',...body});}
     else await call({action:'addHocVien',...body});
-    closeModal();toast(isEdit?'Đã cập nhật':'Đã thêm học viên','success');renderHocVien();
+    closeModal();toast(isEdit?'Đã cập nhật':'Đã thêm học viên','success');
+    if(CURRENT_PAGE==='lopdetail'){ const l=LOP_DATA.find(x=>x.lopId===LOP_DETAIL_ID); if(l) renderTabDiemDanh(l); }
+    else renderHocVien();
   });
 }
 async function deleteHV(studentId){
@@ -939,7 +942,10 @@ async function renderLichTuan(lop, hvList, selectedNgay, activeCaId){
   }
 
   // Thông tin lớp hiển thị to, rõ ở ô trên-trái
-  const caHocInfoHtml = caHocList.map(ca=>{
+  // Nếu lớp chỉ có ĐÚNG 1 buổi và chưa hề tùy chỉnh gì (tên mặc định, chưa gán người dạy, chưa chọn thứ học)
+  // thì không có gì đáng để hiện — bỏ qua cả block, tránh hiện trùng chữ "Buổi học" 2 lần gây rối mắt.
+  const caChuaTuyChinh = caHocList.length===1 && caHocList[0].ten==='Buổi học' && !caHocList[0].nguoiDay && !caHocList[0].thu;
+  const caHocInfoHtml = caChuaTuyChinh ? '' : caHocList.map(ca=>{
     const nguoi = ca.nguoiDay ? (window.ALL_ACCOUNTS||[]).find(a=>a.email===ca.nguoiDay)?.hoTen||ca.nguoiDay : '';
     return `<div>${ca.ten}${nguoi?' — '+nguoi:''}${ca.thu?` <span style="color:#8a96a8;font-weight:400">(${String(ca.thu).split(',').join(', ')})</span>`:''}</div>`;
   }).join('');
@@ -1045,7 +1051,10 @@ async function renderLichTuan(lop, hvList, selectedNgay, activeCaId){
     <!-- HÀNG DƯỚI: bảng 2 = danh sách học viên (trái), bảng 3 = lịch điểm danh (phải) — chiều cao dòng khớp tuyệt đối -->
     <div style="display:flex">
       <div style="width:230px;flex-shrink:0;border-right:2px solid #e4ebf5;box-sizing:border-box">
-        <div style="height:${HEAD_H}px;box-sizing:border-box;display:flex;align-items:center;padding:0 14px;font-size:13px;font-weight:700;font-style:italic;color:#5a6478;background:#f5f8fc;border-bottom:1px solid #e4ebf5">Danh sách lớp</div>
+        <div style="height:${HEAD_H}px;box-sizing:border-box;display:flex;align-items:center;justify-content:space-between;padding:0 8px 0 14px;font-size:13px;font-weight:700;font-style:italic;text-transform:uppercase;color:#5a6478;background:#f5f8fc;border-bottom:1px solid #e4ebf5">
+          <span>Danh sách lớp</span>
+          ${['admin','giaovien','trogiang'].includes(USER.role)?`<button class="btn btn-sm" style="font-style:normal;text-transform:none;font-size:11px;padding:4px 8px" onclick="openModalHV(null,'${escapeAttr(lop.tenLop)}')">+ Thêm HV</button>`:''}
+        </div>
         ${nameRows}
       </div>
       <div style="flex:1;overflow-x:auto">
