@@ -337,15 +337,15 @@ async function openModalLop(lopId){
     </div>
 
     <div class="form-row">
-      <label>Các ca học trong tuần <span style="font-weight:400;color:#8a96a8">(vd: Sáng - Trợ giảng, Chiều - GV Việt...)</span></label>
+      <label>Các buổi học trong tuần <span style="font-weight:400;color:#8a96a8">(vd: Sáng - Trợ giảng, Chiều - GV Việt...)</span></label>
       <div id="ca-hoc-list">
         ${caHocList.map((ca,i)=>caHocRow(ca,i,gvList)).join('')}
       </div>
-      <button type="button" class="btn btn-sm" style="margin-top:6px" onclick="addCaHocRow()">+ Thêm ca học</button>
+      <button type="button" class="btn btn-sm" style="margin-top:6px" onclick="addCaHocRow()">+ Thêm buổi học</button>
     </div>
 
     <div class="form-row" style="margin-top:10px"><label>Ghi chú</label><textarea id="f-ghiChu" rows="2">${l?.ghiChu||''}</textarea></div>
-    <div class="hint">Ngày kiểm tra giữa kỳ sẽ được tính tự động = 50% thời gian lớp học. Cảnh báo sẽ hiện khi còn ≤ 7 ngày. Khi điểm danh, giáo viên/trợ giảng sẽ chọn đúng ca học đang dạy.</div>
+    <div class="hint">Ngày kiểm tra giữa kỳ sẽ được tính tự động = 50% thời gian lớp học. Cảnh báo sẽ hiện khi còn ≤ 7 ngày. Khi điểm danh, giáo viên/trợ giảng sẽ chọn đúng buổi học đang dạy.</div>
   `,async()=>{
     const caHoc = collectCaHocList();
     const body={tenLop:document.getElementById('f-tenLop').value.trim(),capDo:document.getElementById('f-capDo').value,ngayBatDau:document.getElementById('f-ngayBD').value,ngayKetThuc:document.getElementById('f-ngayKT').value,giaoVienEmail:document.getElementById('f-gv').value,ghiChu:document.getElementById('f-ghiChu').value.trim(),caHoc:JSON.stringify(caHoc)};
@@ -916,7 +916,7 @@ async function renderLichTuan(lop, hvList, selectedNgay, activeCaId){
     const {streak, over10pct} = info;
     const tt = ddByDate[ngay][sid];
     const isFuture = ngay > today;
-    if(!caHocMeetsDay(dayIdx)) return {bg:'#f8fafd',text:'#c7d0dd',border:'#eef2f7',icon:'—',tip:`Ca "${curCa.ten}" không học ngày này`,offDay:true};
+    if(!caHocMeetsDay(dayIdx)) return {bg:'#f8fafd',text:'#c7d0dd',border:'#eef2f7',icon:'—',tip:`Buổi "${curCa.ten}" không học ngày này`,offDay:true};
     if(isFuture) return {bg:'#f8fafd',text:'#cbd5e1',border:'#e4ebf5',icon:'',tip:'Chưa đến'};
     if(!tt) return {bg:'#dcfce7',text:'#166534',border:'#86efac',icon:'·',tip:'Tự động điểm danh — mặc định Có mặt (chưa có ai điểm danh thủ công)'};
     if(tt==='co_mat') return {bg:'#dcfce7',text:'#166534',border:'#86efac',icon:'✓',tip:'Có mặt'};
@@ -996,24 +996,23 @@ async function renderLichTuan(lop, hvList, selectedNgay, activeCaId){
   return `<div class="table-wrap">
     <!-- HÀNG TRÊN: bảng 1 = thông tin lớp (trái), chú thích + điều hướng tuần (phải) -->
     <div style="display:flex">
-      <div style="width:230px;flex-shrink:0;padding:16px;border-right:2px solid #e4ebf5;background:#f8fafd;box-sizing:border-box">
-        <div style="font-size:11px;color:#8a96a8;font-weight:700;text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">Thông tin lớp</div>
-        <div style="font-size:19px;font-weight:800;color:#0d2d5e;text-transform:uppercase;margin-bottom:8px">Lớp ${lop.tenLop}</div>
-        <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px">
-          <span style="font-size:12px;font-weight:700;padding:3px 10px;border-radius:20px;background:${CAP_DO_COLORS[lop.capDo]||'#f0f4fa'};color:${CAP_DO_TEXT[lop.capDo]||'#5a6478'}">Trình độ ${lop.capDo||'—'}</span>
+      <div style="width:230px;flex-shrink:0;padding:14px 16px;border-right:2px solid #e4ebf5;background:#f8fafd;box-sizing:border-box">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:nowrap;margin-bottom:10px">
+          <div style="font-size:19px;font-weight:800;color:#0d2d5e;text-transform:uppercase;white-space:nowrap">Lớp ${lop.tenLop}</div>
+          <span style="font-size:12px;font-weight:700;padding:3px 10px;border-radius:20px;background:${CAP_DO_COLORS[lop.capDo]||'#f0f4fa'};color:${CAP_DO_TEXT[lop.capDo]||'#5a6478'};white-space:nowrap">Trình độ ${lop.capDo||'—'}</span>
         </div>
         ${lop.canhBaoGiuaKy?`<div class="badge b-warn1" style="animation:pulse 1.5s infinite;margin-bottom:6px">Giữa kỳ còn ${lop.soNgayConGiuaKy} ngày</div>`:''}
         ${lop.canhBaoCuoiKy?`<div class="badge b-warn2" style="animation:pulse 1.5s infinite;margin-bottom:6px">Cuối kỳ còn ${lop.soNgayConCuoiKy} ngày</div>`:''}
-        ${lop.ngayBatDau?`<div style="margin-bottom:12px">
+        ${lop.ngayBatDau?`<div style="margin-bottom:10px">
           <div style="font-size:12px;color:#8a96a8;margin-bottom:2px">📅 Thời gian học</div>
-          <div style="font-size:16px;font-weight:700;color:#1a2236">${fmtDate(lop.ngayBatDau)} – ${fmtDate(lop.ngayKetThuc||'')}</div>
+          <div style="font-size:15px;font-weight:700;color:#1a2236">${fmtDate(lop.ngayBatDau)} – ${fmtDate(lop.ngayKetThuc||'')}</div>
         </div>`:''}
         ${caHocInfoHtml?`<div>
-          <div style="font-size:12px;color:#8a96a8;margin-bottom:2px">🕐 Ca học</div>
-          <div style="font-size:15px;font-weight:700;color:#1a2236;line-height:1.5">${caHocInfoHtml}</div>
+          <div style="font-size:12px;color:#8a96a8;margin-bottom:2px">🕐 Buổi học</div>
+          <div style="font-size:14px;font-weight:700;color:#1a2236;line-height:1.4">${caHocInfoHtml}</div>
         </div>`:''}
       </div>
-      <div style="flex:1;padding:16px 16px 14px;box-sizing:border-box;min-width:0;display:flex;flex-direction:column;justify-content:space-between;height:100%">
+      <div style="flex:1;padding:14px 16px;box-sizing:border-box;min-width:0">
         <div>
           ${caSelectorHtml}
           <div style="display:flex;gap:8px;margin-bottom:8px">
@@ -1026,13 +1025,13 @@ async function renderLichTuan(lop, hvList, selectedNgay, activeCaId){
             <div style="flex:1;display:flex;align-items:center;gap:6px;padding:8px 10px;border:1.5px solid #e4ebf5;border-radius:9px;background:#fafbfd;font-size:12px;color:#5a6478;white-space:nowrap"><span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#fef3c7;border:1.5px solid #fcd34d;flex-shrink:0"></span><strong>T</strong>&nbsp;Đi trễ >15'</div>
           </div>
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:14px">
-          <button class="btn btn-sm" onclick="changeWeek(-1)" style="border:1.5px solid #e4ebf5;border-radius:9px;padding:12px;height:100%">← Tuần trước</button>
-          <div style="border:1.5px solid #e4ebf5;border-radius:9px;padding:12px;background:#fafbfd;text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center">
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:10px">
+          <button class="btn btn-sm" onclick="changeWeek(-1)" style="border:1.5px solid #e4ebf5;border-radius:9px;padding:10px;height:100%">← Tuần trước</button>
+          <div style="border:1.5px solid #e4ebf5;border-radius:9px;padding:10px;background:#fafbfd;text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center">
             <div style="font-size:14px;font-weight:700;color:#0d2d5e">${weekLabel}</div>
             ${LICH_WEEK_OFFSET<0?`<span style="font-size:11px;color:#3a7bd5;cursor:pointer;margin-top:2px" onclick="LICH_WEEK_OFFSET=0;const l=LOP_DATA.find(x=>x.lopId===LOP_DETAIL_ID);renderTabDiemDanh(l)">↺ Về tuần hiện tại</span>`:''}
           </div>
-          <button class="btn btn-sm" onclick="changeWeek(1)" ${LICH_WEEK_OFFSET>=0?'disabled':''} style="border:1.5px solid #e4ebf5;border-radius:9px;padding:12px;height:100%">Tuần sau →</button>
+          <button class="btn btn-sm" onclick="changeWeek(1)" ${LICH_WEEK_OFFSET>=0?'disabled':''} style="border:1.5px solid #e4ebf5;border-radius:9px;padding:10px;height:100%">Tuần sau →</button>
         </div>
       </div>
     </div>
@@ -1093,7 +1092,7 @@ async function openDiemDanhNgayHV(studentId, hoTen, ngay, caId){
         <div style="font-weight:700;color:#0d2d5e;font-size:15px">${fmtDate(ngay)}</div>
       </div>
       <div style="background:#f5f8fd;border-radius:10px;padding:10px 16px;flex:1;text-align:center">
-        <div style="font-size:11px;color:#8a96a8;margin-bottom:2px">Ca học</div>
+        <div style="font-size:11px;color:#8a96a8;margin-bottom:2px">Buổi học</div>
         <div style="font-weight:700;color:#0d2d5e;font-size:15px">${caLabel}</div>
       </div>
     </div>
@@ -1503,8 +1502,8 @@ const TUTORIALS = {
     ],
     lophoc: [
       {s:'Bước 1/4', t:'Đây là danh sách các lớp học đang và đã có của trung tâm. Mỗi thẻ lớp hiện tiến độ khóa học và cảnh báo kiểm tra.'},
-      {s:'Bước 2/4', t:'Nhấn "Thêm" để tạo lớp mới. Trong form tạo lớp, bạn có thể set nhiều ca học (sáng/chiều/tối) với giáo viên/trợ giảng riêng cho từng ca.'},
-      {s:'Bước 3/4', t:'Nhấn "Vào lớp" để xem chi tiết: Tab Điểm danh (chọn ngày + ca học → điểm danh từng học viên) và Tab Bảng điểm.'},
+      {s:'Bước 2/4', t:'Nhấn "Thêm" để tạo lớp mới. Trong form tạo lớp, bạn có thể set nhiều buổi học (sáng/chiều/tối) với giáo viên/trợ giảng riêng cho từng buổi.'},
+      {s:'Bước 3/4', t:'Nhấn "Vào lớp" để xem chi tiết: Tab Điểm danh (chọn ngày + buổi học → điểm danh từng học viên) và Tab Bảng điểm.'},
       {s:'Bước 4/4', t:'Nút "✉️ Gửi tin nhắn" cho phép admin/quản lý gửi thông báo đến phụ huynh của 1 lớp hoặc tất cả các lớp.'},
     ],
     hocvien: [
@@ -1524,7 +1523,7 @@ const TUTORIALS = {
     ],
     lophoc: [
       {s:'Bước 1/3', t:'Đây là các lớp bạn được phân công phụ trách. Nhấn "Vào lớp" để thao tác.'},
-      {s:'Bước 2/3', t:'Tab Điểm danh: chọn đúng ngày và ca học (sáng/chiều/tối) trước khi điểm danh để tránh nhầm lẫn giữa các ca.'},
+      {s:'Bước 2/3', t:'Tab Điểm danh: chọn đúng ngày và buổi học (sáng/chiều/tối) trước khi điểm danh để tránh nhầm lẫn giữa các buổi.'},
       {s:'Bước 3/3', t:'Tab Bảng điểm: nhập điểm Giữa kỳ, Cuối kỳ cho cả lớp cùng lúc. Checkbox "Không làm BTVN" để ghi nhận theo từng buổi.'},
     ],
     hocvien: [
