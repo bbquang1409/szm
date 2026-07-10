@@ -30,40 +30,57 @@ function showLoginError(msg){
   el.textContent=msg;el.style.display='block';
 }
 
-let _loadTimer=null;
+let _loadTimers=[];
 function startLoading(){
   document.getElementById('login-btn').disabled=true;
   document.getElementById('login-btn').style.opacity='.6';
   document.getElementById('login-error').style.display='none';
   document.getElementById('login-loading').style.display='block';
-  const steps=[
-    {pct:15,msg:'Đang kết nối Google...',t:300},
-    {pct:35,msg:'Xác thực tài khoản...',t:800},
-    {pct:60,msg:'Kiểm tra quyền truy cập...',t:1400},
-    {pct:80,msg:'Tải dữ liệu...',t:2200},
-    {pct:92,msg:'Chuẩn bị giao diện...',t:3200},
+  const fill=document.getElementById('loading-fill');
+  fill.style.transition='none';
+  fill.style.width='0%';
+  // ép trình duyệt "chốt" lại width 0% trước khi đổi, để bước tiếp theo chắc chắn animate mượt
+  void fill.offsetWidth;
+  fill.style.transition='width 2.6s cubic-bezier(.22,.61,.36,1)';
+  fill.style.width='92%'; // chạy mượt liên tục tới 92% trong lúc chờ xác thực, không nhảy cóc theo mốc %
+
+  const msgs=[
+    {msg:'Đang kết nối Google...',t:200},
+    {msg:'Xác thực tài khoản...',t:900},
+    {msg:'Kiểm tra quyền truy cập...',t:1700},
+    {msg:'Đang tải dữ liệu...',t:2400},
   ];
-  steps.forEach(({pct,msg,t})=>{
-    const id=setTimeout(()=>{
-      document.getElementById('loading-fill').style.width=pct+'%';
-      document.getElementById('loading-msg').textContent=msg;
-      document.getElementById('loading-pct').textContent=pct+'%';
-    },t);
-    _loadTimer=id;
-  });
+  _loadTimers.forEach(id=>clearTimeout(id));
+  _loadTimers=msgs.map(({msg,t})=>setTimeout(()=>{
+    document.getElementById('loading-msg').textContent=msg;
+  },t));
 }
 function stopLoading(){
+  _loadTimers.forEach(id=>clearTimeout(id));
+  _loadTimers=[];
   document.getElementById('login-btn').disabled=false;
   document.getElementById('login-btn').style.opacity='1';
   document.getElementById('login-loading').style.display='none';
-  document.getElementById('loading-fill').style.width='0%';
+  const fill=document.getElementById('loading-fill');
+  fill.style.transition='none';
+  fill.style.width='0%';
 }
 function completeLoading(){
-  document.getElementById('loading-fill').style.width='100%';
+  _loadTimers.forEach(id=>clearTimeout(id));
+  _loadTimers=[];
+  const fill=document.getElementById('loading-fill');
+  fill.style.transition='width .5s ease';
+  fill.style.width='100%';
   document.getElementById('loading-msg').textContent='Hoàn tất!';
-  document.getElementById('loading-pct').textContent='100%';
 }
-function logout(){USER=null;clearSession();document.getElementById('app-shell').style.display='none';document.getElementById('login-screen').style.display='flex';document.getElementById('login-error').style.display='none';}
+function logout(){
+  USER=null;
+  clearSession();
+  stopLoading(); // reset thanh loading + mở lại nút "Đăng nhập bằng Google" (trước đây quên reset, gây kẹt ở 100%/disabled sau khi đăng xuất)
+  document.getElementById('app-shell').style.display='none';
+  document.getElementById('login-screen').style.display='flex';
+  document.getElementById('login-error').style.display='none';
+}
 
 // ── API ──
 async function callPost(params){

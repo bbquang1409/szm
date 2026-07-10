@@ -194,7 +194,7 @@ tr:hover td{background:#f8faff}
 .login-loading{margin-top:16px;display:none}
 .loading-label{font-size:12px;color:#5a6478;margin-bottom:8px;display:flex;justify-content:space-between}
 .loading-track{height:6px;background:#f0f4fa;border-radius:3px;overflow:hidden}
-.loading-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,#1a50a0,#3a7bd5,#60a5fa);background-size:200%;animation:shimmer 1.5s infinite;width:0%;transition:width .4s ease}
+.loading-fill{height:100%;border-radius:3px;background:linear-gradient(90deg,#1a50a0,#3a7bd5,#60a5fa);background-size:200%;animation:shimmer 1.5s infinite;width:0%;transition:width 2.6s cubic-bezier(.22,.61,.36,1)}
 @keyframes shimmer{0%{background-position:100%}100%{background-position:-100%}}
 .login-note{margin-top:18px;font-size:11px;color:#a0aab8}
 
@@ -248,7 +248,6 @@ tr:hover td{background:#f8faff}
     <div class="login-loading" id="login-loading">
       <div class="loading-label">
         <span id="loading-msg">Đang kết nối...</span>
-        <span id="loading-pct">0%</span>
       </div>
       <div class="loading-track"><div class="loading-fill" id="loading-fill"></div></div>
     </div>
