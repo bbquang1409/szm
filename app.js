@@ -867,65 +867,74 @@ async function renderLichTuan(lop, hvList, selectedNgay, activeCaId){
   const thuLabels = ['T2','T3','T4','T5','T6','T7','CN'];
   const today = todayStr();
 
-  // Danh sách ca học của lớp — xác định TRƯỚC để biết đang xem/điểm danh đúng ca nào
+  // Danh sách buổi học của lớp
   let caHocList = [];
   try{ caHocList = lop.caHoc ? JSON.parse(lop.caHoc) : []; }catch(e){ caHocList = []; }
   if(caHocList.length===0) caHocList=[{ten:'Buổi học',nguoiDay:'',thu:''}];
-  const curCa = caHocList.find(c=>caKey(c)===activeCaId) || caHocList[0];
-  const curCaId = caKey(curCa);
-  // Ca này học vào những thứ nào trong tuần? Nếu chưa khai báo (thu rỗng) thì coi như học tất cả các ngày (không giới hạn)
-  const curCaThu = curCa.thu ? String(curCa.thu).split(',').filter(Boolean) : null;
-  const caHocMeetsDay = (i)=> !curCaThu || curCaThu.includes(thuLabels[i]);
 
-  // Load điểm danh cả tuần — CHỈ của ca đang chọn (trước đây gộp cả các ca khác vào,
-  // dẫn đến bấm vào ô lại sửa nhầm sang ca khác — giờ mỗi ca độc lập hoàn toàn)
-  const allDDRes = await Promise.all(
-    weekDates.map(ngay=>call({action:'getDiemDanhByLop',lop:lop.tenLop,ngay,caId:curCaId}))
-  );
-  const ddByDate={};
-  weekDates.forEach((ngay,i)=>{
-    ddByDate[ngay]={};
-    if(allDDRes[i].ok) allDDRes[i].data.forEach(d=>{ ddByDate[ngay][d.studentId] = d.trangThai; });
+  // Với mỗi ngày trong tuần, xác định NHỮNG BUỔI nào thực sự học ngày đó (dựa vào "thu" admin đã gán khi tạo lớp).
+  // - Lớp chỉ có 1 buổi → buổi đó luôn học đủ 7 ngày (không tách ô, giữ như trước).
+  // - Lớp có từ 2 buổi trở lên → buổi nào có khai báo "thu" thì chỉ tính đúng những ngày đó; buổi chưa khai báo "thu"
+  //   thì tạm coi là học tất cả các ngày (an toàn hơn là tự đoán bừa — admin có thể vào sửa lớp để khai báo rõ hơn).
+  const dayCaList = thuLabels.map((t)=>{
+    if(caHocList.length===1) return [caHocList[0]];
+    return caHocList.filter(ca=>{
+      const thuArr = ca.thu ? String(ca.thu).split(',').filter(Boolean) : [];
+      return thuArr.length===0 || thuArr.includes(t);
+    });
   });
 
-  // Tính tổng số buổi đã điểm danh của lớp (để tính 10%) — chỉ tính các ngày ca này thực sự có học
-  const tongBuoiDiemDanh = weekDates.filter((d,i)=>d<=today && caHocMeetsDay(i)).reduce((sum,ngay)=>{
-    const hasAny = hvList.some(hv=>ddByDate[ngay][hv.studentId]);
-    return sum + (hasAny?1:0);
-  }, 0);
+  // Load điểm danh CẢ TUẦN, CẢ CÁC BUỔI cùng lúc (không lọc theo 1 buổi nữa vì giờ hiện tất cả buổi trong cùng 1 ô)
+  const allDDRes = await Promise.all(
+    weekDates.map(ngay=>call({action:'getDiemDanhByLop',lop:lop.tenLop,ngay,caId:''}))
+  );
+  const ddByDateCa={}; // ddByDateCa[ngay][caId][studentId] = trangThai
+  weekDates.forEach((ngay,i)=>{
+    ddByDateCa[ngay]={};
+    if(allDDRes[i].ok) allDDRes[i].data.forEach(d=>{
+      if(!ddByDateCa[ngay][d.caId]) ddByDateCa[ngay][d.caId]={};
+      ddByDateCa[ngay][d.caId][d.studentId]=d.trangThai;
+    });
+  });
 
-  function cellInfo(sid){
-    // 1. Chuỗi nghỉ liên tiếp gần nhất (chỉ tính các ngày ca này có học)
-    let streak=0;
-    for(let i=weekDates.length-1;i>=0;i--){
-      if(weekDates[i]>today || !caHocMeetsDay(i)) continue;
-      const tt=ddByDate[weekDates[i]][sid];
-      if(tt&&tt!=='co_mat') streak++; else if(tt) break;
-    }
-    // 2. Tổng số lần vắng/trễ trong tuần
-    const tongVang = weekDates.filter((d,i)=>d<=today && caHocMeetsDay(i)).filter(ngay=>{
-      const tt=ddByDate[ngay][sid];
-      return tt && tt!=='co_mat';
-    }).length;
-    // 3. Kiểm tra >10% tổng buổi
-    const over10pct = tongBuoiDiemDanh>0 && (tongVang/tongBuoiDiemDanh)>0.1;
-    return {streak, tongVang, over10pct};
+  // Tổng số buổi đã điểm danh trong tuần của 1 ca cụ thể (để tính cảnh báo >10%)
+  function tongBuoiCa(caId){
+    return weekDates.filter((ngay,i)=>ngay<=today && dayCaList[i].some(c=>caKey(c)===caId)).reduce((sum,ngay)=>{
+      const hasAny = hvList.some(hv=>ddByDateCa[ngay][caId]?.[hv.studentId]);
+      return sum + (hasAny?1:0);
+    }, 0);
   }
 
-  function dayCell(sid, ngay, info, dayIdx){
+  // Thông tin điểm danh của 1 học viên trong 1 ca cụ thể — chuỗi nghỉ liên tiếp, tổng vắng, có cảnh báo không
+  function cellInfo(sid, caId){
+    let streak=0;
+    for(let i=weekDates.length-1;i>=0;i--){
+      if(weekDates[i]>today || !dayCaList[i].some(c=>caKey(c)===caId)) continue;
+      const tt=ddByDateCa[weekDates[i]][caId]?.[sid];
+      if(tt&&tt!=='co_mat') streak++; else if(tt) break;
+    }
+    const tong = tongBuoiCa(caId);
+    const tongVang = weekDates.filter((ngay,i)=>ngay<=today && dayCaList[i].some(c=>caKey(c)===caId)).filter(ngay=>{
+      const tt=ddByDateCa[ngay][caId]?.[sid];
+      return tt && tt!=='co_mat';
+    }).length;
+    const over10pct = tong>0 && (tongVang/tong)>0.1;
+    return {streak, tongVang, over10pct, tong};
+  }
+
+  function dayCell(sid, ngay, ca, info){
     const {streak, over10pct} = info;
-    const tt = ddByDate[ngay][sid];
+    const caId = caKey(ca);
+    const tt = ddByDateCa[ngay][caId]?.[sid];
     const isFuture = ngay > today;
-    if(!caHocMeetsDay(dayIdx)) return {bg:'#f8fafd',text:'#c7d0dd',border:'#eef2f7',icon:'—',tip:`Buổi "${curCa.ten}" không học ngày này`,offDay:true};
     if(isFuture) return {bg:'#f8fafd',text:'#cbd5e1',border:'#e4ebf5',icon:'',tip:'Chưa đến'};
-    if(!tt) return {bg:'#dcfce7',text:'#166534',border:'#86efac',icon:'·',tip:'Tự động điểm danh — mặc định Có mặt (chưa có ai điểm danh thủ công)'};
-    if(tt==='co_mat') return {bg:'#dcfce7',text:'#166534',border:'#86efac',icon:'✓',tip:'Có mặt'};
-    // Ưu tiên cảnh báo đỏ: nghỉ 3+ liên tiếp HOẶC >10% tổng buổi
-    if(streak>=3||over10pct) return {bg:'#fee2e2',text:'#991b1b',border:'#fca5a5',icon:streak>=3?'3+':Math.round(info.tongVang/(tongBuoiDiemDanh||1)*100)+'%',blink:true,tip:streak>=3?'NGHỈ 3+ BUỔI LIÊN TIẾP!':'NGHỈ >10% TỔNG BUỔI!'};
-    if(streak===2) return {bg:'#fed7aa',text:'#9a3412',border:'#fb923c',icon:'K',tip:'Nghỉ 2 lần liên tiếp'};
-    if(tt==='vang_khong_phep') return {bg:'#fed7aa',text:'#9a3412',border:'#f97316',icon:'K',tip:'K — Nghỉ không phép'};
-    if(tt==='vang_phep') return {bg:'#e0f2fe',text:'#0369a1',border:'#7dd3fc',icon:'P',tip:'P — Nghỉ có phép'};
-    if(tt==='di_tre') return {bg:'#fef3c7',text:'#92400e',border:'#fcd34d',icon:'T',tip:"T — Đi trễ >15'"};
+    if(!tt) return {bg:'#dcfce7',text:'#166534',border:'#86efac',icon:'·',tip:`${ca.ten} — Tự động điểm danh (mặc định Có mặt)`};
+    if(tt==='co_mat') return {bg:'#dcfce7',text:'#166534',border:'#86efac',icon:'✓',tip:`${ca.ten} — Có mặt`};
+    if(streak>=3||over10pct) return {bg:'#fee2e2',text:'#991b1b',border:'#fca5a5',icon:streak>=3?'3+':Math.round(info.tongVang/(info.tong||1)*100)+'%',blink:true,tip:`${ca.ten} — ${streak>=3?'NGHỈ 3+ BUỔI LIÊN TIẾP!':'NGHỈ >10% TỔNG BUỔI!'}`};
+    if(streak===2) return {bg:'#fed7aa',text:'#9a3412',border:'#fb923c',icon:'K',tip:`${ca.ten} — Nghỉ 2 lần liên tiếp`};
+    if(tt==='vang_khong_phep') return {bg:'#fed7aa',text:'#9a3412',border:'#f97316',icon:'K',tip:`${ca.ten} — K: Nghỉ không phép`};
+    if(tt==='vang_phep') return {bg:'#e0f2fe',text:'#0369a1',border:'#7dd3fc',icon:'P',tip:`${ca.ten} — P: Nghỉ có phép`};
+    if(tt==='di_tre') return {bg:'#fef3c7',text:'#92400e',border:'#fcd34d',icon:'T',tip:`${ca.ten} — T: Đi trễ >15'`};
     return {bg:'#f1f5f9',text:'#94a3b8',border:'#e4ebf5',icon:'?',tip:''};
   }
 
@@ -938,10 +947,12 @@ async function renderLichTuan(lop, hvList, selectedNgay, activeCaId){
   const ROW_H = 54, HEAD_H = 46; // chiều cao cố định — dùng chung cho cả 2 cột để hàng luôn khớp nhau
 
   // Cột trái: danh sách học viên (chỉ ghi tên, bỏ avatar tròn — không có ý nghĩa)
+  // Cảnh báo ⚠ nếu BẤT KỲ buổi nào của học viên đó có cảnh báo
   const nameRows = hvList.map(hv=>{
-    const info = cellInfo(hv.studentId);
-    const hasAlert = info.streak >= 3 || info.over10pct;
-    const alertTip = info.over10pct ? `Nghỉ ${Math.round(info.tongVang/tongBuoiDiemDanh*100)}% tổng buổi` : `Nghỉ ${info.streak} buổi liên tiếp`;
+    const perCa = caHocList.map(ca=>cellInfo(hv.studentId, caKey(ca)));
+    const hasAlert = perCa.some(info=>info.streak>=3||info.over10pct);
+    const worst = perCa.find(info=>info.streak>=3||info.over10pct) || perCa[0];
+    const alertTip = worst?.over10pct ? `Nghỉ ${Math.round(worst.tongVang/(worst.tong||1)*100)}% tổng buổi` : `Nghỉ ${worst?.streak||0} buổi liên tiếp`;
     return `<div style="height:${ROW_H}px;box-sizing:border-box;display:flex;align-items:center;gap:8px;padding:0 14px;border-bottom:1px solid #f0f4fa;overflow:hidden">
       <div style="font-size:13px;font-weight:500;color:#1a2236;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${escapeAttr(hv.hoTen)}">${hv.hoTen}</div>
       ${hasAlert?`<button class="btn btn-sm" style="font-size:9px;padding:2px 5px;margin-left:auto;flex-shrink:0;background:#fee2e2;border-color:#fca5a5;color:#991b1b"
@@ -949,49 +960,45 @@ async function renderLichTuan(lop, hvList, selectedNgay, activeCaId){
     </div>`;
   }).join('');
 
-  // Cột phải: lịch — mỗi dòng cũng cao đúng ROW_H, khớp tuyệt đối với cột tên bên trái
+  // Cột phải: lịch — ngày nào chỉ có 1 buổi thì hiện 1 ô vuông nguyên như trước;
+  // ngày nào có 2+ buổi thì tách ô đó thành các dải nhỏ xếp chồng, mỗi dải điểm danh riêng 1 buổi.
   const calRows = hvList.map(hv=>{
-    const info = cellInfo(hv.studentId);
     const cells = weekDates.map((ngay,dayIdx)=>{
-      const cellData = dayCell(hv.studentId, ngay, info, dayIdx); const {bg,text,border,icon,tip,offDay} = cellData;
+      const casToday = dayCaList[dayIdx];
       const isToday = ngay===today;
-      const isFuture = ngay > today;
-      const clickable = !isFuture && !offDay;
-      const clickFn = clickable ?
-        `onclick="openDiemDanhNgayHV('${hv.studentId}','${escapeAttr(hv.hoTen)}','${ngay}','${curCaId}')"` : '';
-      return `<div style="flex:1;min-width:52px;box-sizing:border-box;display:flex;align-items:center;justify-content:center">
-        <div ${clickFn} title="${tip}${clickable?' — click để điểm danh':''}" style="
-          width:38px;height:38px;border-radius:9px;border:2px solid ${border};
+      if(casToday.length===0){
+        // Không buổi nào học ngày này
+        return `<div style="flex:1;min-width:52px;box-sizing:border-box;display:flex;align-items:center;justify-content:center">
+          <div title="Không có buổi học nào vào ngày này" style="width:38px;height:38px;border-radius:9px;border:2px solid #eef2f7;background:#f8fafd;background-image:repeating-linear-gradient(45deg,transparent,transparent 4px,#eef2f7 4px,#eef2f7 5px)"></div>
+        </div>`;
+      }
+      const boxes = casToday.map(ca=>{
+        const info = cellInfo(hv.studentId, caKey(ca));
+        const {bg,text,border,icon,tip} = dayCell(hv.studentId, ngay, ca, info);
+        const isFuture = ngay > today;
+        const clickFn = !isFuture ?
+          `onclick="openDiemDanhNgayHV('${hv.studentId}','${escapeAttr(hv.hoTen)}','${ngay}','${caKey(ca)}')"` : '';
+        const h = casToday.length>1 ? `calc((100% - ${(casToday.length-1)*3}px)/${casToday.length})` : '38px';
+        return `<div ${clickFn} title="${tip}${!isFuture?' — click để điểm danh':''}" style="
+          width:${casToday.length>1?'100%':'38px'};height:${h};border-radius:${casToday.length>1?'6px':'9px'};border:2px solid ${border};
           background:${bg};color:${text};
           display:flex;align-items:center;justify-content:center;
-          ${offDay?'background-image:repeating-linear-gradient(45deg,transparent,transparent 4px,#eef2f7 4px,#eef2f7 5px);':''}
-          ${clickable?'cursor:pointer;':'cursor:default;'}transition:all .15s;
-          ${isToday?'box-shadow:0 0 0 2.5px #3a7bd5,0 2px 8px rgba(58,123,213,.25);':''}
-          font-size:14px;font-weight:800;line-height:1"
-          ${clickable?`onmouseover="this.style.transform='scale(1.12)';this.style.boxShadow='0 4px 14px rgba(0,0,0,.15)'" onmouseout="this.style.transform='scale(1)';this.style.boxShadow='${isToday?'0 0 0 2.5px #3a7bd5':'none'}'"`:''}>
-          ${icon}
-        </div>
+          ${!isFuture?'cursor:pointer;':'cursor:default;'}transition:all .15s;
+          ${isToday?'box-shadow:0 0 0 2px #3a7bd5;':''}
+          font-size:${casToday.length>1?'11px':'14px'};font-weight:800;line-height:1"
+          ${!isFuture?`onmouseover="this.style.filter='brightness(0.95)'" onmouseout="this.style.filter='none'"`:''}>${icon}</div>`;
+      }).join('');
+      const wrapStyle = casToday.length>1
+        ? `width:38px;display:flex;flex-direction:column;gap:3px`
+        : `display:flex;align-items:center;justify-content:center`;
+      return `<div style="flex:1;min-width:52px;box-sizing:border-box;display:flex;align-items:center;justify-content:center">
+        <div style="${wrapStyle}">${boxes}</div>
       </div>`;
     }).join('');
     return `<div style="height:${ROW_H}px;box-sizing:border-box;display:flex;border-bottom:1px solid #f0f4fa">${cells}</div>`;
   }).join('');
 
   const weekLabel = `${fmtDate(weekDates[0])} — ${fmtDate(weekDates[6])}`;
-
-  // Bộ chọn ca — chỉ hiện khi lớp có từ 2 ca trở lên (lớp 1 ca thì không cần, giữ giao diện gọn)
-  const caSelectorHtml = caHocList.length>1 ? `
-    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px">
-      ${caHocList.map(ca=>{
-        const key = caKey(ca);
-        const active = key===curCaId;
-        const nguoi = ca.nguoiDay ? (window.ALL_ACCOUNTS||[]).find(a=>a.email===ca.nguoiDay)?.hoTen||ca.nguoiDay : '';
-        return `<div onclick="LOP_DD_CA='${key}';const l=LOP_DATA.find(x=>x.lopId===LOP_DETAIL_ID);renderTabDiemDanh(l)"
-          style="padding:7px 14px;border-radius:20px;font-size:12px;font-weight:600;cursor:pointer;transition:all .15s;
-          border:1.5px solid ${active?'#1a50a0':'#e4ebf5'};
-          background:${active?'#1a50a0':'#fff'};color:${active?'#fff':'#5a6478'}"
-          title="${escapeAttr(ca.ten)}${nguoi?' — '+escapeAttr(nguoi):''}">${ca.ten}</div>`;
-      }).join('')}
-    </div>` : '';
 
   return `<div class="table-wrap">
     <!-- HÀNG TRÊN: bảng 1 = thông tin lớp (trái), chú thích + điều hướng tuần (phải) -->
@@ -1014,11 +1021,11 @@ async function renderLichTuan(lop, hvList, selectedNgay, activeCaId){
       </div>
       <div style="flex:1;padding:14px 16px;box-sizing:border-box;min-width:0">
         <div>
-          ${caSelectorHtml}
           <div style="display:flex;gap:8px;margin-bottom:8px">
             <div style="flex:1;display:flex;align-items:center;gap:6px;padding:8px 10px;border:1.5px solid #e4ebf5;border-radius:9px;background:#fafbfd;font-size:12px;color:#5a6478;white-space:nowrap"><span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#dcfce7;border:1.5px solid #86efac;flex-shrink:0"></span>Tự động điểm danh</div>
             <div style="flex:1;display:flex;align-items:center;gap:6px;padding:8px 10px;border:1.5px solid #fca5a5;border-radius:9px;background:#fff5f5;font-size:12px;color:#991b1b;white-space:nowrap"><span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#fee2e2;border:1.5px solid #fca5a5;flex-shrink:0"></span>Nghỉ 3+ liên tiếp / >10% tổng buổi → cảnh báo đỏ</div>
           </div>
+          <div style="font-size:11px;color:#8a96a8;margin-bottom:8px">💡 Ngày có nhiều buổi học, ô sẽ tự tách nhỏ — mỗi phần điểm danh riêng cho từng buổi.</div>
           <div style="display:flex;gap:8px">
             <div style="flex:1;display:flex;align-items:center;gap:6px;padding:8px 10px;border:1.5px solid #e4ebf5;border-radius:9px;background:#fafbfd;font-size:12px;color:#5a6478;white-space:nowrap"><span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#dbeafe;border:1.5px solid #93c5fd;flex-shrink:0"></span><strong>P</strong>&nbsp;Nghỉ có phép</div>
             <div style="flex:1;display:flex;align-items:center;gap:6px;padding:8px 10px;border:1.5px solid #e4ebf5;border-radius:9px;background:#fafbfd;font-size:12px;color:#5a6478;white-space:nowrap"><span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#fed7aa;border:1.5px solid #f97316;flex-shrink:0"></span><strong>K</strong>&nbsp;Nghỉ không phép</div>
