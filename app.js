@@ -617,6 +617,41 @@ async function openModalHV(studentId, defaultLop){
     else renderHocVien();
   });
 }
+// ── GÁN HỌC VIÊN CÓ SẴN VÀO LỚP (không tạo mới, chỉ đổi lớp của học viên đang có) ──
+async function openModalAssignHV(targetLop){
+  if(USER.role!=='admin') return;
+  const r = await call({action:'getHocVienByLop',lop:''}); // lấy TẤT CẢ học viên (mọi lớp)
+  const all = r.ok?r.data:[];
+  const candidates = all.filter(hv=>hv.lop!==targetLop); // chỉ hiện những HV chưa thuộc lớp này
+  if(candidates.length===0){ toast('Không có học viên nào ở lớp khác để gán vào đây','info'); return; }
+
+  showModal(`Gán học viên có sẵn vào lớp "${targetLop}"`,`
+    <input id="assign-search" placeholder="🔍 Tìm theo tên..." style="margin-bottom:10px" oninput="filterAssignList()">
+    <div id="assign-list" style="max-height:340px;overflow-y:auto;border:1.5px solid #e4ebf5;border-radius:10px">
+      ${candidates.map(hv=>`<label data-name="${escapeAttr(hv.hoTen.toLowerCase())}" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-bottom:1px solid #f0f4fa;cursor:pointer">
+        <input type="checkbox" class="assign-chk" value="${hv.studentId}" style="width:16px;height:16px;flex-shrink:0">
+        <span style="font-size:13px;font-weight:500;flex:1">${hv.hoTen}</span>
+        <span style="font-size:11px;color:#8a96a8">${hv.lop?'hiện: '+hv.lop:'(chưa có lớp)'}</span>
+      </label>`).join('')}
+    </div>
+    <div style="font-size:12px;color:#8a96a8;margin-top:8px">💡 Đây là danh sách toàn bộ học viên đang thuộc lớp khác (kể cả học viên test) — tick chọn rồi Lưu để chuyển hẳn sang lớp "${targetLop}".</div>
+  `,async()=>{
+    const ids=[...document.querySelectorAll('.assign-chk:checked')].map(el=>el.value);
+    if(ids.length===0){toast('Chưa chọn học viên nào','error');return;}
+    const res=await call({action:'reassignHocVienBulk',studentIds:ids,lop:targetLop});
+    closeModal();
+    if(res.ok) toast(`Đã gán ${res.data.count} học viên vào lớp "${targetLop}"`,'success');
+    else toast(res.error||'Lỗi khi gán học viên','error');
+    if(CURRENT_PAGE==='lopdetail'){ const l=LOP_DATA.find(x=>x.lopId===LOP_DETAIL_ID); if(l) renderTabDiemDanh(l); }
+  });
+}
+function filterAssignList(){
+  const q=document.getElementById('assign-search').value.trim().toLowerCase();
+  document.querySelectorAll('#assign-list label').forEach(el=>{
+    el.style.display = el.dataset.name.includes(q) ? 'flex' : 'none';
+  });
+}
+
 async function deleteHV(studentId){
   if(!confirm('Xóa học viên này?')) return;
   await call({action:'deleteHocVien',studentId});
@@ -942,13 +977,21 @@ async function renderLichTuan(lop, hvList, selectedNgay, activeCaId){
   }
 
   // Thông tin lớp hiển thị to, rõ ở ô trên-trái
+  // Dòng riêng: Giáo viên chủ nhiệm (lop.giaoVienEmail) — trước đây có lưu nhưng chưa hề hiện ra chỗ nào
+  const gvChuNhiem = lop.giaoVienEmail ? ((window.ALL_ACCOUNTS||[]).find(a=>a.email===lop.giaoVienEmail)?.hoTen||lop.giaoVienEmail) : '';
+  const gvChuNhiemHtml = gvChuNhiem ? `<div>👤 <strong>Giáo viên chủ nhiệm:</strong> ${gvChuNhiem}</div>` : '';
+
+  // Mỗi buổi học: gắn nhãn theo đúng VAI TRÒ của người dạy (Giáo viên / Trợ giảng) thay vì chỉ ghi tên suông
   // Nếu lớp chỉ có ĐÚNG 1 buổi và chưa hề tùy chỉnh gì (tên mặc định, chưa gán người dạy, chưa chọn thứ học)
   // thì không có gì đáng để hiện — bỏ qua cả block, tránh hiện trùng chữ "Buổi học" 2 lần gây rối mắt.
   const caChuaTuyChinh = caHocList.length===1 && caHocList[0].ten==='Buổi học' && !caHocList[0].nguoiDay && !caHocList[0].thu;
-  const caHocInfoHtml = caChuaTuyChinh ? '' : caHocList.map(ca=>{
-    const nguoi = ca.nguoiDay ? (window.ALL_ACCOUNTS||[]).find(a=>a.email===ca.nguoiDay)?.hoTen||ca.nguoiDay : '';
-    return `<div>${ca.ten}${nguoi?' — '+nguoi:''}${ca.thu?` <span style="color:#8a96a8;font-weight:400">(${String(ca.thu).split(',').join(', ')})</span>`:''}</div>`;
-  }).join('');
+  const caHocInfoHtml = (caChuaTuyChinh && !gvChuNhiem) ? '' : gvChuNhiemHtml + (caChuaTuyChinh?'':caHocList.map(ca=>{
+    if(!ca.nguoiDay) return `<div>🕐 ${ca.ten}${ca.thu?` <span style="color:#8a96a8;font-weight:400">(${String(ca.thu).split(',').join(', ')})</span>`:''}</div>`;
+    const acc = (window.ALL_ACCOUNTS||[]).find(a=>a.email===ca.nguoiDay);
+    const nguoi = acc?.hoTen || ca.nguoiDay;
+    const vaiTro = acc?.role==='trogiang' ? 'Trợ giảng' : 'Giáo viên';
+    return `<div>${acc?.role==='trogiang'?'🙋':'🎓'} <strong>${vaiTro} (${ca.ten}):</strong> ${nguoi}${ca.thu?` <span style="color:#8a96a8;font-weight:400">(${String(ca.thu).split(',').join(', ')})</span>`:''}</div>`;
+  }).join(''));
 
   const ROW_H = 54, HEAD_H = 46; // chiều cao cố định — dùng chung cho cả 2 cột để hàng luôn khớp nhau
 
@@ -1021,17 +1064,23 @@ async function renderLichTuan(lop, hvList, selectedNgay, activeCaId){
           <div style="font-size:15px;font-weight:700;color:#1a2236">${fmtDate(lop.ngayBatDau)} – ${fmtDate(lop.ngayKetThuc||'')}</div>
         </div>`:''}
         ${caHocInfoHtml?`<div>
-          <div style="font-size:12px;color:#8a96a8;margin-bottom:2px">🕐 Buổi học</div>
-          <div style="font-size:14px;font-weight:700;color:#1a2236;line-height:1.4">${caHocInfoHtml}</div>
+          <div style="font-size:12px;color:#8a96a8;margin-bottom:2px">👥 Giảng dạy</div>
+          <div style="font-size:13px;font-weight:700;color:#1a2236;line-height:1.6">${caHocInfoHtml}</div>
         </div>`:''}
       </div>
       <div style="flex:1;padding:14px 16px;box-sizing:border-box;min-width:0">
         <div>
-          <div style="display:flex;gap:8px;margin-bottom:8px">
-            <div style="flex:1;display:flex;align-items:center;gap:6px;padding:8px 10px;border:1.5px solid #e4ebf5;border-radius:9px;background:#fafbfd;font-size:12px;color:#5a6478;white-space:nowrap"><span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#dcfce7;border:1.5px solid #86efac;flex-shrink:0"></span>Tự động điểm danh</div>
-            <div style="flex:1;display:flex;align-items:center;gap:6px;padding:8px 10px;border:1.5px solid #fca5a5;border-radius:9px;background:#fff5f5;font-size:12px;color:#991b1b;white-space:nowrap"><span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#fee2e2;border:1.5px solid #fca5a5;flex-shrink:0"></span>Nghỉ 3+ liên tiếp / >10% tổng buổi → cảnh báo đỏ</div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+            <button onclick="const p=document.getElementById('ca-info-popover');p.style.display=p.style.display==='block'?'none':'block'"
+              style="background:#fff5f5;border:1.5px solid #fca5a5;border-radius:8px;width:30px;height:30px;cursor:pointer;font-size:15px;line-height:1;animation:pulse 1.8s infinite;flex-shrink:0"
+              title="Bấm để xem giải thích cách điểm danh hoạt động">⚠️</button>
+            <span style="font-size:12px;color:#8a96a8">Bấm vào dấu cảnh báo để xem cách điểm danh tự động &amp; ô chia đôi hoạt động</span>
           </div>
-          <div style="font-size:11px;color:#8a96a8;margin-bottom:8px">💡 Ngày có nhiều buổi học, ô sẽ tự tách nhỏ — mỗi phần điểm danh riêng cho từng buổi.</div>
+          <div id="ca-info-popover" style="display:none;font-size:12px;color:#5a6478;background:#fafbfd;border:1.5px solid #e4ebf5;border-radius:9px;padding:12px 14px;margin-bottom:10px;line-height:1.7">
+            <div>🟢 <strong>Tự động điểm danh:</strong> ô nào chưa ai điểm danh thủ công sẽ tự tính là "Có mặt" theo mặc định.</div>
+            <div>🔴 <strong>Cảnh báo đỏ:</strong> hiện khi học viên nghỉ 3 buổi liên tiếp, hoặc nghỉ hơn 10% tổng số buổi trong tuần.</div>
+            <div>◧ <strong>Ngày có 2 buổi học thì sẽ điểm danh 2 ô</strong> — ô ngày đó tự tách nhỏ, mỗi phần ứng đúng 1 buổi riêng biệt.</div>
+          </div>
           <div style="display:flex;gap:8px">
             <div style="flex:1;display:flex;align-items:center;gap:6px;padding:8px 10px;border:1.5px solid #e4ebf5;border-radius:9px;background:#fafbfd;font-size:12px;color:#5a6478;white-space:nowrap"><span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#dbeafe;border:1.5px solid #93c5fd;flex-shrink:0"></span><strong>P</strong>&nbsp;Nghỉ có phép</div>
             <div style="flex:1;display:flex;align-items:center;gap:6px;padding:8px 10px;border:1.5px solid #e4ebf5;border-radius:9px;background:#fafbfd;font-size:12px;color:#5a6478;white-space:nowrap"><span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#fed7aa;border:1.5px solid #f97316;flex-shrink:0"></span><strong>K</strong>&nbsp;Nghỉ không phép</div>
@@ -1051,9 +1100,12 @@ async function renderLichTuan(lop, hvList, selectedNgay, activeCaId){
     <!-- HÀNG DƯỚI: bảng 2 = danh sách học viên (trái), bảng 3 = lịch điểm danh (phải) — chiều cao dòng khớp tuyệt đối -->
     <div style="display:flex">
       <div style="width:230px;flex-shrink:0;border-right:2px solid #e4ebf5;box-sizing:border-box">
-        <div style="height:${HEAD_H}px;box-sizing:border-box;display:flex;align-items:center;justify-content:space-between;padding:0 8px 0 14px;font-size:13px;font-weight:700;font-style:italic;text-transform:uppercase;color:#5a6478;background:#f5f8fc;border-bottom:1px solid #e4ebf5">
+        <div style="height:${HEAD_H}px;box-sizing:border-box;display:flex;align-items:center;justify-content:space-between;padding:0 6px 0 14px;font-size:13px;font-weight:700;font-style:italic;text-transform:uppercase;color:#5a6478;background:#f5f8fc;border-bottom:1px solid #e4ebf5">
           <span>Danh sách lớp</span>
-          ${['admin','giaovien','trogiang'].includes(USER.role)?`<button class="btn btn-sm" style="font-style:normal;text-transform:none;font-size:11px;padding:4px 8px" onclick="openModalHV(null,'${escapeAttr(lop.tenLop)}')">+ Thêm HV</button>`:''}
+          <div style="display:flex;gap:4px">
+            ${USER.role==='admin'?`<button class="btn btn-sm" style="font-style:normal;text-transform:none;font-size:11px;padding:4px 6px;white-space:nowrap" onclick="openModalAssignHV('${escapeAttr(lop.tenLop)}')" title="Gán học viên đã có sẵn (VD: học viên test) vào lớp này">↔ Gán</button>`:''}
+            ${['admin','giaovien','trogiang'].includes(USER.role)?`<button class="btn btn-sm" style="font-style:normal;text-transform:none;font-size:11px;padding:4px 6px;white-space:nowrap" onclick="openModalHV(null,'${escapeAttr(lop.tenLop)}')">+ HV</button>`:''}
+          </div>
         </div>
         ${nameRows}
       </div>
