@@ -1025,21 +1025,24 @@ async function renderLichTuan(lop, hvList, selectedNgay, activeCaId){
   }
 
   // Thông tin lớp hiển thị to, rõ ở ô trên-trái
-  // Dòng riêng: Giáo viên chủ nhiệm (lop.giaoVienEmail) — trước đây có lưu nhưng chưa hề hiện ra chỗ nào
-  const gvChuNhiem = lop.giaoVienEmail ? ((window.ALL_ACCOUNTS||[]).find(a=>a.email===lop.giaoVienEmail)?.hoTen||lop.giaoVienEmail) : '';
-  const gvChuNhiemHtml = gvChuNhiem ? `<div>👤 <strong>Giáo viên chủ nhiệm:</strong> ${gvChuNhiem}</div>` : '';
+  // 3 dòng cố định: Giáo viên chính (từ lop.giaoVienEmail) / Giáo viên bản xứ / Trợ giảng —
+  // 2 dòng sau tự gom từ người dạy được gán ở TỪNG buổi (ca.nguoiDay), phân loại theo role tài khoản.
+  const gvChinh = lop.giaoVienEmail ? ((window.ALL_ACCOUNTS||[]).find(a=>a.email===lop.giaoVienEmail)?.hoTen||lop.giaoVienEmail) : '';
 
-  // Mỗi buổi học: gắn nhãn theo đúng VAI TRÒ của người dạy (Giáo viên / Trợ giảng) thay vì chỉ ghi tên suông
-  // Nếu lớp chỉ có ĐÚNG 1 buổi và chưa hề tùy chỉnh gì (tên mặc định, chưa gán người dạy, chưa chọn thứ học)
-  // thì không có gì đáng để hiện — bỏ qua cả block, tránh hiện trùng chữ "Buổi học" 2 lần gây rối mắt.
-  const caChuaTuyChinh = caHocList.length===1 && caHocList[0].ten==='Buổi học' && !caHocList[0].nguoiDay && !caHocList[0].thu;
-  const caHocInfoHtml = (caChuaTuyChinh && !gvChuNhiem) ? '' : gvChuNhiemHtml + (caChuaTuyChinh?'':caHocList.map(ca=>{
-    if(!ca.nguoiDay) return `<div>🕐 ${ca.ten}${ca.thu?` <span style="color:#8a96a8;font-weight:400">(${String(ca.thu).split(',').join(', ')})</span>`:''}</div>`;
+  const banXuNames = [], troGiangNames = [];
+  caHocList.forEach(ca=>{
+    if(!ca.nguoiDay || ca.nguoiDay===lop.giaoVienEmail) return; // trùng GV chính thì khỏi liệt kê lại
     const acc = (window.ALL_ACCOUNTS||[]).find(a=>a.email===ca.nguoiDay);
     const nguoi = acc?.hoTen || ca.nguoiDay;
-    const vaiTro = acc?.role==='trogiang' ? 'Trợ giảng' : 'Giáo viên';
-    return `<div>${acc?.role==='trogiang'?'🙋':'🎓'} <strong>${vaiTro} (${ca.ten}):</strong> ${nguoi}${ca.thu?` <span style="color:#8a96a8;font-weight:400">(${String(ca.thu).split(',').join(', ')})</span>`:''}</div>`;
-  }).join(''));
+    if(acc?.role==='trogiang'){ if(!troGiangNames.includes(nguoi)) troGiangNames.push(nguoi); }
+    else { if(!banXuNames.includes(nguoi)) banXuNames.push(nguoi); }
+  });
+
+  const caHocInfoHtml = `
+    <div>Giáo viên chính: ${gvChinh?`<strong>${gvChinh}</strong>`:'<span style="color:#b0b8c8;font-weight:400">—</span>'}</div>
+    <div>Giáo viên bản xứ: ${banXuNames.length?`<strong>${banXuNames.join(', ')}</strong>`:'<span style="color:#b0b8c8;font-weight:400">—</span>'}</div>
+    <div>Trợ giảng: ${troGiangNames.length?`<strong>${troGiangNames.join(', ')}</strong>`:'<span style="color:#b0b8c8;font-weight:400">—</span>'}</div>
+  `;
 
   const ROW_H = 54, HEAD_H = 46; // chiều cao cố định — dùng chung cho cả 2 cột để hàng luôn khớp nhau
 
@@ -1111,28 +1114,28 @@ async function renderLichTuan(lop, hvList, selectedNgay, activeCaId){
           <div style="font-size:12px;color:#8a96a8;margin-bottom:2px">📅 Thời gian học</div>
           <div style="font-size:15px;font-weight:700;color:#1a2236">${fmtDate(lop.ngayBatDau)} – ${fmtDate(lop.ngayKetThuc||'')}</div>
         </div>`:''}
-        <!-- Mục "Giảng dạy" (tên GV/trợ giảng từng buổi) CHỈ dành cho nội bộ: admin/giáo viên/trợ giảng/quản lý.
+        <!-- Mục "Giáo viên" (GV chính/bản xứ/trợ giảng) CHỈ dành cho nội bộ: admin/giáo viên/trợ giảng/quản lý.
              Phụ huynh không cần và không nên thấy — thực tế phụ huynh cũng không vào được trang Lớp học này
              luôn (bị ẩn hoàn toàn ở applyRoleNav()), nên không cần tự ẩn thêm ở đây. -->
         <div>
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2px">
-            <span style="font-size:12px;color:#8a96a8">👥 Giảng dạy</span>
-            ${USER.role==='admin'?`<button class="btn btn-sm" style="font-size:10px;padding:2px 7px" onclick="openModalLop('${lop.lopId}')" title="Thêm/sửa giáo viên chính, giáo viên bản ngữ, trợ giảng cho lớp">+ Thêm GV</button>`:''}
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
+            <span style="font-size:13px;font-weight:700;font-style:italic;text-transform:uppercase;color:#5a6478">👥 Giáo viên</span>
+            ${USER.role==='admin'?`<button class="btn btn-sm" style="font-style:normal;text-transform:none;font-size:10px;padding:2px 7px" onclick="openModalLop('${lop.lopId}')" title="Thêm/sửa giáo viên chính, giáo viên bản xứ, trợ giảng cho lớp">+ Thêm GV</button>`:''}
           </div>
-          ${caHocInfoHtml?`<div style="font-size:13px;font-weight:700;color:#1a2236;line-height:1.6">${caHocInfoHtml}</div>`:`<div style="font-size:12px;color:#b0b8c8;font-style:italic">Chưa gán giáo viên nào</div>`}
+          <div style="font-size:13px;font-weight:500;color:#1a2236;line-height:1.7">${caHocInfoHtml}</div>
         </div>
       </div>
       <div style="flex:1;padding:14px 16px;box-sizing:border-box;min-width:0">
         <div>
           <div style="display:flex;gap:8px;margin-bottom:8px">
-            <div onclick="toggleCaInfo('auto')" style="flex:1;display:flex;align-items:center;gap:6px;padding:8px 10px;border:1.5px solid #86efac;border-radius:9px;background:#fafbfd;font-size:12px;color:#5a6478;white-space:nowrap;cursor:pointer">
-              <span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#dcfce7;border:1.5px solid #86efac;flex-shrink:0;animation:pulse 1.8s infinite"></span>Tự động điểm danh
+            <div onclick="toggleCaInfo('auto')" style="flex:1;display:flex;align-items:center;gap:6px;padding:8px 10px;border:1.5px solid #86efac;border-radius:9px;background:#fafbfd;font-size:12px;color:#5a6478;white-space:nowrap;cursor:pointer;transition:all .15s" onmouseover="this.style.background='#f0fdf4'" onmouseout="this.style.background='#fafbfd'">
+              <span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#dcfce7;border:1.5px solid #86efac;flex-shrink:0;animation:pulse 1.8s infinite"></span>Tự động điểm danh<span style="margin-left:auto;color:#86efac;font-weight:700;flex-shrink:0">ⓘ</span>
             </div>
-            <div onclick="toggleCaInfo('alert')" style="flex:1;display:flex;align-items:center;gap:6px;padding:8px 10px;border:1.5px solid #fca5a5;border-radius:9px;background:#fafbfd;font-size:12px;color:#5a6478;white-space:nowrap;cursor:pointer">
-              <span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#fee2e2;border:1.5px solid #fca5a5;flex-shrink:0;animation:pulse 1.8s infinite"></span>Cảnh báo
+            <div onclick="toggleCaInfo('alert')" style="flex:1;display:flex;align-items:center;gap:6px;padding:8px 10px;border:1.5px solid #fca5a5;border-radius:9px;background:#fafbfd;font-size:12px;color:#5a6478;white-space:nowrap;cursor:pointer;transition:all .15s" onmouseover="this.style.background='#fef2f2'" onmouseout="this.style.background='#fafbfd'">
+              <span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#fee2e2;border:1.5px solid #fca5a5;flex-shrink:0;animation:pulse 1.8s infinite"></span>Cảnh báo<span style="margin-left:auto;color:#fca5a5;font-weight:700;flex-shrink:0">ⓘ</span>
             </div>
-            <div onclick="toggleCaInfo('split')" style="flex:1;display:flex;align-items:center;gap:6px;padding:8px 10px;border:1.5px solid #93c5fd;border-radius:9px;background:#fafbfd;font-size:12px;color:#5a6478;white-space:nowrap;cursor:pointer">
-              <span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#dbeafe;border:1.5px solid #93c5fd;flex-shrink:0"></span>Điểm danh theo buổi
+            <div onclick="toggleCaInfo('split')" style="flex:1;display:flex;align-items:center;gap:6px;padding:8px 10px;border:1.5px solid #93c5fd;border-radius:9px;background:#fafbfd;font-size:12px;color:#5a6478;white-space:nowrap;cursor:pointer;transition:all .15s" onmouseover="this.style.background='#eff6ff'" onmouseout="this.style.background='#fafbfd'">
+              <span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#dbeafe;border:1.5px solid #93c5fd;flex-shrink:0;animation:pulse 1.8s infinite"></span>Điểm danh theo buổi<span style="margin-left:auto;color:#93c5fd;font-weight:700;flex-shrink:0">ⓘ</span>
             </div>
           </div>
           <div id="ca-info-popover" style="display:none;font-size:12px;color:#5a6478;background:#fafbfd;border:1.5px solid #e4ebf5;border-radius:9px;padding:10px 12px;margin-bottom:8px;line-height:1.6"></div>
@@ -1158,7 +1161,7 @@ async function renderLichTuan(lop, hvList, selectedNgay, activeCaId){
         <div style="height:${HEAD_H}px;box-sizing:border-box;display:flex;align-items:center;justify-content:space-between;padding:0 6px 0 14px;font-size:13px;font-weight:700;font-style:italic;text-transform:uppercase;color:#5a6478;background:#f5f8fc;border-bottom:1px solid #e4ebf5">
           <span>Danh sách lớp</span>
           <div style="display:flex;gap:4px">
-            ${['admin','giaovien','trogiang'].includes(USER.role)?`<button class="btn btn-sm" style="font-style:normal;text-transform:none;font-size:11px;padding:4px 6px;white-space:nowrap" onclick="openModalHV(null,'${escapeAttr(lop.tenLop)}')">+ HV</button>`:''}
+            ${['admin','giaovien','trogiang'].includes(USER.role)?`<button class="btn btn-sm" style="font-style:normal;text-transform:none;font-size:11px;padding:4px 6px;white-space:nowrap" onclick="openModalHV(null,'${escapeAttr(lop.tenLop)}')">+ Thêm HV</button>`:''}
           </div>
         </div>
         ${nameRows}
