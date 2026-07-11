@@ -201,6 +201,22 @@ async function renderDashboardPH(d){
       const bd = bdRes[i].ok?bdRes[i].data:[];
       const dd = ddRes[i].ok?ddRes[i].data:[];
       const viPham = dd.filter(r=>['vang_phep','vang_khong_phep','di_tre'].includes(r.trangThai));
+      // Thời lượng khóa học + % tiến độ (dựa theo ngày bắt đầu/kết thúc của lớp)
+      let tienDoHtml = '';
+      if(hv.lopNgayBatDau && hv.lopNgayKetThuc){
+        const tong = diffDaysClient(hv.lopNgayBatDau, hv.lopNgayKetThuc);
+        const daQua = diffDaysClient(hv.lopNgayBatDau, todayStr());
+        const pct = tong>0 ? Math.max(0, Math.min(100, Math.round(daQua/tong*100))) : 0;
+        tienDoHtml = `<div style="margin-bottom:12px">
+          <div style="display:flex;justify-content:space-between;align-items:center;font-size:12px;color:#5a6478;margin-bottom:5px">
+            <span>📅 ${fmtDate(hv.lopNgayBatDau)} – ${fmtDate(hv.lopNgayKetThuc)}</span>
+            <span style="font-weight:700;color:#1a50a0">Đã học ${pct}%</span>
+          </div>
+          <div style="height:6px;background:#eef2f7;border-radius:4px;overflow:hidden">
+            <div style="height:100%;width:${pct}%;background:linear-gradient(90deg,#1a50a0,#3a7bd5);border-radius:4px"></div>
+          </div>
+        </div>`;
+      }
       return `
       <div class="table-wrap" style="margin-top:14px;padding:14px 16px">
         <div style="display:flex;align-items:center;gap:10px;margin-bottom:12px">
@@ -208,6 +224,7 @@ async function renderDashboardPH(d){
           <div><div style="font-weight:600;font-size:14px">${hv.hoTen}</div><div style="font-size:11px;color:#8a96a8">${hv.lop}</div></div>
           <span class="badge ${ttClass(hv.trangThai)}" style="margin-left:auto">${TRANG_THAI_HV[hv.trangThai]||hv.trangThai}</span>
         </div>
+        ${tienDoHtml}
         <div style="font-size:12px;font-weight:600;color:#5a6478;margin-bottom:6px">Bảng điểm gần đây</div>
         ${bd.length===0?'<div style="font-size:12px;color:#a0aab8;margin-bottom:10px">Chưa có điểm</div>':
           `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:10px">${bd.slice(0,8).map(b=>
@@ -918,6 +935,19 @@ function getWeekDates(dateStr, offset=0){
   });
 }
 
+const CA_INFO_TEXT = {
+  auto: '🟢 Hệ thống sẽ tự động điểm danh — mặc định là có đi học.',
+  alert: '🔴 Học viên nghỉ 3 buổi liên tiếp, hoặc nghỉ hơn 10% tổng số buổi trong tuần.',
+  split: '◧ Ngày nào có 2 buổi học thì điểm danh 2 buổi.',
+};
+function toggleCaInfo(key){
+  const p = document.getElementById('ca-info-popover');
+  if(p.dataset.current===key && p.style.display==='block'){ p.style.display='none'; p.dataset.current=''; return; }
+  p.textContent = CA_INFO_TEXT[key];
+  p.style.display='block';
+  p.dataset.current=key;
+}
+
 async function renderLichTuan(lop, hvList, selectedNgay, activeCaId){
   const weekDates = getWeekDates(selectedNgay||todayStr(), LICH_WEEK_OFFSET);
   const thuLabels = ['T2','T3','T4','T5','T6','T7','CN'];
@@ -1081,24 +1111,31 @@ async function renderLichTuan(lop, hvList, selectedNgay, activeCaId){
           <div style="font-size:12px;color:#8a96a8;margin-bottom:2px">📅 Thời gian học</div>
           <div style="font-size:15px;font-weight:700;color:#1a2236">${fmtDate(lop.ngayBatDau)} – ${fmtDate(lop.ngayKetThuc||'')}</div>
         </div>`:''}
-        ${caHocInfoHtml?`<div>
-          <div style="font-size:12px;color:#8a96a8;margin-bottom:2px">👥 Giảng dạy</div>
-          <div style="font-size:13px;font-weight:700;color:#1a2236;line-height:1.6">${caHocInfoHtml}</div>
-        </div>`:''}
+        <!-- Mục "Giảng dạy" (tên GV/trợ giảng từng buổi) CHỈ dành cho nội bộ: admin/giáo viên/trợ giảng/quản lý.
+             Phụ huynh không cần và không nên thấy — thực tế phụ huynh cũng không vào được trang Lớp học này
+             luôn (bị ẩn hoàn toàn ở applyRoleNav()), nên không cần tự ẩn thêm ở đây. -->
+        <div>
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2px">
+            <span style="font-size:12px;color:#8a96a8">👥 Giảng dạy</span>
+            ${USER.role==='admin'?`<button class="btn btn-sm" style="font-size:10px;padding:2px 7px" onclick="openModalLop('${lop.lopId}')" title="Thêm/sửa giáo viên chính, giáo viên bản ngữ, trợ giảng cho lớp">+ Thêm GV</button>`:''}
+          </div>
+          ${caHocInfoHtml?`<div style="font-size:13px;font-weight:700;color:#1a2236;line-height:1.6">${caHocInfoHtml}</div>`:`<div style="font-size:12px;color:#b0b8c8;font-style:italic">Chưa gán giáo viên nào</div>`}
+        </div>
       </div>
       <div style="flex:1;padding:14px 16px;box-sizing:border-box;min-width:0">
         <div>
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
-            <button onclick="const p=document.getElementById('ca-info-popover');p.style.display=p.style.display==='block'?'none':'block'"
-              style="background:#fff5f5;border:1.5px solid #fca5a5;border-radius:8px;width:30px;height:30px;cursor:pointer;font-size:15px;line-height:1;animation:pulse 1.8s infinite;flex-shrink:0"
-              title="Bấm để xem giải thích cách điểm danh hoạt động">⚠️</button>
-            <span style="font-size:12px;color:#8a96a8">Bấm vào dấu cảnh báo để xem cách điểm danh tự động &amp; ô chia đôi hoạt động</span>
+          <div style="display:flex;gap:8px;margin-bottom:8px">
+            <div onclick="toggleCaInfo('auto')" style="flex:1;display:flex;align-items:center;gap:6px;padding:8px 10px;border:1.5px solid #86efac;border-radius:9px;background:#fafbfd;font-size:12px;color:#5a6478;white-space:nowrap;cursor:pointer">
+              <span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#dcfce7;border:1.5px solid #86efac;flex-shrink:0;animation:pulse 1.8s infinite"></span>Tự động điểm danh
+            </div>
+            <div onclick="toggleCaInfo('alert')" style="flex:1;display:flex;align-items:center;gap:6px;padding:8px 10px;border:1.5px solid #fca5a5;border-radius:9px;background:#fafbfd;font-size:12px;color:#5a6478;white-space:nowrap;cursor:pointer">
+              <span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#fee2e2;border:1.5px solid #fca5a5;flex-shrink:0;animation:pulse 1.8s infinite"></span>Cảnh báo
+            </div>
+            <div onclick="toggleCaInfo('split')" style="flex:1;display:flex;align-items:center;gap:6px;padding:8px 10px;border:1.5px solid #93c5fd;border-radius:9px;background:#fafbfd;font-size:12px;color:#5a6478;white-space:nowrap;cursor:pointer">
+              <span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#dbeafe;border:1.5px solid #93c5fd;flex-shrink:0"></span>Điểm danh theo buổi
+            </div>
           </div>
-          <div id="ca-info-popover" style="display:none;font-size:12px;color:#5a6478;background:#fafbfd;border:1.5px solid #e4ebf5;border-radius:9px;padding:12px 14px;margin-bottom:10px;line-height:1.7">
-            <div>🟢 <strong>Tự động điểm danh:</strong> ô nào chưa ai điểm danh thủ công sẽ tự tính là "Có mặt" theo mặc định.</div>
-            <div>🔴 <strong>Cảnh báo đỏ:</strong> hiện khi học viên nghỉ 3 buổi liên tiếp, hoặc nghỉ hơn 10% tổng số buổi trong tuần.</div>
-            <div>◧ <strong>Ngày có 2 buổi học thì sẽ điểm danh 2 ô</strong> — ô ngày đó tự tách nhỏ, mỗi phần ứng đúng 1 buổi riêng biệt.</div>
-          </div>
+          <div id="ca-info-popover" style="display:none;font-size:12px;color:#5a6478;background:#fafbfd;border:1.5px solid #e4ebf5;border-radius:9px;padding:10px 12px;margin-bottom:8px;line-height:1.6"></div>
           <div style="display:flex;gap:8px">
             <div style="flex:1;display:flex;align-items:center;gap:6px;padding:8px 10px;border:1.5px solid #e4ebf5;border-radius:9px;background:#fafbfd;font-size:12px;color:#5a6478;white-space:nowrap"><span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#dbeafe;border:1.5px solid #93c5fd;flex-shrink:0"></span><strong>P</strong>&nbsp;Nghỉ có phép</div>
             <div style="flex:1;display:flex;align-items:center;gap:6px;padding:8px 10px;border:1.5px solid #e4ebf5;border-radius:9px;background:#fafbfd;font-size:12px;color:#5a6478;white-space:nowrap"><span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#fed7aa;border:1.5px solid #f97316;flex-shrink:0"></span><strong>K</strong>&nbsp;Nghỉ không phép</div>
@@ -1544,6 +1581,7 @@ async function deleteTK(email){
 function ini(name){return(name||'').split(' ').slice(-2).map(w=>w[0]||'').join('').toUpperCase()||'?';}
 function fmtDate(s){if(!s)return '—';try{return new Date(s).toLocaleDateString('vi-VN');}catch{return s;}}
 function todayStr(){return new Date().toISOString().slice(0,10);}
+function diffDaysClient(a,b){return Math.round((new Date(b)-new Date(a))/(1000*60*60*24));}
 function dateDiff(a,b){if(!a||!b)return 0;return Math.round((new Date(b)-new Date(a))/(86400000));}
 function ddClass(tt){return{co_mat:'b-ok',vang_phep:'b-phep',vang_khong_phep:'b-vang',di_tre:'b-tre'}[tt]||'';}
 function loaiClass(l){return{bai_tap:'b-phep',giua_ky:'b-warn1',cuoi_ky:'b-vang'}[l]||'';}
