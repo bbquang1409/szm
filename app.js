@@ -561,15 +561,31 @@ async function toggleTrangThai(studentId,val){
   toast('Đã cập nhật trạng thái','success');
 }
 
+let HV_AUTOCOMPLETE_LIST = [];
 async function openModalHV(studentId, defaultLop){
   if(USER.role==='phuhuynh') return;
   let hv=null;
   if(studentId){const r=await call({action:'getHocVienById',studentId});if(r.ok)hv=r.data;}
   const isEdit=!!hv;
   const preselectLop = hv?.lop || defaultLop || '';
+
+  // Chỉ admin mới thấy gợi ý học viên có sẵn (mọi lớp) khi TẠO MỚI — tránh giáo viên/trợ giảng
+  // nhìn thấy/động vào học viên của lớp không phải mình phụ trách.
+  HV_AUTOCOMPLETE_LIST = [];
+  if(!isEdit && USER.role==='admin'){
+    const r = await call({action:'getHocVienByLop',lop:''});
+    if(r.ok) HV_AUTOCOMPLETE_LIST = r.data;
+  }
+  const showAutocomplete = !isEdit && USER.role==='admin';
+
   showModal(isEdit?'Sửa học viên':'Thêm học viên',`
     <div class="form-grid2">
-      <div class="form-row"><label>Họ tên *</label><input id="f-hoTen" value="${hv?.hoTen||''}"></div>
+      <div class="form-row" style="position:relative">
+        <label>Họ tên *${showAutocomplete?' <span style="font-weight:400;color:#8a96a8">(gõ để tìm học viên có sẵn)</span>':''}</label>
+        <input id="f-hoTen" value="${hv?.hoTen||''}" autocomplete="off" ${showAutocomplete?`oninput="filterHVAutocomplete()" onfocus="filterHVAutocomplete()"`:''}>
+        <input type="hidden" id="f-existingId" value="">
+        ${showAutocomplete?`<div id="hv-autocomplete" style="display:none;position:absolute;top:100%;left:0;right:0;z-index:50;background:#fff;border:1.5px solid #e4ebf5;border-radius:8px;max-height:220px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,.12);margin-top:2px"></div>`:''}
+      </div>
       <div class="form-row"><label>Lớp *</label>
         <select id="f-lop">
           ${LOPS.map(l=>`<option value="${l}" ${preselectLop===l?'selected':''}>${l}</option>`).join('')}
@@ -610,46 +626,48 @@ async function openModalHV(studentId, defaultLop){
     const lopVal=document.getElementById('f-lop').value;
     const body={hoTen:document.getElementById('f-hoTen').value.trim(),lop:lopVal==='__new__'?prompt('Tên lớp mới:'):lopVal,sdtCaNhan:document.getElementById('f-sdtCN').value.trim(),emailCaNhan:document.getElementById('f-emailCN').value.trim(),soDienThoaiPH:document.getElementById('f-sdtPH').value.trim(),emailPhuHuynh:document.getElementById('f-emailPH').value.trim(),gioiTinh:document.getElementById('f-gioiTinh').value,ngaySinh:document.getElementById('f-ngaySinh').value,trangThai:document.getElementById('f-tt').value,daDongTien:document.getElementById('f-dongTien').value,ghiChu:document.getElementById('f-ghiChu').value.trim()};
     if(!body.hoTen||!body.lop){toast('Nhập đủ họ tên và lớp','error');return;}
+    // Nếu chọn từ gợi ý học viên có sẵn (f-existingId có giá trị) → CẬP NHẬT đúng học viên đó
+    // (thực chất là chuyển sang lớp mới), KHÔNG tạo học viên trùng mới.
+    const existingId = document.getElementById('f-existingId')?.value || '';
+    const isReassign = !isEdit && existingId;
     if(isEdit){body.studentId=studentId;await call({action:'updateHocVien',...body});}
+    else if(isReassign){body.studentId=existingId;await call({action:'updateHocVien',...body});}
     else await call({action:'addHocVien',...body});
-    closeModal();toast(isEdit?'Đã cập nhật':'Đã thêm học viên','success');
+    closeModal();toast(isEdit?'Đã cập nhật':(isReassign?'Đã chuyển học viên sang lớp này':'Đã thêm học viên'),'success');
     if(CURRENT_PAGE==='lopdetail'){ const l=LOP_DATA.find(x=>x.lopId===LOP_DETAIL_ID); if(l) renderTabDiemDanh(l); }
     else renderHocVien();
   });
 }
-// ── GÁN HỌC VIÊN CÓ SẴN VÀO LỚP (không tạo mới, chỉ đổi lớp của học viên đang có) ──
-async function openModalAssignHV(targetLop){
-  if(USER.role!=='admin') return;
-  const r = await call({action:'getHocVienByLop',lop:''}); // lấy TẤT CẢ học viên (mọi lớp)
-  const all = r.ok?r.data:[];
-  const candidates = all.filter(hv=>hv.lop!==targetLop); // chỉ hiện những HV chưa thuộc lớp này
-  if(candidates.length===0){ toast('Không có học viên nào ở lớp khác để gán vào đây','info'); return; }
-
-  showModal(`Gán học viên có sẵn vào lớp "${targetLop}"`,`
-    <input id="assign-search" placeholder="🔍 Tìm theo tên..." style="margin-bottom:10px" oninput="filterAssignList()">
-    <div id="assign-list" style="max-height:340px;overflow-y:auto;border:1.5px solid #e4ebf5;border-radius:10px">
-      ${candidates.map(hv=>`<label data-name="${escapeAttr(hv.hoTen.toLowerCase())}" style="display:flex;align-items:center;gap:10px;padding:9px 12px;border-bottom:1px solid #f0f4fa;cursor:pointer">
-        <input type="checkbox" class="assign-chk" value="${hv.studentId}" style="width:16px;height:16px;flex-shrink:0">
-        <span style="font-size:13px;font-weight:500;flex:1">${hv.hoTen}</span>
-        <span style="font-size:11px;color:#8a96a8">${hv.lop?'hiện: '+hv.lop:'(chưa có lớp)'}</span>
-      </label>`).join('')}
-    </div>
-    <div style="font-size:12px;color:#8a96a8;margin-top:8px">💡 Đây là danh sách toàn bộ học viên đang thuộc lớp khác (kể cả học viên test) — tick chọn rồi Lưu để chuyển hẳn sang lớp "${targetLop}".</div>
-  `,async()=>{
-    const ids=[...document.querySelectorAll('.assign-chk:checked')].map(el=>el.value);
-    if(ids.length===0){toast('Chưa chọn học viên nào','error');return;}
-    const res=await call({action:'reassignHocVienBulk',studentIds:ids,lop:targetLop});
-    closeModal();
-    if(res.ok) toast(`Đã gán ${res.data.count} học viên vào lớp "${targetLop}"`,'success');
-    else toast(res.error||'Lỗi khi gán học viên','error');
-    if(CURRENT_PAGE==='lopdetail'){ const l=LOP_DATA.find(x=>x.lopId===LOP_DETAIL_ID); if(l) renderTabDiemDanh(l); }
-  });
+function filterHVAutocomplete(){
+  const box = document.getElementById('hv-autocomplete');
+  if(!box) return;
+  document.getElementById('f-existingId').value=''; // gõ lại thì hủy lựa chọn cũ, coi như tạo mới trừ khi chọn lại
+  const q = document.getElementById('f-hoTen').value.trim().toLowerCase();
+  if(!q){ box.style.display='none'; box.innerHTML=''; return; }
+  const matches = HV_AUTOCOMPLETE_LIST.filter(hv=>hv.hoTen.toLowerCase().includes(q)).slice(0,15);
+  if(matches.length===0){ box.style.display='none'; box.innerHTML=''; return; }
+  box.innerHTML = matches.map(hv=>`<div onclick="pickHVAutocomplete('${hv.studentId}')" style="padding:9px 12px;cursor:pointer;border-bottom:1px solid #f0f4fa" onmouseover="this.style.background='#f5f8fc'" onmouseout="this.style.background='#fff'">
+    <div style="font-size:13px;font-weight:600;color:#1a2236">${hv.hoTen}</div>
+    <div style="font-size:11px;color:#8a96a8">${hv.lop?'Hiện đang ở lớp: '+hv.lop:'Chưa có lớp'}</div>
+  </div>`).join('');
+  box.style.display='block';
 }
-function filterAssignList(){
-  const q=document.getElementById('assign-search').value.trim().toLowerCase();
-  document.querySelectorAll('#assign-list label').forEach(el=>{
-    el.style.display = el.dataset.name.includes(q) ? 'flex' : 'none';
-  });
+function pickHVAutocomplete(studentId){
+  const hv = HV_AUTOCOMPLETE_LIST.find(h=>h.studentId===studentId);
+  if(!hv) return;
+  document.getElementById('f-hoTen').value = hv.hoTen;
+  document.getElementById('f-existingId').value = hv.studentId;
+  document.getElementById('f-ngaySinh').value = hv.ngaySinh||'';
+  document.getElementById('f-gioiTinh').value = hv.gioiTinh||'';
+  document.getElementById('f-sdtCN').value = hv.sdtCaNhan||'';
+  document.getElementById('f-emailCN').value = hv.emailCaNhan||'';
+  document.getElementById('f-sdtPH').value = hv.soDienThoaiPH||'';
+  document.getElementById('f-emailPH').value = hv.emailPhuHuynh||'';
+  document.getElementById('f-dongTien').value = hv.daDongTien==='true'?'true':'false';
+  document.getElementById('f-ghiChu').value = hv.ghiChu||'';
+  // Cố ý KHÔNG đổi ô "Lớp" — giữ nguyên lớp đang chọn sẵn trong form (đây chính là lớp sẽ chuyển học viên này tới)
+  document.getElementById('hv-autocomplete').style.display='none';
+  toast('Đã điền thông tin có sẵn — bấm Lưu để chuyển học viên này sang lớp đang chọn','info');
 }
 
 async function deleteHV(studentId){
@@ -1103,7 +1121,6 @@ async function renderLichTuan(lop, hvList, selectedNgay, activeCaId){
         <div style="height:${HEAD_H}px;box-sizing:border-box;display:flex;align-items:center;justify-content:space-between;padding:0 6px 0 14px;font-size:13px;font-weight:700;font-style:italic;text-transform:uppercase;color:#5a6478;background:#f5f8fc;border-bottom:1px solid #e4ebf5">
           <span>Danh sách lớp</span>
           <div style="display:flex;gap:4px">
-            ${USER.role==='admin'?`<button class="btn btn-sm" style="font-style:normal;text-transform:none;font-size:11px;padding:4px 6px;white-space:nowrap" onclick="openModalAssignHV('${escapeAttr(lop.tenLop)}')" title="Gán học viên đã có sẵn (VD: học viên test) vào lớp này">↔ Gán</button>`:''}
             ${['admin','giaovien','trogiang'].includes(USER.role)?`<button class="btn btn-sm" style="font-style:normal;text-transform:none;font-size:11px;padding:4px 6px;white-space:nowrap" onclick="openModalHV(null,'${escapeAttr(lop.tenLop)}')">+ HV</button>`:''}
           </div>
         </div>
