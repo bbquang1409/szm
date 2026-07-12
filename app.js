@@ -347,7 +347,7 @@ async function openModalLop(lopId){
       <div class="form-row"><label>Ngày bắt đầu</label><input type="date" id="f-ngayBD" value="${l?.ngayBatDau||''}"></div>
       <div class="form-row"><label>Ngày kết thúc (dự kiến)</label><input type="date" id="f-ngayKT" value="${l?.ngayKetThuc||''}"></div>
     </div>
-    <div class="form-row"><label>Giáo viên chủ nhiệm</label>
+    <div class="form-row"><label>Giáo viên chính</label>
       <select id="f-gv">
         <option value="">— Chọn giáo viên —</option>
         ${gvList.map(gv=>`<option value="${gv.email}" ${l?.giaoVienEmail===gv.email?'selected':''}>${gv.hoTen} (${gv.email})</option>`).join('')}
@@ -968,11 +968,18 @@ function showCaInfoBubble(key, evt){
   if(evt) evt.stopPropagation();
   const bubble = document.getElementById('ca-info-bubble');
   if(!bubble) return;
-  const row = evt.currentTarget.parentElement; // hàng chứa cả 3 ô, dùng để canh bubble rộng bằng cả hàng
-  const rect = row.getBoundingClientRect();
-  bubble.style.left = rect.left+'px';
-  bubble.style.width = rect.width+'px';
-  bubble.style.top = rect.top+'px'; // CSS transform:translateY(-100%) sẽ tự đẩy bubble lên trên điểm này
+  const badge = evt.currentTarget.closest('[data-ca-badge]') || evt.currentTarget; // ô cụ thể vừa bấm (để canh mũi tên)
+  const row = evt.currentTarget.closest('.ca-badge-row'); // cả hàng 3 ô (để canh chiều rộng bubble)
+  if(!row) return;
+  const rowRect = row.getBoundingClientRect();
+  const badgeRect = badge.getBoundingClientRect();
+
+  bubble.style.left = rowRect.left+'px';
+  bubble.style.width = rowRect.width+'px';
+  bubble.style.top = rowRect.top+'px'; // CSS transform:translateY(-100%) sẽ tự đẩy bubble lên trên điểm này
+  // Mũi tên trỏ xuống đúng giữa ô vừa bấm, kiểu bong bóng thoại trong truyện tranh
+  const arrowLeft = Math.round(badgeRect.left - rowRect.left + badgeRect.width/2 - 7);
+  bubble.style.setProperty('--arrow-left', arrowLeft+'px');
   bubble.textContent = CA_INFO_TEXT[key];
   bubble.classList.add('show');
 
@@ -1176,8 +1183,8 @@ async function renderLichTuan(lop, hvList, selectedNgay, activeCaId){
       <div style="flex:1;padding:14px 16px;box-sizing:border-box;min-width:0">
         <div style="position:relative">
           <div class="ca-info-bubble" id="ca-info-bubble"></div>
-          <div style="display:flex;gap:8px;margin-bottom:8px">
-            <div style="flex:1;display:flex;align-items:center;gap:6px;padding:8px 10px;border:1.5px solid ${autoDDBat?'#86efac':'#d1d8e0'};border-radius:9px;background:#fafbfd;font-size:12px;color:#5a6478;white-space:nowrap;transition:background .15s${autoDDBat?';--pulse-color:rgba(134,239,172,.55);animation:alertPing 1.8s infinite':''}" onmouseover="this.style.background='${autoDDBat?'#f0fdf4':'#f5f8fc'}'" onmouseout="this.style.background='#fafbfd'">
+          <div class="ca-badge-row" style="display:flex;gap:8px;margin-bottom:8px">
+            <div data-ca-badge style="flex:1;display:flex;align-items:center;gap:6px;padding:8px 10px;border:1.5px solid ${autoDDBat?'#86efac':'#d1d8e0'};border-radius:9px;background:#fafbfd;font-size:12px;color:#5a6478;white-space:nowrap;transition:background .15s${autoDDBat?';--pulse-color:rgba(134,239,172,.55);animation:alertPing 1.8s infinite':''}" onmouseover="this.style.background='${autoDDBat?'#f0fdf4':'#f5f8fc'}'" onmouseout="this.style.background='#fafbfd'">
               <span onclick="showCaInfoBubble('auto',event)" style="display:flex;align-items:center;gap:6px;cursor:pointer;flex:1;min-width:0;overflow:hidden">
                 <span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:${autoDDBat?'#dcfce7':'#eef2f7'};border:1.5px solid ${autoDDBat?'#86efac':'#cbd5e1'};flex-shrink:0"></span>
                 <span style="overflow:hidden;text-overflow:ellipsis">Tự động điểm danh</span>
@@ -1187,10 +1194,10 @@ async function renderLichTuan(lop, hvList, selectedNgay, activeCaId){
               </span>`:''}
               <span onclick="showCaInfoBubble('auto',event)" style="cursor:pointer;color:${autoDDBat?'#86efac':'#cbd5e1'};font-weight:700;flex-shrink:0">ⓘ</span>
             </div>
-            <div onclick="showCaInfoBubble('alert',event)" style="flex:1;display:flex;align-items:center;gap:6px;padding:8px 10px;border:1.5px solid #fca5a5;border-radius:9px;background:#fafbfd;font-size:12px;color:#5a6478;white-space:nowrap;cursor:pointer;transition:background .15s;--pulse-color:rgba(252,165,165,.55);animation:alertPing 1.8s infinite .3s" onmouseover="this.style.background='#fef2f2'" onmouseout="this.style.background='#fafbfd'">
+            <div data-ca-badge onclick="showCaInfoBubble('alert',event)" style="flex:1;display:flex;align-items:center;gap:6px;padding:8px 10px;border:1.5px solid #fca5a5;border-radius:9px;background:#fafbfd;font-size:12px;color:#5a6478;white-space:nowrap;cursor:pointer;transition:background .15s;--pulse-color:rgba(252,165,165,.55);animation:alertPing 1.8s infinite .3s" onmouseover="this.style.background='#fef2f2'" onmouseout="this.style.background='#fafbfd'">
               <span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#fee2e2;border:1.5px solid #fca5a5;flex-shrink:0"></span>Cảnh báo<span style="margin-left:auto;color:#fca5a5;font-weight:700;flex-shrink:0">ⓘ</span>
             </div>
-            <div onclick="showCaInfoBubble('split',event)" style="flex:1;display:flex;align-items:center;gap:6px;padding:8px 10px;border:1.5px solid #93c5fd;border-radius:9px;background:#fafbfd;font-size:12px;color:#5a6478;white-space:nowrap;cursor:pointer;transition:background .15s;--pulse-color:rgba(147,197,253,.55);animation:alertPing 1.8s infinite .6s" onmouseover="this.style.background='#eff6ff'" onmouseout="this.style.background='#fafbfd'">
+            <div data-ca-badge onclick="showCaInfoBubble('split',event)" style="flex:1;display:flex;align-items:center;gap:6px;padding:8px 10px;border:1.5px solid #93c5fd;border-radius:9px;background:#fafbfd;font-size:12px;color:#5a6478;white-space:nowrap;cursor:pointer;transition:background .15s;--pulse-color:rgba(147,197,253,.55);animation:alertPing 1.8s infinite .6s" onmouseover="this.style.background='#eff6ff'" onmouseout="this.style.background='#fafbfd'">
               <span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#dbeafe;border:1.5px solid #93c5fd;flex-shrink:0"></span>Điểm danh theo buổi<span style="margin-left:auto;color:#93c5fd;font-weight:700;flex-shrink:0">ⓘ</span>
             </div>
           </div>
@@ -1802,7 +1809,11 @@ window.addEventListener('load',async ()=>{
   document.getElementById('login-btn').addEventListener('click',startGoogleLogin);
   document.getElementById('logout-btn').addEventListener('click',logout);
   document.getElementById('modal-cancel').addEventListener('click',closeModal);
-  document.getElementById('modal-ok').addEventListener('click',()=>{if(MODAL_CB)MODAL_CB();});
+  document.getElementById('modal-ok').addEventListener('click',async()=>{
+    if(!MODAL_CB) return;
+    try{ await MODAL_CB(); }
+    catch(err){ console.error(err); toast('Có lỗi xảy ra: '+(err?.message||err),'error'); }
+  });
   document.getElementById('modal').addEventListener('click',e=>{if(e.target===e.currentTarget)closeModal();});
   document.querySelectorAll('.nav-item[data-page]').forEach(el=>{el.addEventListener('click',()=>navTo(el.dataset.page));});
 
