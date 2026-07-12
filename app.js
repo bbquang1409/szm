@@ -293,7 +293,8 @@ function openModalGuiTinLop(){
     const noiDung=document.getElementById('f-msg').value.trim();
     if(!noiDung){toast('Nhập nội dung','error');return;}
     const body={tieuDe:noiDung.slice(0,40),noiDung,nguoiNhan:target.startsWith('lop_')?'all':target,lop:target.startsWith('lop_')?target.replace('lop_',''):''};
-    await call({action:'sendThongBao',...body});
+    const r=await call({action:'sendThongBao',...body});
+    if(!r.ok){toast(r.error||'Lỗi khi gửi','error');return;}
     closeModal();toast('Đã gửi tin nhắn','success');
   });
 }
@@ -367,15 +368,20 @@ async function openModalLop(lopId){
     const caHoc = collectCaHocList();
     const body={tenLop:document.getElementById('f-tenLop').value.trim(),capDo:document.getElementById('f-capDo').value,ngayBatDau:document.getElementById('f-ngayBD').value,ngayKetThuc:document.getElementById('f-ngayKT').value,giaoVienEmail:document.getElementById('f-gv').value,ghiChu:document.getElementById('f-ghiChu').value.trim(),caHoc:JSON.stringify(caHoc)};
     if(!body.tenLop){toast('Nhập tên lớp','error');return;}
-    if(l){body.lopId=lopId;await callPost({action:'updateLop',...body});}
-    else await callPost({action:'addLop',...body});
+    let r;
+    if(l){body.lopId=lopId;r=await callPost({action:'updateLop',...body});}
+    else r=await callPost({action:'addLop',...body});
+    if(!r.ok){toast(r.error||'Lỗi khi lưu lớp','error');return;}
     closeModal();toast(l?'Đã cập nhật lớp':'Đã thêm lớp','success');
-    await loadLops();renderLopHoc();
+    await loadLops();
+    if(CURRENT_PAGE==='lopdetail'){ const nl=LOP_DATA.find(x=>x.lopId===LOP_DETAIL_ID); if(nl) renderLopDetail(); }
+    else renderLopHoc();
   });
 }
 async function deleteLop(lopId){
   if(!confirm('Xóa lớp này? Dữ liệu học viên không bị xóa.')) return;
-  await call({action:'deleteLop',lopId});
+  const r=await call({action:'deleteLop',lopId});
+  if(!r.ok){toast(r.error||'Lỗi khi xóa lớp','error');return;}
   toast('Đã xóa lớp','success');await loadLops();renderLopHoc();
 }
 
@@ -570,11 +576,13 @@ function filterHVTable(q){
 }
 
 async function toggleDongTien(studentId,checked){
-  await call({action:'updateHocVien',studentId,daDongTien:String(checked)});
+  const r=await call({action:'updateHocVien',studentId,daDongTien:String(checked)});
+  if(!r.ok){toast(r.error||'Lỗi khi cập nhật','error');return;}
   toast(checked?'Đã đánh dấu đóng tiền':'Chưa đóng tiền','success');
 }
 async function toggleTrangThai(studentId,val){
-  await call({action:'updateHocVien',studentId,trangThai:val});
+  const r=await call({action:'updateHocVien',studentId,trangThai:val});
+  if(!r.ok){toast(r.error||'Lỗi khi cập nhật','error');return;}
   toast('Đã cập nhật trạng thái','success');
 }
 
@@ -647,9 +655,11 @@ async function openModalHV(studentId, defaultLop){
     // (thực chất là chuyển sang lớp mới), KHÔNG tạo học viên trùng mới.
     const existingId = document.getElementById('f-existingId')?.value || '';
     const isReassign = !isEdit && existingId;
-    if(isEdit){body.studentId=studentId;await call({action:'updateHocVien',...body});}
-    else if(isReassign){body.studentId=existingId;await call({action:'updateHocVien',...body});}
-    else await call({action:'addHocVien',...body});
+    let r;
+    if(isEdit){body.studentId=studentId;r=await call({action:'updateHocVien',...body});}
+    else if(isReassign){body.studentId=existingId;r=await call({action:'updateHocVien',...body});}
+    else r=await call({action:'addHocVien',...body});
+    if(!r.ok){toast(r.error||'Lỗi khi lưu học viên','error');return;}
     closeModal();toast(isEdit?'Đã cập nhật':(isReassign?'Đã chuyển học viên sang lớp này':'Đã thêm học viên'),'success');
     if(CURRENT_PAGE==='lopdetail'){ const l=LOP_DATA.find(x=>x.lopId===LOP_DETAIL_ID); if(l) renderTabDiemDanh(l); }
     else renderHocVien();
@@ -689,7 +699,8 @@ function pickHVAutocomplete(studentId){
 
 async function deleteHV(studentId){
   if(!confirm('Xóa học viên này?')) return;
-  await call({action:'deleteHocVien',studentId});
+  const r=await call({action:'deleteHocVien',studentId});
+  if(!r.ok){toast(r.error||'Lỗi khi xóa','error');return;}
   closeModal();toast('Đã xóa','success');renderHocVien();
 }
 
@@ -750,7 +761,8 @@ async function openModalNhanTinPH(studentId,hoTen){
   `,async()=>{
     const noiDung=document.getElementById('f-msg').value.trim();
     if(!noiDung){toast('Nhập nội dung','error');return;}
-    await call({action:'sendThongBao',tieuDe:noiDung.slice(0,40),noiDung,nguoiNhan:emailPH,lop:''});
+    const r=await call({action:'sendThongBao',tieuDe:noiDung.slice(0,40),noiDung,nguoiNhan:emailPH,lop:''});
+    if(!r.ok){toast(r.error||'Lỗi khi gửi','error');return;}
     closeModal();toast('Đã gửi tin nhắn','success');
   });
 }
@@ -1294,7 +1306,8 @@ async function promptGuiTinNghiNhieu(studentId, hoTen){
   `,async()=>{
     const noiDung = document.getElementById('f-msg-nghi').value.trim();
     if(!noiDung){ toast('Nhập nội dung','error'); return; }
-    await call({action:'sendThongBao',tieuDe:`Cảnh báo chuyên cần - ${hoTen}`,noiDung,nguoiNhan:emailPH,lop:''});
+    const r=await call({action:'sendThongBao',tieuDe:`Cảnh báo chuyên cần - ${hoTen}`,noiDung,nguoiNhan:emailPH,lop:''});
+    if(!r.ok){ toast(r.error||'Lỗi khi gửi','error'); return; }
     closeModal(); toast('Đã gửi tin nhắn cho phụ huynh','success');
   });
 }
@@ -1463,7 +1476,8 @@ async function saveBDGrid(){
 
 async function deleteBD(recordId){
   if(!confirm('Xóa bản ghi này?')) return;
-  await call({action:'deleteBangDiem',recordId});
+  const r=await call({action:'deleteBangDiem',recordId});
+  if(!r.ok){toast(r.error||'Lỗi khi xóa','error');return;}
   toast('Đã xóa','success');
   const lop=LOP_DATA.find(l=>l.lopId===LOP_DETAIL_ID);
   renderTabBangDiem(lop);
@@ -1576,7 +1590,8 @@ function openModalTK(email,hoTen,role){
 }
 async function deleteTK(email){
   if(!confirm('Xóa tài khoản '+email+'?')) return;
-  await call({action:'deleteTaiKhoan',targetEmail:email});
+  const r=await call({action:'deleteTaiKhoan',targetEmail:email});
+  if(!r.ok){toast(r.error||'Lỗi khi xóa','error');return;}
   toast('Đã xóa','success');renderTaiKhoan();
 }
 
