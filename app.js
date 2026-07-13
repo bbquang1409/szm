@@ -27,11 +27,17 @@ async function startApp(){
   rp.textContent=ROLES_VI[USER.role]||USER.role;rp.className='role-pill r-'+USER.role;
   applyRoleNav();
   await loadLops();
-  if(['admin','giaovien','quanly'].includes(USER.role)){
-    const tk=await call({action:'getTaiKhoanList'});
-    window.ALL_ACCOUNTS = tk.ok?tk.data:[];
-  }
+  await refreshAllAccounts();
   navTo('dashboard');
+}
+
+// Danh sách tài khoản (dùng để tra tên/vai trò giáo viên-trợ giảng) chỉ tự tải lúc đăng nhập,
+// không tự làm mới — gọi lại hàm này sau khi có thay đổi tài khoản (tạo test, thêm/sửa/xóa TK)
+// để tránh hiện thiếu tên do dữ liệu cũ còn lưu trong bộ nhớ trình duyệt.
+async function refreshAllAccounts(){
+  if(!['admin','giaovien','quanly','trogiang'].includes(USER.role)) return;
+  const tk=await call({action:'getTaiKhoanList'});
+  window.ALL_ACCOUNTS = tk.ok?tk.data:(window.ALL_ACCOUNTS||[]);
 }
 
 function applyRoleNav(){
@@ -374,6 +380,7 @@ async function openModalLop(lopId){
     if(!r.ok){toast(r.error||'Lỗi khi lưu lớp','error');return;}
     closeModal();toast(l?'Đã cập nhật lớp':'Đã thêm lớp','success');
     await loadLops();
+    await refreshAllAccounts();
     if(CURRENT_PAGE==='lopdetail'){ const nl=LOP_DATA.find(x=>x.lopId===LOP_DETAIL_ID); if(nl) renderLopDetail(); }
     else renderLopHoc();
   });
@@ -1599,6 +1606,8 @@ function openModalSeedTest(){
     closeModal();
     if(r.ok) toast(`Đã tạo ${r.data.hocVienCount} học viên + ${r.data.taiKhoanCount} tài khoản (lớp "${r.data.lop}")`,'success');
     else toast(r.error||'Lỗi khi tạo dữ liệu test','error');
+    await loadLops();
+    await refreshAllAccounts();
     renderTaiKhoan();
   });
 }
@@ -1607,6 +1616,8 @@ async function clearTestData(){
   const r=await call({action:'clearTestData'});
   if(r.ok) toast(`Đã xóa ${r.data.hocVien} học viên, ${r.data.taiKhoan} tài khoản, ${r.data.lop} lớp test`,'success');
   else toast(r.error||'Lỗi khi xóa dữ liệu test','error');
+  await loadLops();
+  await refreshAllAccounts();
   renderTaiKhoan();
 }
 function openModalTK(email,hoTen,role){
@@ -1635,14 +1646,18 @@ function openModalTK(email,hoTen,role){
     if(!inputEmail||!body.hoTen){toast('Nhập đầy đủ','error');return;}
     const r=await call({action:isEdit?'updateTaiKhoan':'addTaiKhoan',...body});
     if(!r.ok){toast(r.error||'Lỗi','error');return;}
-    closeModal();toast(isEdit?'Đã cập nhật':'Đã thêm','success');renderTaiKhoan();
+    closeModal();toast(isEdit?'Đã cập nhật':'Đã thêm','success');
+    await refreshAllAccounts();
+    renderTaiKhoan();
   });
 }
 async function deleteTK(email){
   if(!confirm('Xóa tài khoản '+email+'?')) return;
   const r=await call({action:'deleteTaiKhoan',targetEmail:email});
   if(!r.ok){toast(r.error||'Lỗi khi xóa','error');return;}
-  toast('Đã xóa','success');renderTaiKhoan();
+  toast('Đã xóa','success');
+  await refreshAllAccounts();
+  renderTaiKhoan();
 }
 
 // ── HELPERS ──
