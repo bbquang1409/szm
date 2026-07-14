@@ -90,7 +90,12 @@ async function callPost(params){
   const token = rest.token || USER?.token || '';
   const r = await fetch(API+'?action='+encodeURIComponent(action)+'&email='+encodeURIComponent(email), {
     method:'POST',
-    headers:{'Content-Type':'application/json'},
+    // Cố ý dùng text/plain (không phải application/json) — nếu để application/json, trình duyệt sẽ
+    // gửi 1 request "dò đường" (preflight, method OPTIONS) trước, mà Google Apps Script KHÔNG hỗ trợ
+    // xử lý OPTIONS, trả về lỗi 405 khiến request thật không bao giờ được gửi ("Failed to fetch").
+    // Backend vẫn đọc được JSON bình thường vì nó đọc thẳng nội dung thô (e.postData.contents),
+    // không quan tâm Content-Type khai báo là gì.
+    headers:{'Content-Type':'text/plain;charset=utf-8'},
     body: JSON.stringify({...rest,action,email,token})
   });
   if(!r.ok) throw new Error('HTTP '+r.status);
