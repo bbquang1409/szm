@@ -18,8 +18,9 @@ async function onToken(t){
     if(!r.ok){showLoginError(r.error||'Email không được phép');return;}
     // Lưu access_token thật để mọi request sau đều được backend xác thực,
     // thay vì chỉ tin vào chuỗi email (tránh giả mạo email để leo quyền).
-    USER={email:info.email,role:r.data.role,hoTen:r.data.hoTen||info.name,lopPhuTrach:r.data.lopPhuTrach||'',token:t.access_token};
+    USER={email:info.email,role:r.data.role,hoTen:r.data.hoTen||info.name,lopPhuTrach:r.data.lopPhuTrach||'',token:t.access_token,tokenExpiry:Date.now()+(t.expires_in||3600)*1000};
     saveSession();
+    scheduleTokenRefresh();
     completeLoading();
     setTimeout(startApp, 300);
   }catch(e){showLoginError('Lỗi: '+e.message);}
@@ -73,7 +74,41 @@ function completeLoading(){
   fill.style.width='100%';
   document.getElementById('loading-msg').textContent='Hoàn tất!';
 }
+// ── LAM MOI TOKEN NGAM (tranh bi vang ra ngoai giua chung khi dang thao tac) ──
+let _refreshTimer=null;
+function scheduleTokenRefresh(){
+  if(_refreshTimer) clearTimeout(_refreshTimer);
+  if(!USER || !USER.tokenExpiry) return;
+  // Lam moi truoc khi het han 5 phut, de token gan nhu khong bao gio het han
+  // trong luc dang dung app (dang go form, dang diem danh...).
+  const delay = Math.max(5000, USER.tokenExpiry - Date.now() - 5*60*1000);
+  _refreshTimer = setTimeout(()=>{ refreshTokenSilently(); }, delay);
+}
+// Xin access_token moi ma KHONG hien popup dang nhap (prompt:'') - Google cho phep
+// vi nguoi dung da dong y quyen truoc do trong cung phien lam viec nay.
+function refreshTokenSilently(){
+  return new Promise(resolve=>{
+    if(!USER){ resolve(false); return; }
+    try{
+      google.accounts.oauth2.initTokenClient({
+        client_id:GCI,scope:'profile email',prompt:'',
+        callback:(t)=>{
+          if(t && t.access_token){
+            USER.token=t.access_token;
+            USER.tokenExpiry=Date.now()+(t.expires_in||3600)*1000;
+            saveSession();
+            scheduleTokenRefresh();
+            resolve(true);
+          } else resolve(false);
+        },
+        error_callback:()=>resolve(false),
+      }).requestAccessToken();
+    }catch(e){ resolve(false); }
+  });
+}
+
 function logout(){
+  if(_refreshTimer) clearTimeout(_refreshTimer);
   USER=null;
   clearSession();
   stopLoading(); // reset thanh loading + mở lại nút "Đăng nhập bằng Google" (trước đây quên reset, gây kẹt ở 100%/disabled sau khi đăng xuất)
@@ -100,7 +135,13 @@ async function callPost(params){
   });
   if(!r.ok) throw new Error('HTTP '+r.status);
   const res = await r.json();
-  if(!res.ok && /dang nhap|token/i.test(res.error||'')){ toast('Phiên đăng nhập hết hạn, vui lòng đăng nhập lại','error'); logout(); }
+  if(!res.ok && /dang nhap|token/i.test(res.error||'') && !params._retried){
+    // Thu lam moi token ngam roi gui lai request 1 lan, thay vi dang xuat ngay
+    // va lam mat het thong tin nguoi dung dang nhap dang do.
+    const refreshed = await refreshTokenSilently();
+    if(refreshed) return callPost({...params,_retried:true});
+    toast('Phiên đăng nhập hết hạn, vui lòng đăng nhập lại','error'); logout();
+  }
   return res;
 }
 
@@ -110,7 +151,11 @@ async function call(params){
   const r=await fetch(API+'?'+qs);
   if(!r.ok) throw new Error('HTTP '+r.status);
   const res = await r.json();
-  if(!res.ok && /dang nhap|token/i.test(res.error||'') && params.action!=='whoami'){ toast('Phiên đăng nhập hết hạn, vui lòng đăng nhập lại','error'); logout(); }
+  if(!res.ok && /dang nhap|token/i.test(res.error||'') && params.action!=='whoami' && !params._retried){
+    const refreshed = await refreshTokenSilently();
+    if(refreshed) return call({...params,_retried:true});
+    toast('Phiên đăng nhập hết hạn, vui lòng đăng nhập lại','error'); logout();
+  }
   return res;
 }
 
@@ -134,6 +179,7 @@ async function tryRestoreSession(){
     const r = await call({action:'whoami', email:saved.email, token:saved.token});
     if(!r.ok){ clearSession(); return false; }
     USER = saved;
+    scheduleTokenRefresh();
     return true;
   }catch(e){ return false; }
 }
