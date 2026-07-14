@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<title>Test SZM API</title>
+<script src="https://accounts.google.com/gsi/client"></script>
+<style>
+  body{font-family:sans-serif;max-width:700px;margin:30px auto;padding:0 16px}
+  button{display:block;width:100%;padding:14px;margin:8px 0;font-size:16px;cursor:pointer}
+  #out{white-space:pre-wrap;background:#111;color:#0f0;padding:14px;border-radius:6px;min-height:100px;font-size:13px;margin-top:20px}
+  .err{color:#f55}
+  h3{margin-top:24px}
+</style>
+</head>
+<body>
+<h2>Test đăng nhập &amp; lưu dữ liệu</h2>
+<div id="status">Chưa đăng nhập</div>
+<button id="loginBtn">1. Đăng nhập bằng Google</button>
+
+<h3>Sau khi đăng nhập, bấm thử từng nút:</h3>
+<button id="btnWhoami">Test: whoami (kiểm tra tài khoản)</button>
+<button id="btnAddLop">Test: Thêm 1 lớp thử (addLop)</button>
+<button id="btnDiemDanh">Test: Lưu điểm danh thử (saveDiemDanh)</button>
+<button id="btnGetLop">Test: Đọc lại danh sách lớp (getLopList)</button>
+
+<div id="out">Kết quả sẽ hiện ở đây...</div>
+
+<script>
+const GCI = '39863848508-e8iffhhvlv2h7l06395vunsp2i3ksnh8.apps.googleusercontent.com';
+const API = 'https://script.google.com/macros/s/AKfycbw7w_WgTjrskEXN6ubY1wLEFAoJjvOBuobmkymTaEd2kAYq4Nf7mEJt-g2KevZvVcI9/exec';
+let TOKEN='', EMAIL='';
+
+function log(title, obj, isErr){
+  const out = document.getElementById('out');
+  const time = new Date().toLocaleTimeString();
+  out.textContent = `[${time}] ${title}\n` + JSON.stringify(obj,null,2) + '\n\n' + out.textContent;
+}
+
+document.getElementById('loginBtn').onclick = ()=>{
+  google.accounts.oauth2.initTokenClient({
+    client_id:GCI, scope:'profile email',
+    callback: async (t)=>{
+      TOKEN = t.access_token;
+      try{
+        const res = await fetch('https://www.googleapis.com/oauth2/v3/userinfo',{headers:{Authorization:'Bearer '+TOKEN}});
+        const info = await res.json();
+        EMAIL = info.email;
+        document.getElementById('status').textContent = 'Đã đăng nhập: '+EMAIL;
+        log('LOGIN OK', info);
+      }catch(e){ log('LOGIN LOI', {error: e.message}, true); }
+    }
+  }).requestAccessToken();
+};
+
+async function callApi(action, extra={}){
+  const params = {action, email:EMAIL, token:TOKEN, _:Date.now(), ...extra};
+  const qs = Object.entries(params).map(([k,v])=>encodeURIComponent(k)+'='+encodeURIComponent(typeof v==='object'?JSON.stringify(v):String(v))).join('&');
+  try{
+    const r = await fetch(API+'?'+qs, {cache:'no-store'});
+    const status = r.status;
+    const text = await r.text();
+    let json;
+    try{ json = JSON.parse(text); }catch(e){ json = {PARSE_ERROR:true, raw_response:text.slice(0,500)}; }
+    log(action+' -> HTTP '+status, json);
+  }catch(e){
+    log(action+' -> LOI KET NOI', {error: e.message});
+  }
+}
+
+document.getElementById('btnWhoami').onclick = ()=> callApi('whoami');
+document.getElementById('btnAddLop').onclick = ()=> callApi('addLop', {tenLop:'TEST_'+Date.now(), capDo:'A1'});
+document.getElementById('btnGetLop').onclick = ()=> callApi('getLopList');
+document.getElementById('btnDiemDanh').onclick = ()=> callApi('saveDiemDanh', {records: JSON.stringify([{studentId:'TEST_SID', ngay:'2026-07-14', caId:'ca_test', trangThai:'co_mat', ghiChu:'test'}])});
+</script>
+</body>
+</html>

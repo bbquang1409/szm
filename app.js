@@ -858,8 +858,15 @@ async function renderTabDiemDanh(lop){
   // để hàng tên học viên luôn khớp hàng ô điểm danh, không còn lệch nhau.
   wrap.innerHTML = `<div id="lich-tuan-wrap"><div class="empty" style="padding:40px">Đang tải lịch...</div></div>`;
 
+  // Đánh dấu "phiên render" hiện tại — nếu trong lúc đang tải mà hàm này bị gọi lại
+  // (đổi ngày/ca, đổi tab, lưu xong refresh...), kết quả của lần gọi cũ sẽ tự bị bỏ qua
+  // thay vì cố gán vào phần tử đã không còn tồn tại (gây crash "Cannot set properties of null").
+  const myToken = (renderTabDiemDanh._token = (renderTabDiemDanh._token||0)+1);
+
   renderLichTuan(lop, hvList, ngay, caId).then(html=>{
-    document.getElementById('lich-tuan-wrap').innerHTML = html;
+    if(myToken!==renderTabDiemDanh._token) return; // đã có lần gọi mới hơn, bỏ qua kết quả cũ
+    const target=document.getElementById('lich-tuan-wrap');
+    if(target) target.innerHTML = html;
   });
 }
 
@@ -920,7 +927,7 @@ async function openDiemDanhModal(){
       toast('Đã lưu điểm danh','success');
       const lopObj=LOP_DATA.find(l=>l.lopId===LOP_DETAIL_ID);
       renderTabDiemDanh(lopObj);
-    } else toast('Lỗi lưu','error');
+    } else toast(r.error||'Lỗi lưu','error');
   });
 }
 
@@ -948,7 +955,7 @@ async function saveDD(){
   });
   const r=await call({action:'saveDiemDanh',records});
   if(r.ok){toast('Đã lưu điểm danh','success');renderTabDiemDanh(lop);}
-  else toast('Lỗi lưu','error');
+  else toast(r.error||'Lỗi lưu','error');
 }
 
 // ── LỊCH TUẦN ──
