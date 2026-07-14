@@ -123,18 +123,27 @@ async function callPost(params){
   const {action,...rest} = params;
   const email = USER?.email||'';
   const token = rest.token || USER?.token || '';
-  const r = await fetch(API+'?action='+encodeURIComponent(action)+'&email='+encodeURIComponent(email), {
-    method:'POST',
-    // Cố ý dùng text/plain (không phải application/json) — nếu để application/json, trình duyệt sẽ
-    // gửi 1 request "dò đường" (preflight, method OPTIONS) trước, mà Google Apps Script KHÔNG hỗ trợ
-    // xử lý OPTIONS, trả về lỗi 405 khiến request thật không bao giờ được gửi ("Failed to fetch").
-    // Backend vẫn đọc được JSON bình thường vì nó đọc thẳng nội dung thô (e.postData.contents),
-    // không quan tâm Content-Type khai báo là gì.
-    headers:{'Content-Type':'text/plain;charset=utf-8'},
-    body: JSON.stringify({...rest,action,email,token})
-  });
-  if(!r.ok) throw new Error('HTTP '+r.status);
+  let r;
+  try{
+    r = await fetch(API+'?action='+encodeURIComponent(action)+'&email='+encodeURIComponent(email), {
+      method:'POST',
+      // Cố ý dùng text/plain (không phải application/json) — nếu để application/json, trình duyệt sẽ
+      // gửi 1 request "dò đường" (preflight, method OPTIONS) trước, mà Google Apps Script KHÔNG hỗ trợ
+      // xử lý OPTIONS, trả về lỗi 405 khiến request thật không bao giờ được gửi ("Failed to fetch").
+      // Backend vẫn đọc được JSON bình thường vì nó đọc thẳng nội dung thô (e.postData.contents),
+      // không quan tâm Content-Type khai báo là gì.
+      headers:{'Content-Type':'text/plain;charset=utf-8'},
+      body: JSON.stringify({...rest,action,email,token})
+    });
+  }catch(networkErr){
+    // TAM THOI: bao loi bang alert() de nguoi dung khong can mo DevTools van doc duoc
+    alert('LỖI MẠNG khi gọi "'+action+'":\n'+networkErr.message);
+    throw networkErr;
+  }
+  if(!r.ok){ alert('LỖI HTTP khi gọi "'+action+'": mã '+r.status); throw new Error('HTTP '+r.status); }
   const res = await r.json();
+  // TAM THOI: bao loi bang alert() de nguoi dung khong can mo DevTools van doc duoc
+  if(!res.ok) alert('API "'+action+'" trả về LỖI:\n'+(res.error||'(không rõ)'));
   if(!res.ok && /dang nhap|token/i.test(res.error||'') && !params._retried){
     // Thu lam moi token ngam roi gui lai request 1 lan, thay vi dang xuat ngay
     // va lam mat het thong tin nguoi dung dang nhap dang do.
@@ -148,9 +157,18 @@ async function callPost(params){
 async function call(params){
   const p={email:USER?.email||'',token:USER?.token||'',...params};
   const qs=Object.entries(p).map(([k,v])=>encodeURIComponent(k)+'='+encodeURIComponent(typeof v==='object'?JSON.stringify(v):String(v))).join('&');
-  const r=await fetch(API+'?'+qs);
-  if(!r.ok) throw new Error('HTTP '+r.status);
+  let r;
+  try{
+    r = await fetch(API+'?'+qs);
+  }catch(networkErr){
+    // TAM THOI: bao loi bang alert() de nguoi dung khong can mo DevTools van doc duoc
+    alert('LỖI MẠNG khi gọi "'+(params.action||'')+'":\n'+networkErr.message);
+    throw networkErr;
+  }
+  if(!r.ok){ alert('LỖI HTTP khi gọi "'+(params.action||'')+'": mã '+r.status); throw new Error('HTTP '+r.status); }
   const res = await r.json();
+  // TAM THOI: bao loi bang alert() de nguoi dung khong can mo DevTools van doc duoc
+  if(!res.ok) alert('API "'+(params.action||'')+'" trả về LỖI:\n'+(res.error||'(không rõ)'));
   if(!res.ok && /dang nhap|token/i.test(res.error||'') && params.action!=='whoami' && !params._retried){
     const refreshed = await refreshTokenSilently();
     if(refreshed) return call({...params,_retried:true});
