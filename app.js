@@ -920,7 +920,7 @@ async function openDiemDanhModal(){
       toast('Đã lưu điểm danh','success');
       const lopObj=LOP_DATA.find(l=>l.lopId===LOP_DETAIL_ID);
       renderTabDiemDanh(lopObj);
-    } else toast(r.error||'Lỗi lưu','error');
+    } else toast('Lỗi lưu','error');
   });
 }
 
@@ -948,7 +948,7 @@ async function saveDD(){
   });
   const r=await call({action:'saveDiemDanh',records});
   if(r.ok){toast('Đã lưu điểm danh','success');renderTabDiemDanh(lop);}
-  else toast(r.error||'Lỗi lưu','error');
+  else toast('Lỗi lưu','error');
 }
 
 // ── LỊCH TUẦN ──
