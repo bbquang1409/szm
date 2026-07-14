@@ -428,7 +428,6 @@ function setCaPreset(btn, rowId, preset){
   const row = document.querySelector(`.ca-hoc-row[data-rowid="${rowId}"]`);
   row.querySelector('.ca-ten').value = preset;
   row.querySelectorAll('.ca-preset-btn').forEach(b=>b.classList.toggle('btn-primary', b.textContent===preset));
-  row.querySelectorAll('.ca-preset-btn').forEach(b=>b.classList.toggle('', b.textContent!==preset));
 }
 function clearCaPreset(rowId){
   const row = document.querySelector(`.ca-hoc-row[data-rowid="${rowId}"]`);
