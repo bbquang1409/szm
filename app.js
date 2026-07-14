@@ -333,6 +333,12 @@ function lopCard(l){
 }
 
 async function openModalLop(lopId){
+  // Ghi nhớ NGAY bạn đang đứng ở đâu tại thời điểm mở modal này (trang danh sách Lớp học
+  // hay trang chi tiết 1 lớp cụ thể) — để sau khi lưu xong, quay lại ĐÚNG chỗ đó, không phụ
+  // thuộc vào biến toàn cục CURRENT_PAGE (biến này có thể bị đổi bởi thao tác khác trong lúc
+  // đang chờ lưu, khiến bị "văng" sang trang khác ngoài ý muốn).
+  const originPage = CURRENT_PAGE;
+  const originLopDetailId = LOP_DETAIL_ID;
   let l=null;
   if(lopId) l=LOP_DATA.find(x=>x.lopId===lopId)||null;
   const tvList=await call({action:'getTaiKhoanList'});
@@ -381,8 +387,14 @@ async function openModalLop(lopId){
     closeModal();toast(l?'Đã cập nhật lớp':'Đã thêm lớp','success');
     await loadLops();
     await refreshAllAccounts();
-    if(CURRENT_PAGE==='lopdetail'){ const nl=LOP_DATA.find(x=>x.lopId===LOP_DETAIL_ID); if(nl) renderLopDetail(); }
-    else renderLopHoc();
+    if(originPage==='lopdetail' && originLopDetailId){
+      LOP_DETAIL_ID = originLopDetailId;
+      CURRENT_PAGE = 'lopdetail';
+      const nl=LOP_DATA.find(x=>x.lopId===originLopDetailId);
+      if(nl) renderLopDetail(); else renderLopHoc();
+    } else {
+      renderLopHoc();
+    }
   });
 }
 async function deleteLop(lopId){
@@ -1681,13 +1693,31 @@ function closeModal(){
   MODAL_CB=null;
   document.removeEventListener('keydown',_ddKeyHandler);
 }
+// Ham Luu dung chung cho ca bam nut chuot lan bam Enter — khoa nut trong luc dang luu,
+// luon cho (await) va bat loi (try/catch/finally) day du, tranh truong hop bam Enter roi
+// lo cham/bam ra ngoai popup trong luc dang gui du lieu len server khien bi dong popup
+// giua chung ma chua kip luu xong.
+let MODAL_SAVING=false;
+async function runModalSave(){
+  if(!MODAL_CB || MODAL_SAVING) return;
+  MODAL_SAVING=true;
+  const btn=document.getElementById('modal-ok');
+  if(btn){ btn.disabled=true; btn.style.opacity='.6'; }
+  try{ await MODAL_CB(); }
+  catch(err){ console.error(err); toast('Có lỗi xảy ra: '+(err?.message||err),'error'); }
+  finally{
+    MODAL_SAVING=false;
+    const btn2=document.getElementById('modal-ok');
+    if(btn2){ btn2.disabled=false; btn2.style.opacity='1'; }
+  }
+}
 function _ddKeyHandler(e){
   if(!document.getElementById('modal-tt-val')) return;
   // Bỏ qua khi đang gõ trong input/textarea
   if(['INPUT','TEXTAREA','SELECT'].includes(e.target.tagName)&&e.target.id!=='modal-note') return;
   const map={'p':'vang_phep','k':'vang_khong_phep','t':'di_tre','Enter':'save'};
   const action = map[e.key.toLowerCase()]||map[e.key];
-  if(action==='save'){e.preventDefault();if(MODAL_CB)MODAL_CB();return;}
+  if(action==='save'){e.preventDefault();runModalSave();return;}
   if(action){e.preventDefault();selectTT(action);}
 }
 function toast(msg,type=''){
@@ -1822,13 +1852,9 @@ function tutClose(){
 window.addEventListener('load',async ()=>{
   document.getElementById('login-btn').addEventListener('click',startGoogleLogin);
   document.getElementById('logout-btn').addEventListener('click',logout);
-  document.getElementById('modal-cancel').addEventListener('click',closeModal);
-  document.getElementById('modal-ok').addEventListener('click',async()=>{
-    if(!MODAL_CB) return;
-    try{ await MODAL_CB(); }
-    catch(err){ console.error(err); toast('Có lỗi xảy ra: '+(err?.message||err),'error'); }
-  });
-  document.getElementById('modal').addEventListener('click',e=>{if(e.target===e.currentTarget)closeModal();});
+  document.getElementById('modal-cancel').addEventListener('click',()=>{ if(!MODAL_SAVING) closeModal(); });
+  document.getElementById('modal-ok').addEventListener('click',runModalSave);
+  document.getElementById('modal').addEventListener('click',e=>{if(e.target===e.currentTarget && !MODAL_SAVING)closeModal();});
   document.querySelectorAll('.nav-item[data-page]').forEach(el=>{el.addEventListener('click',()=>navTo(el.dataset.page));});
 
   // Nếu vừa đăng nhập gần đây (F5 lúc test) và token còn hạn thì vào thẳng app,
