@@ -133,17 +133,42 @@ function navTo(page){
 }
 
 function renderCurrentPage(){
-  switch(CURRENT_PAGE){
-    case 'dashboard': renderDashboard();break;
-    case 'lophoc':   renderLopHoc();break;
-    case 'lopdetail':renderLopDetail();break;
-    case 'hocvien':  renderHocVien();break;
-    case 'taikhoan': renderTaiKhoan();break;
+  // Boc try/catch chung cho moi lan chuyen trang — truoc day neu ham render (async) bi loi giua chung,
+  // noi dung CU (trang truoc do) van bi giu nguyen tren man hinh trong khi tieu de/sidebar da doi sang
+  // trang moi roi, tao ra canh "dau 1 noi, than 1 neo". Gio se hien loi ro rang + nut thu lai.
+  const page = CURRENT_PAGE;
+  let fn;
+  switch(page){
+    case 'dashboard': fn=renderDashboard;break;
+    case 'lophoc':   fn=renderLopHoc;break;
+    case 'lopdetail':fn=renderLopDetail;break;
+    case 'hocvien':  fn=renderHocVien;break;
+    case 'taikhoan': fn=renderTaiKhoan;break;
+    default: return;
+  }
+  try{
+    const result = fn();
+    if(result && typeof result.catch==='function'){
+      result.catch(err=>{
+        console.error(err);
+        setContent(`<div class="empty" style="padding:40px;text-align:center">
+          Không tải được trang này.<br>
+          <button class="btn btn-primary" style="margin-top:10px" onclick="renderCurrentPage()">Thử tải lại</button>
+        </div>`);
+      });
+    }
+  }catch(err){
+    console.error(err);
+    setContent(`<div class="empty" style="padding:40px;text-align:center">
+      Không tải được trang này.<br>
+      <button class="btn btn-primary" style="margin-top:10px" onclick="renderCurrentPage()">Thử tải lại</button>
+    </div>`);
   }
 }
 
 // ── DASHBOARD ──
 async function renderDashboard(){
+  try{
   setContent('<div class="empty">Đang tải...</div>');
   const r=await call({action:'getDashboard'});
   if(!r.ok){setContent('<div class="empty">Không tải được</div>');return;}
@@ -165,7 +190,7 @@ async function renderDashboard(){
           <span style="font-weight:500">${l.tenLop}</span>
           ${l.canhBaoGiuaKy?`<span class="badge b-warn1" style="animation:pulse 1.5s infinite">Giữa kỳ còn ${l.soNgayConGiuaKy} ngày</span>`:''}
           ${l.canhBaoCuoiKy?`<span class="badge b-warn2" style="animation:pulse 1.5s infinite">Cuối kỳ còn ${l.soNgayConCuoiKy} ngày</span>`:''}
-          <button class="btn btn-sm" onclick="navTo('lophoc')">Xem lớp</button>
+          <button class="btn btn-sm" onclick="openLopDetail('${l.lopId}')">Xem lớp</button>
         </div>`).join('')}
     </div>`:''}
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
@@ -187,6 +212,14 @@ async function renderDashboard(){
       </div>
     </div>
   `);
+
+  }catch(err){
+    console.error('renderDashboard loi:', err);
+    setContent(`<div class="empty" style="padding:40px;text-align:center">
+      Không tải được trang này.<br>
+      <button class="btn btn-primary" style="margin-top:10px" onclick="renderCurrentPage()">Thử tải lại</button>
+    </div>`);
+  }
 }
 async function renderDashboardPH(d){
   const hvList = d.hocVien||[];
@@ -271,6 +304,7 @@ function escapeHtml(s){
 
 // ── LOP HOC ──
 async function renderLopHoc(){
+  try{
   setContent('<div class="empty">Đang tải...</div>');
   const r=await call({action:'getLopList'});
   LOP_DATA=r.ok?r.data:[];
@@ -283,6 +317,14 @@ async function renderLopHoc(){
   setContent(`
     <div class="lop-grid">${LOP_DATA.map(l=>lopCard(l)).join('')}</div>
   `);
+
+  }catch(err){
+    console.error('renderLopHoc loi:', err);
+    setContent(`<div class="empty" style="padding:40px;text-align:center">
+      Không tải được trang này.<br>
+      <button class="btn btn-primary" style="margin-top:10px" onclick="renderCurrentPage()">Thử tải lại</button>
+    </div>`);
+  }
 }
 
 function openModalGuiTinLop(){
@@ -479,6 +521,7 @@ function collectCaHocList(){
 
 // ── HOC VIEN ──
 async function renderHocVien(){
+  try{
   // Tab bar
   const tabBar=document.getElementById('tab-bar');
   tabBar.style.display='';
@@ -493,6 +536,14 @@ async function renderHocVien(){
   if(['admin','giaovien','trogiang'].includes(USER.role)){ btnBulk.style.display=''; btnBulk.onclick=openModalBulkHV; } else { btnBulk.style.display='none'; }
   if(CURRENT_TAB==='list') await renderHVList();
   else await renderHVKanban();
+
+  }catch(err){
+    console.error('renderHocVien loi:', err);
+    setContent(`<div class="empty" style="padding:40px;text-align:center">
+      Không tải được trang này.<br>
+      <button class="btn btn-primary" style="margin-top:10px" onclick="renderCurrentPage()">Thử tải lại</button>
+    </div>`);
+  }
 }
 
 function switchTab(tab){CURRENT_TAB=tab;renderHocVien();}
@@ -794,7 +845,8 @@ function openLopDetail(lopId){
   LOP_DETAIL_ID = lopId;
   LOP_DETAIL_TAB = 'diemdanh';
   CURRENT_PAGE = 'lopdetail';
-  document.getElementById('page-title').textContent = 'Lớp học';
+  const lopObj = LOP_DATA.find(l=>l.lopId===lopId);
+  document.getElementById('page-title').textContent = lopObj ? lopObj.tenLop : 'Lớp học';
   const btnBack=document.getElementById('btn-back');
   btnBack.style.display=''; btnBack.onclick=()=>navTo('lophoc');
   document.getElementById('btn-msg').style.display='none';
@@ -802,10 +854,11 @@ function openLopDetail(lopId){
   document.getElementById('filter-ngay').style.display='none';
   document.getElementById('btn-add').style.display='none';
   document.getElementById('tab-bar').style.display='none';
-  renderLopDetail();
+  renderCurrentPage();
 }
 
 async function renderLopDetail(){
+  try{
   const lop = LOP_DATA.find(l=>l.lopId===LOP_DETAIL_ID);
   if(!lop){ setContent('<div class="empty">Không tìm thấy lớp</div>'); return; }
 
@@ -823,6 +876,14 @@ async function renderLopDetail(){
 
   if(LOP_DETAIL_TAB==='diemdanh') renderTabDiemDanh(lop);
   else renderTabBangDiem(lop);
+
+  }catch(err){
+    console.error('renderLopDetail loi:', err);
+    setContent(`<div class="empty" style="padding:40px;text-align:center">
+      Không tải được trang này.<br>
+      <button class="btn btn-primary" style="margin-top:10px" onclick="renderCurrentPage()">Thử tải lại</button>
+    </div>`);
+  }
 }
 
 function switchLopTab(tab){
@@ -835,6 +896,7 @@ let LOP_DD_DATE = '';
 let LOP_DD_CA = '';
 
 async function renderTabDiemDanh(lop){
+  try{
   const wrap = document.getElementById('lop-detail-content');
   wrap.innerHTML = '<div class="empty">Đang tải...</div>';
 
@@ -871,6 +933,14 @@ async function renderTabDiemDanh(lop){
         <button class="btn btn-primary" style="margin-top:10px" onclick="renderTabDiemDanh(LOP_DATA.find(l=>l.lopId==='${lop.lopId}'))">Thử tải lại</button>
       </div>`;
   });
+
+  }catch(err){
+    console.error('renderTabDiemDanh loi:', err);
+    setContent(`<div class="empty" style="padding:40px;text-align:center">
+      Không tải được trang này.<br>
+      <button class="btn btn-primary" style="margin-top:10px" onclick="renderCurrentPage()">Thử tải lại</button>
+    </div>`);
+  }
 }
 
 // Modal điểm danh nhanh (mở khi bấm nút "Điểm danh hôm nay")
@@ -1566,6 +1636,7 @@ async function deleteBD(recordId){
 
 // ── TAI KHOAN ──
 async function renderTaiKhoan(){
+  try{
   if(USER.role!=='admin'){setContent('<div class="empty"><p>Không có quyền</p></div>');return;}
   setContent('<div class="empty">Đang tải...</div>');
   const r=await call({action:'getTaiKhoanList'});
@@ -1601,6 +1672,14 @@ async function renderTaiKhoan(){
       </table>
     </div>
   `);
+
+  }catch(err){
+    console.error('renderTaiKhoan loi:', err);
+    setContent(`<div class="empty" style="padding:40px;text-align:center">
+      Không tải được trang này.<br>
+      <button class="btn btn-primary" style="margin-top:10px" onclick="renderCurrentPage()">Thử tải lại</button>
+    </div>`);
+  }
 }
 
 // ── DU LIEU TEST ──
