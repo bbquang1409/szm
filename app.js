@@ -858,15 +858,18 @@ async function renderTabDiemDanh(lop){
   // để hàng tên học viên luôn khớp hàng ô điểm danh, không còn lệch nhau.
   wrap.innerHTML = `<div id="lich-tuan-wrap"><div class="empty" style="padding:40px">Đang tải lịch...</div></div>`;
 
-  // Đánh dấu "phiên render" hiện tại — nếu trong lúc đang tải mà hàm này bị gọi lại
-  // (đổi ngày/ca, đổi tab, lưu xong refresh...), kết quả của lần gọi cũ sẽ tự bị bỏ qua
-  // thay vì cố gán vào phần tử đã không còn tồn tại (gây crash "Cannot set properties of null").
-  const myToken = (renderTabDiemDanh._token = (renderTabDiemDanh._token||0)+1);
-
   renderLichTuan(lop, hvList, ngay, caId).then(html=>{
-    if(myToken!==renderTabDiemDanh._token) return; // đã có lần gọi mới hơn, bỏ qua kết quả cũ
-    const target=document.getElementById('lich-tuan-wrap');
-    if(target) target.innerHTML = html;
+    document.getElementById('lich-tuan-wrap').innerHTML = html;
+  }).catch(err=>{
+    // TRUOC DAY: neu renderLichTuan loi (vd 1 trong 7 lenh goi mang cho tung ngay trong tuan bi
+    // truc trac), loi bi "nuot" am tham — khung lich bi ket mai o "Dang tai..." du du lieu da
+    // luu thanh cong that su o server, khien nguoi dung tuong nham la chua luu duoc.
+    console.error(err);
+    document.getElementById('lich-tuan-wrap').innerHTML =
+      `<div class="empty" style="padding:40px;text-align:center">
+        Không tải được lịch điểm danh (dữ liệu vừa lưu vẫn đã được ghi lại bình thường).<br>
+        <button class="btn btn-primary" style="margin-top:10px" onclick="renderTabDiemDanh(LOP_DATA.find(l=>l.lopId==='${lop.lopId}'))">Thử tải lại</button>
+      </div>`;
   });
 }
 
@@ -927,7 +930,7 @@ async function openDiemDanhModal(){
       toast('Đã lưu điểm danh','success');
       const lopObj=LOP_DATA.find(l=>l.lopId===LOP_DETAIL_ID);
       renderTabDiemDanh(lopObj);
-    } else toast(r.error||'Lỗi lưu','error');
+    } else toast('Lỗi lưu','error');
   });
 }
 
@@ -955,7 +958,7 @@ async function saveDD(){
   });
   const r=await call({action:'saveDiemDanh',records});
   if(r.ok){toast('Đã lưu điểm danh','success');renderTabDiemDanh(lop);}
-  else toast(r.error||'Lỗi lưu','error');
+  else toast('Lỗi lưu','error');
 }
 
 // ── LỊCH TUẦN ──
@@ -1048,9 +1051,12 @@ async function renderLichTuan(lop, hvList, selectedNgay, activeCaId){
   });
 
   // Load điểm danh CẢ TUẦN, CẢ CÁC BUỔI cùng lúc (không lọc theo 1 buổi nữa vì giờ hiện tất cả buổi trong cùng 1 ô)
-  const allDDRes = await Promise.all(
+  // Dùng allSettled (không phải all) — nếu 1 ngày trong tuần bị lỗi mạng, chỉ ngày đó thiếu dữ liệu,
+  // 6 ngày còn lại vẫn hiển thị đúng, thay vì cả bảng bị "treo" vì 1 request lẻ tẻ thất bại.
+  const allDDSettled = await Promise.allSettled(
     weekDates.map(ngay=>call({action:'getDiemDanhByLop',lop:lop.tenLop,ngay,caId:''}))
   );
+  const allDDRes = allDDSettled.map(s=>s.status==='fulfilled'?s.value:{ok:false});
   const ddByDateCa={}; // ddByDateCa[ngay][caId][studentId] = trangThai
   weekDates.forEach((ngay,i)=>{
     ddByDateCa[ngay]={};
