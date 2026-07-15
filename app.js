@@ -389,6 +389,8 @@ async function openModalLop(lopId){
   let caHocList = [];
   try{ caHocList = l?.caHoc ? JSON.parse(l.caHoc) : []; }catch(e){ caHocList = []; }
   if(caHocList.length===0) caHocList=[{ten:'',nguoiDay:''}];
+  // TAM THOI: kiem tra chinh xac du lieu buoi hoc server tra ve khi mo lai lop nay de sua
+  if(l) alert('ĐANG MỞ LỚP "'+l.tenLop+'" - dữ liệu caHoc thô từ server:\n'+(l.caHoc||'(rỗng)'));
 
   showModal(l?'Sửa lớp':'Thêm lớp mới',`
     <div class="form-grid2">
@@ -420,6 +422,8 @@ async function openModalLop(lopId){
     <div class="hint">Ngày kiểm tra giữa kỳ sẽ được tính tự động = 50% thời gian lớp học. Cảnh báo sẽ hiện khi còn ≤ 7 ngày. Khi điểm danh, giáo viên/trợ giảng sẽ chọn đúng buổi học đang dạy.</div>
   `,async()=>{
     const caHoc = collectCaHocList();
+    // TAM THOI: kiem tra chinh xac du lieu buoi hoc thu thap duoc TRUOC khi gui di
+    alert('SẮP GỬI ĐI - Các buổi học thu thập được ('+caHoc.length+' buổi):\n'+JSON.stringify(caHoc,null,2));
     const body={tenLop:document.getElementById('f-tenLop').value.trim(),capDo:document.getElementById('f-capDo').value,ngayBatDau:document.getElementById('f-ngayBD').value,ngayKetThuc:document.getElementById('f-ngayKT').value,giaoVienEmail:document.getElementById('f-gv').value,ghiChu:document.getElementById('f-ghiChu').value.trim(),caHoc:JSON.stringify(caHoc)};
     if(!body.tenLop){toast('Nhập tên lớp','error');return;}
     let r;
