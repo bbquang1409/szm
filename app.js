@@ -835,6 +835,30 @@ function switchLopTab(tab){
 let LOP_DD_DATE = '';
 let LOP_DD_CA = '';
 
+// Đếm số buổi học theo lịch (dựa vào caHoc + "thu" mỗi ca) từ ngày bắt đầu tới ngày kết thúc lớp.
+// elapsed = số buổi tính tới hôm nay (kể cả hôm nay nếu có học), total = tổng số buổi cả khóa.
+// Duyệt từng ngày trong khoảng — khóa học thường vài chục tới ~90 ngày nên không nặng.
+function tinhSoBuoi(lop){
+  if(!lop.ngayBatDau || !lop.ngayKetThuc) return {elapsed:0,total:0};
+  let caHocList=[]; try{ caHocList = lop.caHoc?JSON.parse(lop.caHoc):[]; }catch(e){ caHocList=[]; }
+  if(caHocList.length===0) return {elapsed:0,total:0};
+  const thuOrder = ['T2','T3','T4','T5','T6','T7','CN'];
+  const start = new Date(lop.ngayBatDau);
+  const end = new Date(lop.ngayKetThuc);
+  const todayD = new Date(todayStr());
+  let total=0, elapsed=0;
+  for(let d=new Date(start); d<=end; d.setDate(d.getDate()+1)){
+    const thuCode = thuOrder[d.getDay()===0?6:d.getDay()-1];
+    const soCaHomNay = caHocList.filter(ca=>{
+      const thuArr = ca.thu?String(ca.thu).split(',').filter(Boolean):[];
+      return thuArr.length===0 || thuArr.includes(thuCode);
+    }).length;
+    total += soCaHomNay;
+    if(d<=todayD) elapsed += soCaHomNay;
+  }
+  return {elapsed, total};
+}
+
 async function renderTabDiemDanh(lop){
   const wrap = document.getElementById('lop-detail-content');
   wrap.innerHTML = '<div class="empty">Đang tải...</div>';
@@ -1108,6 +1132,7 @@ async function renderLichTuan(lop, hvList, selectedNgay, activeCaId){
   // Thông tin lớp hiển thị to, rõ ở ô trên-trái
   // 3 dòng cố định: Giáo viên chính (từ lop.giaoVienEmail) / Giáo viên bản xứ / Trợ giảng —
   // 2 dòng sau tự gom từ người dạy được gán ở TỪNG buổi (ca.nguoiDay), phân loại theo role tài khoản.
+  const soBuoi = tinhSoBuoi(lop);
   const gvChinh = lop.giaoVienEmail ? ((window.ALL_ACCOUNTS||[]).find(a=>a.email===lop.giaoVienEmail)?.hoTen||lop.giaoVienEmail) : '';
 
   const banXuNames = [], troGiangNames = [];
@@ -1121,7 +1146,7 @@ async function renderLichTuan(lop, hvList, selectedNgay, activeCaId){
 
   const gvChips = [];
   if(gvChinh) gvChips.push({label:'GV chính',name:gvChinh,color:'#1a50a0',bg:'#e8f0fd'});
-  banXuNames.forEach(n=>gvChips.push({label:'Bản xứ',name:n,color:'#0f7a4d',bg:'#e5f7ee'}));
+  banXuNames.forEach(n=>gvChips.push({label:'GV bản xứ',name:n,color:'#0f7a4d',bg:'#e5f7ee'}));
   troGiangNames.forEach(n=>gvChips.push({label:'Trợ giảng',name:n,color:'#946200',bg:'#fdf3e0'}));
 
   const caHocInfoHtml = gvChips.length
@@ -1188,16 +1213,17 @@ async function renderLichTuan(lop, hvList, selectedNgay, activeCaId){
     <div style="display:flex">
       <div style="width:60%;flex-shrink:0;padding:14px 16px;border-right:2px solid #e4ebf5;background:#f8fafd;box-sizing:border-box;display:flex;gap:18px">
         <div style="flex:1;min-width:0">
-          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px">
-            <div style="font-size:19px;font-weight:800;color:#0d2d5e;text-transform:uppercase;white-space:nowrap">Lớp ${lop.tenLop}</div>
+          <div style="font-size:19px;font-weight:800;color:#0d2d5e;text-transform:uppercase;white-space:nowrap;margin-bottom:6px">Lớp ${lop.tenLop}</div>
+          <div style="margin-bottom:10px">
             <span style="font-size:12px;font-weight:700;padding:3px 10px;border-radius:20px;background:${CAP_DO_COLORS[lop.capDo]||'#f0f4fa'};color:${CAP_DO_TEXT[lop.capDo]||'#5a6478'};white-space:nowrap">Trình độ ${lop.capDo||'—'}</span>
           </div>
           ${lop.canhBaoGiuaKy?`<div class="badge b-warn1" style="animation:pulse 1.5s infinite;margin-bottom:6px">Giữa kỳ còn ${lop.soNgayConGiuaKy} ngày</div>`:''}
           ${lop.canhBaoCuoiKy?`<div class="badge b-warn2" style="animation:pulse 1.5s infinite;margin-bottom:6px">Cuối kỳ còn ${lop.soNgayConCuoiKy} ngày</div>`:''}
-          ${lop.ngayBatDau?`<div>
+          ${lop.ngayBatDau?`<div style="margin-bottom:3px">
             <div style="font-size:12px;color:#8a96a8;margin-bottom:2px">📅 Thời gian học</div>
-            <div style="font-size:15px;font-weight:700;color:#1a2236">${fmtDate(lop.ngayBatDau)} – ${fmtDate(lop.ngayKetThuc||'')}</div>
-          </div>`:''}
+            <div style="font-size:15px;font-weight:700;color:#1a2236">${soBuoi.elapsed}/${soBuoi.total} buổi</div>
+          </div>
+          <div style="font-size:12.5px;color:#5a6478">${fmtDate(lop.ngayBatDau)} – ${fmtDate(lop.ngayKetThuc||'')}</div>`:''}
         </div>
         <!-- Mục "Giáo viên" (GV chính/bản xứ/trợ giảng) CHỈ dành cho nội bộ: admin/giáo viên/trợ giảng/quản lý.
              Phụ huynh không cần và không nên thấy — thực tế phụ huynh cũng không vào được trang Lớp học này
@@ -1213,6 +1239,7 @@ async function renderLichTuan(lop, hvList, selectedNgay, activeCaId){
         </div>
       </div>
       <div style="flex:1;padding:14px 16px;box-sizing:border-box;min-width:0">
+        <div style="text-align:center;font-size:14px;font-weight:800;font-style:italic;text-transform:uppercase;color:#3d4c68;margin-bottom:8px">Chú thích điểm danh</div>
         <div style="position:relative">
           <div class="ca-info-bubble" id="ca-info-bubble"></div>
           <div class="ca-badge-row" style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:6px">
