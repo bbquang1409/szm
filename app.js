@@ -1024,6 +1024,7 @@ function hideCaInfoBubble(){
 async function renderLichTuan(lop, hvList, selectedNgay, activeCaId){
   const weekDates = getWeekDates(selectedNgay||todayStr(), LICH_WEEK_OFFSET);
   const thuLabels = ['T2','T3','T4','T5','T6','T7','CN'];
+  const thuLabelsFull = ['Thứ 2','Thứ 3','Thứ 4','Thứ 5','Thứ 6','Thứ 7','Chủ Nhật'];
   const today = todayStr();
   const autoDDBat = lop.tuDongDiemDanh !== 'false'; // mặc định BẬT nếu chưa từng thiết lập (tương thích ngược)
 
@@ -1033,11 +1034,10 @@ async function renderLichTuan(lop, hvList, selectedNgay, activeCaId){
   if(caHocList.length===0) caHocList=[{ten:'Buổi học',nguoiDay:'',thu:''}];
 
   // Với mỗi ngày trong tuần, xác định NHỮNG BUỔI nào thực sự học ngày đó (dựa vào "thu" admin đã gán khi tạo lớp).
-  // - Lớp chỉ có 1 buổi → buổi đó luôn học đủ 7 ngày (không tách ô, giữ như trước).
-  // - Lớp có từ 2 buổi trở lên → buổi nào có khai báo "thu" thì chỉ tính đúng những ngày đó; buổi chưa khai báo "thu"
-  //   thì tạm coi là học tất cả các ngày (an toàn hơn là tự đoán bừa — admin có thể vào sửa lớp để khai báo rõ hơn).
+  // Áp dụng CHUNG cho cả lớp 1 buổi lẫn nhiều buổi: buổi nào có khai báo "thu" thì chỉ tính đúng những ngày đó
+  // (vd lớp học T2-T6 thì T7/CN sẽ tự mờ đi, không điểm danh được); buổi chưa khai báo "thu" thì tạm coi là
+  // học tất cả các ngày (an toàn hơn là tự đoán bừa — admin có thể vào sửa lớp để khai báo rõ hơn).
   const dayCaList = thuLabels.map((t)=>{
-    if(caHocList.length===1) return [caHocList[0]];
     return caHocList.filter(ca=>{
       const thuArr = ca.thu ? String(ca.thu).split(',').filter(Boolean) : [];
       return thuArr.length===0 || thuArr.includes(t);
@@ -1146,7 +1146,7 @@ async function renderLichTuan(lop, hvList, selectedNgay, activeCaId){
       if(casToday.length===0){
         // Không buổi nào học ngày này
         const zebra = dayIdx%2===1 ? 'rgba(58,123,213,.03)' : 'transparent';
-        return `<div style="flex:1;min-width:40px;box-sizing:border-box;height:100%;background:${zebra};border-right:1px solid #eef2f7;background-image:repeating-linear-gradient(45deg,transparent,transparent 4px,#eef2f7 4px,#eef2f7 5px)" title="Không có buổi học nào vào ngày này"></div>`;
+        return `<div style="flex:1;min-width:40px;box-sizing:border-box;height:100%;background:${zebra};border-right:1.5px solid #dde5f0;background-image:repeating-linear-gradient(45deg,transparent,transparent 4px,#e4ebf5 4px,#e4ebf5 5px)" title="Không có buổi học nào vào ngày này"></div>`;
       }
       const boxes = casToday.map((ca,ci)=>{
         const info = cellInfo(hv.studentId, caKey(ca));
@@ -1165,7 +1165,7 @@ async function renderLichTuan(lop, hvList, selectedNgay, activeCaId){
           ${!isFuture?`onmouseover="this.style.filter='brightness(0.93)'" onmouseout="this.style.filter='none'"`:''}>${icon}</div>`;
       }).join('');
       const zebra = dayIdx%2===1 ? 'rgba(58,123,213,.03)' : 'transparent';
-      return `<div style="flex:1;min-width:40px;box-sizing:border-box;height:100%;display:flex;flex-direction:column;background:${zebra};border-right:1px solid #eef2f7">${boxes}</div>`;
+      return `<div style="flex:1;min-width:40px;box-sizing:border-box;height:100%;display:flex;flex-direction:column;background:${zebra};border-right:1.5px solid #dde5f0">${boxes}</div>`;
     }).join('');
     return `<div style="height:${ROW_H}px;box-sizing:border-box;display:flex;border-bottom:1px solid #f0f4fa">${cells}</div>`;
   }).join('');
@@ -1197,7 +1197,7 @@ async function renderLichTuan(lop, hvList, selectedNgay, activeCaId){
           <div style="font-size:13px;font-weight:500;color:#1a2236;line-height:1.7">${caHocInfoHtml}</div>
         </div>
       </div>
-      <div style="flex:1;padding:14px 16px;box-sizing:border-box;min-width:0">
+      <div style="flex:1;padding:14px 16px;box-sizing:border-box;min-width:0;display:flex;flex-direction:column">
         <div style="position:relative">
           <div class="ca-info-bubble" id="ca-info-bubble"></div>
           <div class="ca-badge-row" style="display:flex;gap:8px;margin-bottom:8px">
@@ -1224,7 +1224,7 @@ async function renderLichTuan(lop, hvList, selectedNgay, activeCaId){
             <div style="flex:1;display:flex;align-items:center;gap:6px;padding:8px 10px;border:1.5px solid #e4ebf5;border-radius:9px;background:#fafbfd;font-size:12px;color:#5a6478;white-space:nowrap"><span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#fef3c7;border:1.5px solid #fcd34d;flex-shrink:0"></span><strong>T</strong>&nbsp;Đi trễ >15'</div>
           </div>
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:10px">
+        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:auto;padding-top:10px">
           <button class="btn btn-sm" onclick="changeWeek(-1)" style="border:1.5px solid #e4ebf5;border-radius:9px;padding:10px;height:100%">← Tuần trước</button>
           <div style="border:1.5px solid #e4ebf5;border-radius:9px;padding:10px;background:#fafbfd;text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center">
             <div style="font-size:14px;font-weight:700;color:#0d2d5e">${weekLabel}</div>
@@ -1247,10 +1247,10 @@ async function renderLichTuan(lop, hvList, selectedNgay, activeCaId){
       </div>
       <div style="flex:1;overflow-x:auto">
         <div style="min-width:400px">
-          <div style="height:${HEAD_H}px;box-sizing:border-box;display:flex;background:linear-gradient(180deg,#fafbfd,#f5f8fc);border-bottom:1px solid #e4ebf5">
-            ${thuLabels.map((t,i)=>`<div style="flex:1;min-width:40px;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;justify-content:center;background:${i%2===1?'rgba(58,123,213,.03)':'transparent'};border-right:1px solid #eef2f7">
-              <span style="font-size:11px;font-weight:700;color:${weekDates[i]===today?'#1a50a0':'#8a96a8'}">${t}</span>
-              <span style="font-size:9px;font-weight:400;color:${weekDates[i]===today?'#3a7bd5':'#b0b8c8'}">${weekDates[i].slice(8)}/${weekDates[i].slice(5,7)}</span>
+          <div style="height:${HEAD_H}px;box-sizing:border-box;display:flex;background:#eef3fb;border-bottom:2px solid #c7d4e8">
+            ${thuLabelsFull.map((t,i)=>`<div style="flex:1;min-width:40px;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;justify-content:center;background:${i%2===1?'rgba(58,123,213,.05)':'transparent'};border-right:1.5px solid #c7d4e8">
+              <span style="font-size:12px;font-weight:800;letter-spacing:.2px;color:${weekDates[i]===today?'#1a50a0':'#3d4c68'}">${t}</span>
+              <span style="font-size:9px;font-weight:600;color:${weekDates[i]===today?'#3a7bd5':'#8a96a8'}">${weekDates[i].slice(8)}/${weekDates[i].slice(5,7)}</span>
             </div>`).join('')}
           </div>
           ${calRows}
