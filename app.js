@@ -28,7 +28,11 @@ async function startApp(){
   applyRoleNav();
   await loadLops();
   await refreshAllAccounts();
-  navTo('dashboard');
+  // Nếu người dùng đã lỡ bấm sang trang khác (vd "Lớp học") trong lúc đang tải dữ liệu ở trên,
+  // thì tôn trọng lựa chọn đó — chỉ vẽ lại đúng trang hiện tại với dữ liệu vừa tải xong,
+  // KHÔNG ép quay về Dashboard (trước đây luôn ép về Dashboard, gây "nháy" sai trang khó chịu).
+  if(CURRENT_PAGE==='dashboard') navTo('dashboard');
+  else renderCurrentPage();
 }
 
 // Danh sách tài khoản (dùng để tra tên/vai trò giáo viên-trợ giảng) chỉ tự tải lúc đăng nhập,
@@ -1180,27 +1184,31 @@ async function renderLichTuan(lop, hvList, selectedNgay, activeCaId){
   const weekLabel = `${fmtDate(weekDates[0])} — ${fmtDate(weekDates[6])}`;
 
   return `<div class="table-wrap">
-    <!-- HÀNG TRÊN: 2 cột — (1) thông tin lớp + giáo viên gộp chung, (2) chú thích + trạng thái -->
+    <!-- HÀNG TRÊN: 2 cột — (1) thông tin lớp (chia ngầm 2 nửa: lớp | giáo viên, ko viền), (2) chú thích + trạng thái -->
     <div style="display:flex">
-      <div style="width:66%;flex-shrink:0;padding:14px 16px;border-right:2px solid #e4ebf5;background:#f8fafd;box-sizing:border-box">
-        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px">
-          <div style="font-size:19px;font-weight:800;color:#0d2d5e;text-transform:uppercase;white-space:nowrap">Lớp ${lop.tenLop}</div>
-          <span style="font-size:12px;font-weight:700;padding:3px 10px;border-radius:20px;background:${CAP_DO_COLORS[lop.capDo]||'#f0f4fa'};color:${CAP_DO_TEXT[lop.capDo]||'#5a6478'};white-space:nowrap">Trình độ ${lop.capDo||'—'}</span>
+      <div style="width:60%;flex-shrink:0;padding:14px 16px;border-right:2px solid #e4ebf5;background:#f8fafd;box-sizing:border-box;display:flex;gap:18px">
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+            <div style="font-size:19px;font-weight:800;color:#0d2d5e;text-transform:uppercase;white-space:nowrap">Lớp ${lop.tenLop}</div>
+            <span style="font-size:12px;font-weight:700;padding:3px 10px;border-radius:20px;background:${CAP_DO_COLORS[lop.capDo]||'#f0f4fa'};color:${CAP_DO_TEXT[lop.capDo]||'#5a6478'};white-space:nowrap">Trình độ ${lop.capDo||'—'}</span>
+          </div>
+          ${lop.canhBaoGiuaKy?`<div class="badge b-warn1" style="animation:pulse 1.5s infinite;margin-bottom:6px">Giữa kỳ còn ${lop.soNgayConGiuaKy} ngày</div>`:''}
+          ${lop.canhBaoCuoiKy?`<div class="badge b-warn2" style="animation:pulse 1.5s infinite;margin-bottom:6px">Cuối kỳ còn ${lop.soNgayConCuoiKy} ngày</div>`:''}
+          ${lop.ngayBatDau?`<div>
+            <div style="font-size:12px;color:#8a96a8;margin-bottom:2px">📅 Thời gian học</div>
+            <div style="font-size:15px;font-weight:700;color:#1a2236">${fmtDate(lop.ngayBatDau)} – ${fmtDate(lop.ngayKetThuc||'')}</div>
+          </div>`:''}
         </div>
-        ${lop.canhBaoGiuaKy?`<div class="badge b-warn1" style="animation:pulse 1.5s infinite;margin-bottom:6px">Giữa kỳ còn ${lop.soNgayConGiuaKy} ngày</div>`:''}
-        ${lop.canhBaoCuoiKy?`<div class="badge b-warn2" style="animation:pulse 1.5s infinite;margin-bottom:6px">Cuối kỳ còn ${lop.soNgayConCuoiKy} ngày</div>`:''}
-        ${lop.ngayBatDau?`<div style="margin-bottom:10px">
-          <div style="font-size:12px;color:#8a96a8;margin-bottom:2px">📅 Thời gian học</div>
-          <div style="font-size:15px;font-weight:700;color:#1a2236">${fmtDate(lop.ngayBatDau)} – ${fmtDate(lop.ngayKetThuc||'')}</div>
-        </div>`:''}
         <!-- Mục "Giáo viên" (GV chính/bản xứ/trợ giảng) CHỈ dành cho nội bộ: admin/giáo viên/trợ giảng/quản lý.
              Phụ huynh không cần và không nên thấy — thực tế phụ huynh cũng không vào được trang Lớp học này
-             luôn (bị ẩn hoàn toàn ở applyRoleNav()), nên không cần tự ẩn thêm ở đây. -->
-        <div>
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
+             luôn (bị ẩn hoàn toàn ở applyRoleNav()), nên không cần tự ẩn thêm ở đây.
+             Đặt ngang hàng với "Lớp Kx" bằng cách nằm cùng 1 dòng flex — KHÔNG border-left để không lộ thành 1 ô riêng biệt. -->
+        <div style="flex:1;min-width:0">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;flex-wrap:wrap">
             <span style="font-size:13px;font-weight:800;font-style:italic;text-transform:uppercase;color:#3d4c68">👥 Danh sách giáo viên</span>
             ${USER.role==='admin'?`<button class="btn btn-sm" style="font-style:normal;text-transform:none;font-size:10px;padding:2px 7px" onclick="openModalLop('${lop.lopId}')" title="Thêm/sửa giáo viên chính, giáo viên bản xứ, trợ giảng cho lớp">+ Thêm GV</button>`:''}
           </div>
+
           <div style="line-height:1.4">${caHocInfoHtml}</div>
         </div>
       </div>
