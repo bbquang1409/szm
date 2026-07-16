@@ -1182,7 +1182,7 @@ async function renderLichTuan(lop, hvList, selectedNgay, activeCaId){
   return `<div class="table-wrap">
     <!-- HÀNG TRÊN: bảng 1 = thông tin lớp (trái), chú thích + điều hướng tuần (phải) -->
     <div style="display:flex">
-      <div style="width:${LEFT_W}px;flex-shrink:0;padding:14px 16px;border-right:2px solid #e4ebf5;background:#f8fafd;box-sizing:border-box">
+      <div style="width:66%;flex-shrink:0;padding:14px 16px;border-right:2px solid #e4ebf5;background:#f8fafd;box-sizing:border-box;display:flex;flex-direction:column">
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:nowrap;margin-bottom:10px">
           <div style="font-size:19px;font-weight:800;color:#0d2d5e;text-transform:uppercase;white-space:nowrap">Lớp ${lop.tenLop}</div>
           <span style="font-size:12px;font-weight:700;padding:3px 10px;border-radius:20px;background:${CAP_DO_COLORS[lop.capDo]||'#f0f4fa'};color:${CAP_DO_TEXT[lop.capDo]||'#5a6478'};white-space:nowrap">Trình độ ${lop.capDo||'—'}</span>
@@ -1202,6 +1202,10 @@ async function renderLichTuan(lop, hvList, selectedNgay, activeCaId){
             ${USER.role==='admin'?`<button class="btn btn-sm" style="font-style:normal;text-transform:none;font-size:10px;padding:2px 7px" onclick="openModalLop('${lop.lopId}')" title="Thêm/sửa giáo viên chính, giáo viên bản xứ, trợ giảng cho lớp">+ Thêm GV</button>`:''}
           </div>
           <div style="line-height:1.4">${caHocInfoHtml}</div>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:auto;padding:10px 14px;margin-right:-16px;margin-left:-16px;padding-left:16px;padding-right:16px;border:1.5px solid #e4ebf5;border-bottom:none;border-radius:10px 10px 0 0;background:#eef3fb;box-sizing:border-box;height:44px">
+          <span style="font-size:13px;font-weight:700;font-style:italic;text-transform:uppercase;color:#5a6478">Danh sách lớp</span>
+          ${['admin','giaovien','trogiang'].includes(USER.role)?`<button class="btn btn-sm" style="font-style:normal;text-transform:none;font-size:11px;padding:4px 6px;white-space:nowrap" onclick="openModalHV(null,'${escapeAttr(lop.tenLop)}')">+ Thêm HV</button>`:''}
         </div>
       </div>
       <div style="flex:1;padding:14px 16px 0 16px;box-sizing:border-box;min-width:0;display:flex;flex-direction:column">
@@ -1231,25 +1235,20 @@ async function renderLichTuan(lop, hvList, selectedNgay, activeCaId){
             <div style="flex:1;display:flex;align-items:center;gap:6px;padding:8px 10px;border:1.5px solid #e4ebf5;border-radius:9px;background:#fafbfd;font-size:12px;color:#5a6478;white-space:nowrap"><span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#fef3c7;border:1.5px solid #fcd34d;flex-shrink:0"></span><strong>T</strong>&nbsp;Đi trễ >15'</div>
           </div>
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1.2fr 1fr;gap:10px;margin-top:auto;padding-top:10px">
-          <button class="btn btn-sm" onclick="changeWeek(-1)" style="border:1.5px solid #e4ebf5;border-radius:9px;padding:10px;height:100%">← Tuần trước</button>
-          <div style="border:1.5px solid #c7d4e8;border-bottom:none;border-radius:10px 10px 0 0;padding:9px 10px 12px;background:#eef3fb;text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center">
+        <div style="display:flex;margin-top:auto;padding-top:10px">
+          <button class="btn btn-sm" onclick="changeWeek(-1)" style="flex:1;border:1.5px solid #e4ebf5;border-right:none;border-radius:9px 0 0 9px;padding:10px;height:100%">← Tuần trước</button>
+          <div style="flex:1.2;border:1.5px solid #c7d4e8;border-bottom:none;border-radius:0;padding:9px 10px 12px;background:#eef3fb;text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center">
             <div style="font-size:15px;font-weight:800;color:#0d2d5e">${weekLabel}</div>
             ${LICH_WEEK_OFFSET<0?`<span style="font-size:11px;color:#3a7bd5;cursor:pointer;margin-top:2px" onclick="LICH_WEEK_OFFSET=0;const l=LOP_DATA.find(x=>x.lopId===LOP_DETAIL_ID);renderTabDiemDanh(l)">↺ Về tuần hiện tại</span>`:''}
           </div>
-          <button class="btn btn-sm" onclick="changeWeek(1)" ${LICH_WEEK_OFFSET>=0?'disabled':''} style="border:1.5px solid #e4ebf5;border-radius:9px;padding:10px;height:100%">Tuần sau →</button>
+          <button class="btn btn-sm" onclick="changeWeek(1)" ${LICH_WEEK_OFFSET>=0?'disabled':''} style="flex:1;border:1.5px solid #e4ebf5;border-left:none;border-radius:0 9px 9px 0;padding:10px;height:100%">Tuần sau →</button>
         </div>
       </div>
     </div>
     <!-- HÀNG DƯỚI: bảng 2 = danh sách học viên (trái), bảng 3 = lịch điểm danh (phải) — chiều cao dòng khớp tuyệt đối -->
     <div style="display:flex">
-      <div style="width:${LEFT_W}px;flex-shrink:0;border-right:2px solid #e4ebf5;box-sizing:border-box">
-        <div style="height:${HEAD_H}px;box-sizing:border-box;display:flex;align-items:center;justify-content:space-between;padding:0 6px 0 14px;font-size:13px;font-weight:700;font-style:italic;text-transform:uppercase;color:#5a6478;background:#f5f8fc;border-bottom:1px solid #e4ebf5">
-          <span>Danh sách lớp</span>
-          <div style="display:flex;gap:4px">
-            ${['admin','giaovien','trogiang'].includes(USER.role)?`<button class="btn btn-sm" style="font-style:normal;text-transform:none;font-size:11px;padding:4px 6px;white-space:nowrap" onclick="openModalHV(null,'${escapeAttr(lop.tenLop)}')">+ Thêm HV</button>`:''}
-          </div>
-        </div>
+      <div style="width:66%;flex-shrink:0;border-right:2px solid #e4ebf5;box-sizing:border-box">
+        <div style="height:${HEAD_H}px;box-sizing:border-box;background:#eef3fb;border-bottom:2px solid #c7d4e8"></div>
         ${nameRows}
       </div>
       <div style="flex:1;overflow-x:auto">
