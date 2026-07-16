@@ -1138,7 +1138,7 @@ async function renderLichTuan(lop, hvList, selectedNgay, activeCaId){
     const worst = perCa.find(info=>info.streak>=3||info.over10pct) || perCa[0];
     const alertTip = worst?.over10pct ? `Nghỉ ${Math.round(worst.tongVang/(worst.tong||1)*100)}% tổng buổi` : `Nghỉ ${worst?.streak||0} buổi liên tiếp`;
     const rowBg = hi%2===1 ? '#f5f8fc' : '#ffffff';
-    return `<div style="height:${ROW_H}px;box-sizing:border-box;display:flex;align-items:center;gap:8px;padding:0 14px;border-bottom:1px solid #f0f4fa;background:${rowBg};overflow:hidden">
+    return `<div style="height:${ROW_H}px;box-sizing:border-box;display:flex;align-items:center;gap:8px;padding:0 14px;border-bottom:1.5px solid #d8e0ec;background:${rowBg};overflow:hidden">
       <div style="font-size:13px;font-weight:500;color:#1a2236;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${escapeAttr(hv.hoTen)}">${hv.hoTen}</div>
       ${hasAlert?`<button class="btn btn-sm" style="font-size:9px;padding:2px 5px;margin-left:auto;flex-shrink:0;background:#fee2e2;border-color:#fca5a5;color:#991b1b"
         onclick="promptGuiTinNghiNhieu('${hv.studentId}','${escapeAttr(hv.hoTen)}')" title="${alertTip}">⚠</button>`:''}
@@ -1174,35 +1174,35 @@ async function renderLichTuan(lop, hvList, selectedNgay, activeCaId){
       }).join('');
       return `<div style="flex:1;min-width:40px;box-sizing:border-box;height:100%;display:flex;flex-direction:column;background:${rowBg};border-right:1.5px solid #dde5f0">${boxes}</div>`;
     }).join('');
-    return `<div style="height:${ROW_H}px;box-sizing:border-box;display:flex;border-bottom:1px solid #f0f4fa">${cells}</div>`;
+    return `<div style="height:${ROW_H}px;box-sizing:border-box;display:flex;border-bottom:1.5px solid #d8e0ec">${cells}</div>`;
   }).join('');
 
   const weekLabel = `${fmtDate(weekDates[0])} — ${fmtDate(weekDates[6])}`;
 
   return `<div class="table-wrap">
-    <!-- HÀNG TRÊN: bảng 1 = thông tin lớp (trái), chú thích + điều hướng tuần (phải) -->
+    <!-- HÀNG TRÊN: 3 cột bằng nhau — (1) thông tin lớp, (2) danh sách giáo viên, (3) chú thích + trạng thái -->
     <div style="display:flex">
-      <div style="width:60%;flex-shrink:0;padding:14px 16px;border-right:2px solid #e4ebf5;background:#f8fafd;box-sizing:border-box;display:flex;flex-direction:column">
-        <div style="display:flex;align-items:center;gap:8px;flex-wrap:nowrap;margin-bottom:10px">
+      <div style="flex:1;padding:14px 16px;border-right:2px solid #e4ebf5;background:#f8fafd;box-sizing:border-box;min-width:0">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px">
           <div style="font-size:19px;font-weight:800;color:#0d2d5e;text-transform:uppercase;white-space:nowrap">Lớp ${lop.tenLop}</div>
           <span style="font-size:12px;font-weight:700;padding:3px 10px;border-radius:20px;background:${CAP_DO_COLORS[lop.capDo]||'#f0f4fa'};color:${CAP_DO_TEXT[lop.capDo]||'#5a6478'};white-space:nowrap">Trình độ ${lop.capDo||'—'}</span>
         </div>
         ${lop.canhBaoGiuaKy?`<div class="badge b-warn1" style="animation:pulse 1.5s infinite;margin-bottom:6px">Giữa kỳ còn ${lop.soNgayConGiuaKy} ngày</div>`:''}
         ${lop.canhBaoCuoiKy?`<div class="badge b-warn2" style="animation:pulse 1.5s infinite;margin-bottom:6px">Cuối kỳ còn ${lop.soNgayConCuoiKy} ngày</div>`:''}
-        ${lop.ngayBatDau?`<div style="margin-bottom:10px">
+        ${lop.ngayBatDau?`<div>
           <div style="font-size:12px;color:#8a96a8;margin-bottom:2px">📅 Thời gian học</div>
           <div style="font-size:15px;font-weight:700;color:#1a2236">${fmtDate(lop.ngayBatDau)} – ${fmtDate(lop.ngayKetThuc||'')}</div>
         </div>`:''}
-        <!-- Mục "Giáo viên" (GV chính/bản xứ/trợ giảng) CHỈ dành cho nội bộ: admin/giáo viên/trợ giảng/quản lý.
-             Phụ huynh không cần và không nên thấy — thực tế phụ huynh cũng không vào được trang Lớp học này
-             luôn (bị ẩn hoàn toàn ở applyRoleNav()), nên không cần tự ẩn thêm ở đây. -->
-        <div>
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px">
-            <span style="font-size:13px;font-weight:700;font-style:italic;text-transform:uppercase;color:#5a6478">👥 Giáo viên</span>
-            ${USER.role==='admin'?`<button class="btn btn-sm" style="font-style:normal;text-transform:none;font-size:10px;padding:2px 7px" onclick="openModalLop('${lop.lopId}')" title="Thêm/sửa giáo viên chính, giáo viên bản xứ, trợ giảng cho lớp">+ Thêm GV</button>`:''}
-          </div>
-          <div style="line-height:1.4">${caHocInfoHtml}</div>
+      </div>
+      <!-- Mục "Giáo viên" (GV chính/bản xứ/trợ giảng) CHỈ dành cho nội bộ: admin/giáo viên/trợ giảng/quản lý.
+           Phụ huynh không cần và không nên thấy — thực tế phụ huynh cũng không vào được trang Lớp học này
+           luôn (bị ẩn hoàn toàn ở applyRoleNav()), nên không cần tự ẩn thêm ở đây. -->
+      <div style="flex:1;padding:14px 16px;border-right:2px solid #e4ebf5;background:#f8fafd;box-sizing:border-box;min-width:0">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+          <span style="font-size:14px;font-weight:800;font-style:italic;text-transform:uppercase;color:#3d4c68">👥 Danh sách giáo viên</span>
+          ${USER.role==='admin'?`<button class="btn btn-sm" style="font-style:normal;text-transform:none;font-size:10px;padding:2px 7px" onclick="openModalLop('${lop.lopId}')" title="Thêm/sửa giáo viên chính, giáo viên bản xứ, trợ giảng cho lớp">+ Thêm GV</button>`:''}
         </div>
+        <div style="line-height:1.4">${caHocInfoHtml}</div>
       </div>
       <div style="flex:1;padding:14px 16px;box-sizing:border-box;min-width:0">
         <div style="position:relative">
@@ -1236,7 +1236,7 @@ async function renderLichTuan(lop, hvList, selectedNgay, activeCaId){
     <!-- BAND GIỮA: "Danh sách lớp" (trái, 1/3) đi ngang hàng với thanh điều hướng tuần (phải, 2/3) — tỉ lệ khớp với band dưới -->
     <div style="display:flex;border-top:2px solid #e4ebf5">
       <div style="width:34%;flex-shrink:0;display:flex;align-items:center;justify-content:space-between;padding:6px 16px;background:#f5f8fc;border-right:2px solid #e4ebf5;box-sizing:border-box">
-        <span style="font-size:16px;font-weight:800;font-style:italic;text-transform:uppercase;color:#3d4c68">Danh sách lớp</span>
+        <span style="font-size:16px;font-weight:800;font-style:italic;text-transform:uppercase;color:#3d4c68">Danh sách học viên</span>
         ${['admin','giaovien','trogiang'].includes(USER.role)?`<button class="btn btn-sm" style="font-style:normal;text-transform:none;font-size:11px;padding:4px 6px;white-space:nowrap" onclick="openModalHV(null,'${escapeAttr(lop.tenLop)}')">+ Thêm HV</button>`:''}
       </div>
       <div style="flex:1;padding:6px 16px;box-sizing:border-box;min-width:0">
