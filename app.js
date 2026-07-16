@@ -1203,16 +1203,12 @@ async function renderLichTuan(lop, hvList, selectedNgay, activeCaId){
           </div>
           <div style="line-height:1.4">${caHocInfoHtml}</div>
         </div>
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-top:auto;padding:10px 14px;margin-right:-16px;margin-left:-16px;padding-left:16px;padding-right:16px;border:1.5px solid #e4ebf5;border-bottom:none;border-radius:10px 10px 0 0;background:#eef3fb;box-sizing:border-box;height:44px">
-          <span style="font-size:13px;font-weight:700;font-style:italic;text-transform:uppercase;color:#5a6478">Danh sách lớp</span>
-          ${['admin','giaovien','trogiang'].includes(USER.role)?`<button class="btn btn-sm" style="font-style:normal;text-transform:none;font-size:11px;padding:4px 6px;white-space:nowrap" onclick="openModalHV(null,'${escapeAttr(lop.tenLop)}')">+ Thêm HV</button>`:''}
-        </div>
       </div>
-      <div style="flex:1;padding:14px 16px 0 16px;box-sizing:border-box;min-width:0;display:flex;flex-direction:column">
+      <div style="flex:1;padding:14px 16px;box-sizing:border-box;min-width:0">
         <div style="position:relative">
           <div class="ca-info-bubble" id="ca-info-bubble"></div>
-          <div class="ca-badge-row" style="display:flex;gap:8px;margin-bottom:8px">
-            <div data-ca-badge style="flex:1;display:flex;align-items:center;gap:6px;padding:8px 10px;border:1.5px solid ${autoDDBat?'#86efac':'#d1d8e0'};border-radius:9px;background:#fafbfd;font-size:12px;color:#5a6478;white-space:nowrap;transition:background .15s${autoDDBat?';--pulse-color:rgba(134,239,172,.55);animation:alertPing 1.8s infinite':''}" onmouseover="this.style.background='${autoDDBat?'#f0fdf4':'#f5f8fc'}'" onmouseout="this.style.background='#fafbfd'">
+          <div class="ca-badge-row" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px">
+            <div data-ca-badge style="flex:1;min-width:150px;display:flex;align-items:center;gap:6px;padding:8px 10px;border:1.5px solid ${autoDDBat?'#86efac':'#d1d8e0'};border-radius:9px;background:#fafbfd;font-size:12px;color:#5a6478;white-space:nowrap;transition:background .15s${autoDDBat?';--pulse-color:rgba(134,239,172,.55);animation:alertPing 1.8s infinite':''}" onmouseover="this.style.background='${autoDDBat?'#f0fdf4':'#f5f8fc'}'" onmouseout="this.style.background='#fafbfd'">
               <span onclick="showCaInfoBubble('auto',event)" style="display:flex;align-items:center;gap:6px;cursor:pointer;flex:1;min-width:0;overflow:hidden">
                 <span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:${autoDDBat?'#dcfce7':'#eef2f7'};border:1.5px solid ${autoDDBat?'#86efac':'#cbd5e1'};flex-shrink:0"></span>
                 <span style="overflow:hidden;text-overflow:ellipsis">Tự động điểm danh</span>
@@ -1222,22 +1218,31 @@ async function renderLichTuan(lop, hvList, selectedNgay, activeCaId){
               </span>`:''}
               <span onclick="showCaInfoBubble('auto',event)" style="cursor:pointer;color:${autoDDBat?'#86efac':'#cbd5e1'};font-weight:700;flex-shrink:0">ⓘ</span>
             </div>
-            <div data-ca-badge onclick="showCaInfoBubble('alert',event)" style="flex:1;display:flex;align-items:center;gap:6px;padding:8px 10px;border:1.5px solid #fca5a5;border-radius:9px;background:#fafbfd;font-size:12px;color:#5a6478;white-space:nowrap;cursor:pointer;transition:background .15s;--pulse-color:rgba(252,165,165,.55);animation:alertPing 1.8s infinite .3s" onmouseover="this.style.background='#fef2f2'" onmouseout="this.style.background='#fafbfd'">
+            <div data-ca-badge onclick="showCaInfoBubble('alert',event)" style="flex:1;min-width:150px;display:flex;align-items:center;gap:6px;padding:8px 10px;border:1.5px solid #fca5a5;border-radius:9px;background:#fafbfd;font-size:12px;color:#5a6478;white-space:nowrap;cursor:pointer;transition:background .15s;--pulse-color:rgba(252,165,165,.55);animation:alertPing 1.8s infinite .3s" onmouseover="this.style.background='#fef2f2'" onmouseout="this.style.background='#fafbfd'">
               <span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#fee2e2;border:1.5px solid #fca5a5;flex-shrink:0"></span>Cảnh báo<span style="margin-left:auto;color:#fca5a5;font-weight:700;flex-shrink:0">ⓘ</span>
             </div>
-            <div data-ca-badge onclick="showCaInfoBubble('split',event)" style="flex:1;display:flex;align-items:center;gap:6px;padding:8px 10px;border:1.5px solid #93c5fd;border-radius:9px;background:#fafbfd;font-size:12px;color:#5a6478;white-space:nowrap;cursor:pointer;transition:background .15s;--pulse-color:rgba(147,197,253,.55);animation:alertPing 1.8s infinite .6s" onmouseover="this.style.background='#eff6ff'" onmouseout="this.style.background='#fafbfd'">
+            <div data-ca-badge onclick="showCaInfoBubble('split',event)" style="flex:1;min-width:150px;display:flex;align-items:center;gap:6px;padding:8px 10px;border:1.5px solid #93c5fd;border-radius:9px;background:#fafbfd;font-size:12px;color:#5a6478;white-space:nowrap;cursor:pointer;transition:background .15s;--pulse-color:rgba(147,197,253,.55);animation:alertPing 1.8s infinite .6s" onmouseover="this.style.background='#eff6ff'" onmouseout="this.style.background='#fafbfd'">
               <span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#dbeafe;border:1.5px solid #93c5fd;flex-shrink:0"></span>Điểm danh theo buổi<span style="margin-left:auto;color:#93c5fd;font-weight:700;flex-shrink:0">ⓘ</span>
             </div>
           </div>
-          <div style="display:flex;gap:8px">
-            <div style="flex:1;display:flex;align-items:center;gap:6px;padding:8px 10px;border:1.5px solid #e4ebf5;border-radius:9px;background:#fafbfd;font-size:12px;color:#5a6478;white-space:nowrap"><span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#dbeafe;border:1.5px solid #93c5fd;flex-shrink:0"></span><strong>P</strong>&nbsp;Nghỉ có phép</div>
-            <div style="flex:1;display:flex;align-items:center;gap:6px;padding:8px 10px;border:1.5px solid #e4ebf5;border-radius:9px;background:#fafbfd;font-size:12px;color:#5a6478;white-space:nowrap"><span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#fed7aa;border:1.5px solid #f97316;flex-shrink:0"></span><strong>K</strong>&nbsp;Nghỉ không phép</div>
-            <div style="flex:1;display:flex;align-items:center;gap:6px;padding:8px 10px;border:1.5px solid #e4ebf5;border-radius:9px;background:#fafbfd;font-size:12px;color:#5a6478;white-space:nowrap"><span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#fef3c7;border:1.5px solid #fcd34d;flex-shrink:0"></span><strong>T</strong>&nbsp;Đi trễ >15'</div>
+          <div style="display:flex;flex-wrap:wrap;gap:8px">
+            <div style="flex:1;min-width:150px;display:flex;align-items:center;gap:6px;padding:8px 10px;border:1.5px solid #e4ebf5;border-radius:9px;background:#fafbfd;font-size:12px;color:#5a6478;white-space:nowrap"><span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#dbeafe;border:1.5px solid #93c5fd;flex-shrink:0"></span><strong>P</strong>&nbsp;Nghỉ có phép</div>
+            <div style="flex:1;min-width:150px;display:flex;align-items:center;gap:6px;padding:8px 10px;border:1.5px solid #e4ebf5;border-radius:9px;background:#fafbfd;font-size:12px;color:#5a6478;white-space:nowrap"><span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#fed7aa;border:1.5px solid #f97316;flex-shrink:0"></span><strong>K</strong>&nbsp;Nghỉ không phép</div>
+            <div style="flex:1;min-width:150px;display:flex;align-items:center;gap:6px;padding:8px 10px;border:1.5px solid #e4ebf5;border-radius:9px;background:#fafbfd;font-size:12px;color:#5a6478;white-space:nowrap"><span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#fef3c7;border:1.5px solid #fcd34d;flex-shrink:0"></span><strong>T</strong>&nbsp;Đi trễ >15'</div>
           </div>
         </div>
-        <div style="display:flex;margin-top:auto;padding-top:10px">
+      </div>
+    </div>
+    <!-- BAND GIỮA: "Danh sách lớp" (trái, 1/3) đi ngang hàng với thanh điều hướng tuần (phải, 2/3) — tỉ lệ khớp với band dưới -->
+    <div style="display:flex;border-top:2px solid #e4ebf5">
+      <div style="width:34%;flex-shrink:0;display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:#f5f8fc;border-right:2px solid #e4ebf5;box-sizing:border-box">
+        <span style="font-size:13px;font-weight:700;font-style:italic;text-transform:uppercase;color:#5a6478">Danh sách lớp</span>
+        ${['admin','giaovien','trogiang'].includes(USER.role)?`<button class="btn btn-sm" style="font-style:normal;text-transform:none;font-size:11px;padding:4px 6px;white-space:nowrap" onclick="openModalHV(null,'${escapeAttr(lop.tenLop)}')">+ Thêm HV</button>`:''}
+      </div>
+      <div style="flex:1;padding:10px 16px;box-sizing:border-box;min-width:0">
+        <div style="display:flex">
           <button class="btn btn-sm" onclick="changeWeek(-1)" style="flex:1;border:1.5px solid #e4ebf5;border-right:none;border-radius:9px 0 0 9px;padding:10px;height:100%">← Tuần trước</button>
-          <div style="flex:1.2;border:1.5px solid #c7d4e8;border-bottom:none;border-radius:0;padding:9px 10px 12px;background:#eef3fb;text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center">
+          <div style="flex:1.2;border:1.5px solid #c7d4e8;border-bottom:none;padding:9px 10px 12px;background:#eef3fb;text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center">
             <div style="font-size:15px;font-weight:800;color:#0d2d5e">${weekLabel}</div>
             ${LICH_WEEK_OFFSET<0?`<span style="font-size:11px;color:#3a7bd5;cursor:pointer;margin-top:2px" onclick="LICH_WEEK_OFFSET=0;const l=LOP_DATA.find(x=>x.lopId===LOP_DETAIL_ID);renderTabDiemDanh(l)">↺ Về tuần hiện tại</span>`:''}
           </div>
@@ -1245,9 +1250,9 @@ async function renderLichTuan(lop, hvList, selectedNgay, activeCaId){
         </div>
       </div>
     </div>
-    <!-- HÀNG DƯỚI: bảng 2 = danh sách học viên (trái), bảng 3 = lịch điểm danh (phải) — chiều cao dòng khớp tuyệt đối -->
+    <!-- BAND DƯỚI: danh sách học viên (trái, 1/3) + lịch điểm danh (phải, 2/3) — tỉ lệ khớp band giữa -->
     <div style="display:flex">
-      <div style="width:66%;flex-shrink:0;border-right:2px solid #e4ebf5;box-sizing:border-box">
+      <div style="width:34%;flex-shrink:0;border-right:2px solid #e4ebf5;box-sizing:border-box">
         <div style="height:${HEAD_H}px;box-sizing:border-box;background:#eef3fb;border-bottom:2px solid #c7d4e8"></div>
         ${nameRows}
       </div>
