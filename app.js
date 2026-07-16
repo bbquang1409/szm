@@ -1180,29 +1180,29 @@ async function renderLichTuan(lop, hvList, selectedNgay, activeCaId){
   const weekLabel = `${fmtDate(weekDates[0])} — ${fmtDate(weekDates[6])}`;
 
   return `<div class="table-wrap">
-    <!-- HÀNG TRÊN: 3 cột bằng nhau — (1) thông tin lớp, (2) danh sách giáo viên, (3) chú thích + trạng thái -->
+    <!-- HÀNG TRÊN: 2 cột — (1) thông tin lớp + giáo viên gộp chung, (2) chú thích + trạng thái -->
     <div style="display:flex">
-      <div style="flex:1;padding:14px 16px;border-right:2px solid #e4ebf5;background:#f8fafd;box-sizing:border-box;min-width:0">
+      <div style="width:66%;flex-shrink:0;padding:14px 16px;border-right:2px solid #e4ebf5;background:#f8fafd;box-sizing:border-box">
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:10px">
           <div style="font-size:19px;font-weight:800;color:#0d2d5e;text-transform:uppercase;white-space:nowrap">Lớp ${lop.tenLop}</div>
           <span style="font-size:12px;font-weight:700;padding:3px 10px;border-radius:20px;background:${CAP_DO_COLORS[lop.capDo]||'#f0f4fa'};color:${CAP_DO_TEXT[lop.capDo]||'#5a6478'};white-space:nowrap">Trình độ ${lop.capDo||'—'}</span>
         </div>
         ${lop.canhBaoGiuaKy?`<div class="badge b-warn1" style="animation:pulse 1.5s infinite;margin-bottom:6px">Giữa kỳ còn ${lop.soNgayConGiuaKy} ngày</div>`:''}
         ${lop.canhBaoCuoiKy?`<div class="badge b-warn2" style="animation:pulse 1.5s infinite;margin-bottom:6px">Cuối kỳ còn ${lop.soNgayConCuoiKy} ngày</div>`:''}
-        ${lop.ngayBatDau?`<div>
+        ${lop.ngayBatDau?`<div style="margin-bottom:10px">
           <div style="font-size:12px;color:#8a96a8;margin-bottom:2px">📅 Thời gian học</div>
           <div style="font-size:15px;font-weight:700;color:#1a2236">${fmtDate(lop.ngayBatDau)} – ${fmtDate(lop.ngayKetThuc||'')}</div>
         </div>`:''}
-      </div>
-      <!-- Mục "Giáo viên" (GV chính/bản xứ/trợ giảng) CHỈ dành cho nội bộ: admin/giáo viên/trợ giảng/quản lý.
-           Phụ huynh không cần và không nên thấy — thực tế phụ huynh cũng không vào được trang Lớp học này
-           luôn (bị ẩn hoàn toàn ở applyRoleNav()), nên không cần tự ẩn thêm ở đây. -->
-      <div style="flex:1;padding:14px 16px;border-right:2px solid #e4ebf5;background:#f8fafd;box-sizing:border-box;min-width:0">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-          <span style="font-size:14px;font-weight:800;font-style:italic;text-transform:uppercase;color:#3d4c68">👥 Danh sách giáo viên</span>
-          ${USER.role==='admin'?`<button class="btn btn-sm" style="font-style:normal;text-transform:none;font-size:10px;padding:2px 7px" onclick="openModalLop('${lop.lopId}')" title="Thêm/sửa giáo viên chính, giáo viên bản xứ, trợ giảng cho lớp">+ Thêm GV</button>`:''}
+        <!-- Mục "Giáo viên" (GV chính/bản xứ/trợ giảng) CHỈ dành cho nội bộ: admin/giáo viên/trợ giảng/quản lý.
+             Phụ huynh không cần và không nên thấy — thực tế phụ huynh cũng không vào được trang Lớp học này
+             luôn (bị ẩn hoàn toàn ở applyRoleNav()), nên không cần tự ẩn thêm ở đây. -->
+        <div>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px">
+            <span style="font-size:13px;font-weight:800;font-style:italic;text-transform:uppercase;color:#3d4c68">👥 Danh sách giáo viên</span>
+            ${USER.role==='admin'?`<button class="btn btn-sm" style="font-style:normal;text-transform:none;font-size:10px;padding:2px 7px" onclick="openModalLop('${lop.lopId}')" title="Thêm/sửa giáo viên chính, giáo viên bản xứ, trợ giảng cho lớp">+ Thêm GV</button>`:''}
+          </div>
+          <div style="line-height:1.4">${caHocInfoHtml}</div>
         </div>
-        <div style="line-height:1.4">${caHocInfoHtml}</div>
       </div>
       <div style="flex:1;padding:14px 16px;box-sizing:border-box;min-width:0">
         <div style="position:relative">
@@ -1233,37 +1233,40 @@ async function renderLichTuan(lop, hvList, selectedNgay, activeCaId){
         </div>
       </div>
     </div>
-    <!-- BAND GIỮA: "Danh sách lớp" (trái, 1/3) đi ngang hàng với thanh điều hướng tuần (phải, 2/3) — tỉ lệ khớp với band dưới -->
+    <!-- BAND GIỮA: gộp "Danh sách học viên" (trái) thành 1 ô duy nhất, căn giữa, cao bằng [nút tuần + hàng Thứ] bên phải cộng lại -->
     <div style="display:flex;border-top:2px solid #e4ebf5">
-      <div style="width:34%;flex-shrink:0;display:flex;align-items:center;justify-content:space-between;padding:6px 16px;background:#f5f8fc;border-right:2px solid #e4ebf5;box-sizing:border-box">
+      <div style="width:34%;flex-shrink:0;display:flex;align-items:center;justify-content:center;gap:10px;padding:6px 16px;background:#f5f8fc;border-right:2px solid #e4ebf5;box-sizing:border-box;text-align:center">
         <span style="font-size:16px;font-weight:800;font-style:italic;text-transform:uppercase;color:#3d4c68">Danh sách học viên</span>
         ${['admin','giaovien','trogiang'].includes(USER.role)?`<button class="btn btn-sm" style="font-style:normal;text-transform:none;font-size:11px;padding:4px 6px;white-space:nowrap" onclick="openModalHV(null,'${escapeAttr(lop.tenLop)}')">+ Thêm HV</button>`:''}
       </div>
-      <div style="flex:1;padding:6px 16px;box-sizing:border-box;min-width:0">
-        <div style="display:flex">
-          <button class="btn btn-sm" onclick="changeWeek(-1)" style="flex:1;border:1.5px solid #e4ebf5;border-right:none;border-radius:9px 0 0 9px;padding:8px;height:100%">← Tuần trước</button>
-          <div style="flex:1.2;border:1.5px solid #c7d4e8;border-bottom:none;padding:6px 10px 8px;background:#eef3fb;text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center">
-            <div style="font-size:15px;font-weight:800;color:#0d2d5e">${weekLabel}</div>
-            ${LICH_WEEK_OFFSET<0?`<span style="font-size:11px;color:#3a7bd5;cursor:pointer;margin-top:2px" onclick="LICH_WEEK_OFFSET=0;const l=LOP_DATA.find(x=>x.lopId===LOP_DETAIL_ID);renderTabDiemDanh(l)">↺ Về tuần hiện tại</span>`:''}
+      <div style="flex:1;box-sizing:border-box;min-width:0">
+        <div style="padding:6px 16px">
+          <div style="display:flex">
+            <button class="btn btn-sm" onclick="changeWeek(-1)" style="flex:1;border:1.5px solid #e4ebf5;border-right:none;border-radius:9px 0 0 9px;padding:8px;height:100%">← Tuần trước</button>
+            <div style="flex:1.2;border:1.5px solid #c7d4e8;border-bottom:none;padding:6px 10px 8px;background:#eef3fb;text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center">
+              <div style="font-size:15px;font-weight:800;color:#0d2d5e">${weekLabel}</div>
+              ${LICH_WEEK_OFFSET<0?`<span style="font-size:11px;color:#3a7bd5;cursor:pointer;margin-top:2px" onclick="LICH_WEEK_OFFSET=0;const l=LOP_DATA.find(x=>x.lopId===LOP_DETAIL_ID);renderTabDiemDanh(l)">↺ Về tuần hiện tại</span>`:''}
+            </div>
+            <button class="btn btn-sm" onclick="changeWeek(1)" ${LICH_WEEK_OFFSET>=0?'disabled':''} style="flex:1;border:1.5px solid #e4ebf5;border-left:none;border-radius:0 9px 9px 0;padding:8px;height:100%">Tuần sau →</button>
           </div>
-          <button class="btn btn-sm" onclick="changeWeek(1)" ${LICH_WEEK_OFFSET>=0?'disabled':''} style="flex:1;border:1.5px solid #e4ebf5;border-left:none;border-radius:0 9px 9px 0;padding:8px;height:100%">Tuần sau →</button>
+        </div>
+        <div id="lich-head-scroll" style="overflow-x:hidden">
+          <div style="min-width:400px;height:${HEAD_H}px;box-sizing:border-box;display:flex;background:#eef3fb;border-bottom:2px solid #c7d4e8">
+            ${thuLabelsFull.map((t,i)=>`<div style="flex:1;min-width:40px;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;justify-content:center;border-right:1.5px solid #c7d4e8">
+              <span style="font-size:13.5px;font-weight:800;letter-spacing:.2px;color:${weekDates[i]===today?'#1a50a0':'#3d4c68'}">${t}</span>
+              <span style="font-size:10px;font-weight:600;color:${weekDates[i]===today?'#3a7bd5':'#8a96a8'}">${weekDates[i].slice(8)}/${weekDates[i].slice(5,7)}</span>
+            </div>`).join('')}
+          </div>
         </div>
       </div>
     </div>
     <!-- BAND DƯỚI: danh sách học viên (trái, 1/3) + lịch điểm danh (phải, 2/3) — tỉ lệ khớp band giữa -->
     <div style="display:flex">
       <div style="width:34%;flex-shrink:0;border-right:2px solid #e4ebf5;box-sizing:border-box">
-        <div style="height:${HEAD_H}px;box-sizing:border-box;background:#eef3fb;border-bottom:2px solid #c7d4e8"></div>
         ${nameRows}
       </div>
-      <div style="flex:1;overflow-x:auto">
+      <div id="lich-body-scroll" style="flex:1;overflow-x:auto" onscroll="document.getElementById('lich-head-scroll').scrollLeft=this.scrollLeft">
         <div style="min-width:400px">
-          <div style="height:${HEAD_H}px;box-sizing:border-box;display:flex;background:#eef3fb;border-bottom:2px solid #c7d4e8">
-            ${thuLabelsFull.map((t,i)=>`<div style="flex:1;min-width:40px;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;justify-content:center;border-right:1.5px solid #c7d4e8">
-              <span style="font-size:13.5px;font-weight:800;letter-spacing:.2px;color:${weekDates[i]===today?'#1a50a0':'#3d4c68'}">${t}</span>
-              <span style="font-size:10px;font-weight:600;color:${weekDates[i]===today?'#3a7bd5':'#8a96a8'}">${weekDates[i].slice(8)}/${weekDates[i].slice(5,7)}</span>
-            </div>`).join('')}
-          </div>
           ${calRows}
         </div>
       </div>
