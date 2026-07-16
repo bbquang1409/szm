@@ -1115,22 +1115,30 @@ async function renderLichTuan(lop, hvList, selectedNgay, activeCaId){
     else { if(!banXuNames.includes(nguoi)) banXuNames.push(nguoi); }
   });
 
-  const caHocInfoHtml = `
-    <div>Giáo viên chính: ${gvChinh?`<strong>${gvChinh}</strong>`:'<span style="color:#b0b8c8;font-weight:400">—</span>'}</div>
-    <div>Giáo viên bản xứ: ${banXuNames.length?`<strong>${banXuNames.join(', ')}</strong>`:'<span style="color:#b0b8c8;font-weight:400">—</span>'}</div>
-    <div>Trợ giảng: ${troGiangNames.length?`<strong>${troGiangNames.join(', ')}</strong>`:'<span style="color:#b0b8c8;font-weight:400">—</span>'}</div>
-  `;
+  const gvChips = [];
+  if(gvChinh) gvChips.push({label:'GV chính',name:gvChinh,color:'#1a50a0',bg:'#e8f0fd'});
+  banXuNames.forEach(n=>gvChips.push({label:'Bản xứ',name:n,color:'#0f7a4d',bg:'#e5f7ee'}));
+  troGiangNames.forEach(n=>gvChips.push({label:'Trợ giảng',name:n,color:'#946200',bg:'#fdf3e0'}));
 
-  const ROW_H = 44, HEAD_H = 38, LEFT_W = 270; // chiều cao/rộng cố định — dùng chung cho các cột để luôn khớp nhau
+  const caHocInfoHtml = gvChips.length
+    ? `<div style="display:flex;flex-wrap:wrap;gap:5px">${gvChips.map(c=>
+        `<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:20px;background:${c.bg};font-size:11.5px;white-space:nowrap">
+          <span style="color:${c.color};font-weight:600;opacity:.85">${c.label}:</span>
+          <span style="color:#1a2236;font-weight:700">${c.name}</span>
+        </span>`).join('')}</div>`
+    : `<span style="font-size:12.5px;color:#b0b8c8">Chưa gán giáo viên</span>`;
+
+  const ROW_H = 46, HEAD_H = 42, LEFT_W = 270; // chiều cao/rộng cố định — dùng chung cho các cột để luôn khớp nhau
 
   // Cột trái: danh sách học viên (chỉ ghi tên, bỏ avatar tròn — không có ý nghĩa)
   // Cảnh báo ⚠ nếu BẤT KỲ buổi nào của học viên đó có cảnh báo
-  const nameRows = hvList.map(hv=>{
+  const nameRows = hvList.map((hv,hi)=>{
     const perCa = caHocList.map(ca=>cellInfo(hv.studentId, caKey(ca)));
     const hasAlert = perCa.some(info=>info.streak>=3||info.over10pct);
     const worst = perCa.find(info=>info.streak>=3||info.over10pct) || perCa[0];
     const alertTip = worst?.over10pct ? `Nghỉ ${Math.round(worst.tongVang/(worst.tong||1)*100)}% tổng buổi` : `Nghỉ ${worst?.streak||0} buổi liên tiếp`;
-    return `<div style="height:${ROW_H}px;box-sizing:border-box;display:flex;align-items:center;gap:8px;padding:0 14px;border-bottom:1px solid #f0f4fa;overflow:hidden">
+    const rowBg = hi%2===1 ? '#f5f8fc' : '#ffffff';
+    return `<div style="height:${ROW_H}px;box-sizing:border-box;display:flex;align-items:center;gap:8px;padding:0 14px;border-bottom:1px solid #f0f4fa;background:${rowBg};overflow:hidden">
       <div style="font-size:13px;font-weight:500;color:#1a2236;white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${escapeAttr(hv.hoTen)}">${hv.hoTen}</div>
       ${hasAlert?`<button class="btn btn-sm" style="font-size:9px;padding:2px 5px;margin-left:auto;flex-shrink:0;background:#fee2e2;border-color:#fca5a5;color:#991b1b"
         onclick="promptGuiTinNghiNhieu('${hv.studentId}','${escapeAttr(hv.hoTen)}')" title="${alertTip}">⚠</button>`:''}
@@ -1139,14 +1147,14 @@ async function renderLichTuan(lop, hvList, selectedNgay, activeCaId){
 
   // Cột phải: lịch — ngày nào chỉ có 1 buổi thì hiện 1 ô vuông nguyên như trước;
   // ngày nào có 2+ buổi thì tách ô đó thành các dải nhỏ xếp chồng, mỗi dải điểm danh riêng 1 buổi.
-  const calRows = hvList.map(hv=>{
+  const calRows = hvList.map((hv,hi)=>{
+    const rowBg = hi%2===1 ? '#f5f8fc' : '#ffffff';
     const cells = weekDates.map((ngay,dayIdx)=>{
       const casToday = dayCaList[dayIdx];
       const isToday = ngay===today;
       if(casToday.length===0){
         // Không buổi nào học ngày này
-        const zebra = dayIdx%2===1 ? 'rgba(58,123,213,.03)' : 'transparent';
-        return `<div style="flex:1;min-width:40px;box-sizing:border-box;height:100%;background:${zebra};border-right:1.5px solid #dde5f0;background-image:repeating-linear-gradient(45deg,transparent,transparent 4px,#e4ebf5 4px,#e4ebf5 5px)" title="Không có buổi học nào vào ngày này"></div>`;
+        return `<div style="flex:1;min-width:40px;box-sizing:border-box;height:100%;background:${rowBg};border-right:1.5px solid #dde5f0;background-image:repeating-linear-gradient(45deg,transparent,transparent 4px,#e4ebf5 4px,#e4ebf5 5px)" title="Không có buổi học nào vào ngày này"></div>`;
       }
       const boxes = casToday.map((ca,ci)=>{
         const info = cellInfo(hv.studentId, caKey(ca));
@@ -1164,8 +1172,7 @@ async function renderLichTuan(lop, hvList, selectedNgay, activeCaId){
           font-size:${casToday.length>1?'10px':'12px'};font-weight:800;line-height:1"
           ${!isFuture?`onmouseover="this.style.filter='brightness(0.93)'" onmouseout="this.style.filter='none'"`:''}>${icon}</div>`;
       }).join('');
-      const zebra = dayIdx%2===1 ? 'rgba(58,123,213,.03)' : 'transparent';
-      return `<div style="flex:1;min-width:40px;box-sizing:border-box;height:100%;display:flex;flex-direction:column;background:${zebra};border-right:1.5px solid #dde5f0">${boxes}</div>`;
+      return `<div style="flex:1;min-width:40px;box-sizing:border-box;height:100%;display:flex;flex-direction:column;background:${rowBg};border-right:1.5px solid #dde5f0">${boxes}</div>`;
     }).join('');
     return `<div style="height:${ROW_H}px;box-sizing:border-box;display:flex;border-bottom:1px solid #f0f4fa">${cells}</div>`;
   }).join('');
@@ -1194,10 +1201,10 @@ async function renderLichTuan(lop, hvList, selectedNgay, activeCaId){
             <span style="font-size:13px;font-weight:700;font-style:italic;text-transform:uppercase;color:#5a6478">👥 Giáo viên</span>
             ${USER.role==='admin'?`<button class="btn btn-sm" style="font-style:normal;text-transform:none;font-size:10px;padding:2px 7px" onclick="openModalLop('${lop.lopId}')" title="Thêm/sửa giáo viên chính, giáo viên bản xứ, trợ giảng cho lớp">+ Thêm GV</button>`:''}
           </div>
-          <div style="font-size:13px;font-weight:500;color:#1a2236;line-height:1.7">${caHocInfoHtml}</div>
+          <div style="line-height:1.4">${caHocInfoHtml}</div>
         </div>
       </div>
-      <div style="flex:1;padding:14px 16px;box-sizing:border-box;min-width:0;display:flex;flex-direction:column">
+      <div style="flex:1;padding:14px 16px 0 16px;box-sizing:border-box;min-width:0;display:flex;flex-direction:column">
         <div style="position:relative">
           <div class="ca-info-bubble" id="ca-info-bubble"></div>
           <div class="ca-badge-row" style="display:flex;gap:8px;margin-bottom:8px">
@@ -1224,10 +1231,10 @@ async function renderLichTuan(lop, hvList, selectedNgay, activeCaId){
             <div style="flex:1;display:flex;align-items:center;gap:6px;padding:8px 10px;border:1.5px solid #e4ebf5;border-radius:9px;background:#fafbfd;font-size:12px;color:#5a6478;white-space:nowrap"><span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#fef3c7;border:1.5px solid #fcd34d;flex-shrink:0"></span><strong>T</strong>&nbsp;Đi trễ >15'</div>
           </div>
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px;margin-top:auto;padding-top:10px">
+        <div style="display:grid;grid-template-columns:1fr 1.2fr 1fr;gap:10px;margin-top:auto;padding-top:10px">
           <button class="btn btn-sm" onclick="changeWeek(-1)" style="border:1.5px solid #e4ebf5;border-radius:9px;padding:10px;height:100%">← Tuần trước</button>
-          <div style="border:1.5px solid #e4ebf5;border-radius:9px;padding:10px;background:#fafbfd;text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center">
-            <div style="font-size:14px;font-weight:700;color:#0d2d5e">${weekLabel}</div>
+          <div style="border:1.5px solid #c7d4e8;border-bottom:none;border-radius:10px 10px 0 0;padding:9px 10px 12px;background:#eef3fb;text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center">
+            <div style="font-size:15px;font-weight:800;color:#0d2d5e">${weekLabel}</div>
             ${LICH_WEEK_OFFSET<0?`<span style="font-size:11px;color:#3a7bd5;cursor:pointer;margin-top:2px" onclick="LICH_WEEK_OFFSET=0;const l=LOP_DATA.find(x=>x.lopId===LOP_DETAIL_ID);renderTabDiemDanh(l)">↺ Về tuần hiện tại</span>`:''}
           </div>
           <button class="btn btn-sm" onclick="changeWeek(1)" ${LICH_WEEK_OFFSET>=0?'disabled':''} style="border:1.5px solid #e4ebf5;border-radius:9px;padding:10px;height:100%">Tuần sau →</button>
@@ -1248,9 +1255,9 @@ async function renderLichTuan(lop, hvList, selectedNgay, activeCaId){
       <div style="flex:1;overflow-x:auto">
         <div style="min-width:400px">
           <div style="height:${HEAD_H}px;box-sizing:border-box;display:flex;background:#eef3fb;border-bottom:2px solid #c7d4e8">
-            ${thuLabelsFull.map((t,i)=>`<div style="flex:1;min-width:40px;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;justify-content:center;background:${i%2===1?'rgba(58,123,213,.05)':'transparent'};border-right:1.5px solid #c7d4e8">
-              <span style="font-size:12px;font-weight:800;letter-spacing:.2px;color:${weekDates[i]===today?'#1a50a0':'#3d4c68'}">${t}</span>
-              <span style="font-size:9px;font-weight:600;color:${weekDates[i]===today?'#3a7bd5':'#8a96a8'}">${weekDates[i].slice(8)}/${weekDates[i].slice(5,7)}</span>
+            ${thuLabelsFull.map((t,i)=>`<div style="flex:1;min-width:40px;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;justify-content:center;border-right:1.5px solid #c7d4e8">
+              <span style="font-size:13.5px;font-weight:800;letter-spacing:.2px;color:${weekDates[i]===today?'#1a50a0':'#3d4c68'}">${t}</span>
+              <span style="font-size:10px;font-weight:600;color:${weekDates[i]===today?'#3a7bd5':'#8a96a8'}">${weekDates[i].slice(8)}/${weekDates[i].slice(5,7)}</span>
             </div>`).join('')}
           </div>
           ${calRows}
