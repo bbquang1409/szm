@@ -1121,8 +1121,8 @@ async function renderLichTuan(lop, hvList, selectedNgay, activeCaId){
   troGiangNames.forEach(n=>gvChips.push({label:'Trợ giảng',name:n,color:'#946200',bg:'#fdf3e0'}));
 
   const caHocInfoHtml = gvChips.length
-    ? `<div style="display:flex;flex-wrap:wrap;gap:5px">${gvChips.map(c=>
-        `<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:20px;background:${c.bg};font-size:11.5px;white-space:nowrap">
+    ? `<div style="display:flex;flex-direction:column;gap:5px">${gvChips.map(c=>
+        `<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:20px;background:${c.bg};font-size:11.5px;white-space:nowrap;width:fit-content">
           <span style="color:${c.color};font-weight:600;opacity:.85">${c.label}:</span>
           <span style="color:#1a2236;font-weight:700">${c.name}</span>
         </span>`).join('')}</div>`
@@ -1182,7 +1182,7 @@ async function renderLichTuan(lop, hvList, selectedNgay, activeCaId){
   return `<div class="table-wrap">
     <!-- HÀNG TRÊN: bảng 1 = thông tin lớp (trái), chú thích + điều hướng tuần (phải) -->
     <div style="display:flex">
-      <div style="width:66%;flex-shrink:0;padding:14px 16px;border-right:2px solid #e4ebf5;background:#f8fafd;box-sizing:border-box;display:flex;flex-direction:column">
+      <div style="width:60%;flex-shrink:0;padding:14px 16px;border-right:2px solid #e4ebf5;background:#f8fafd;box-sizing:border-box;display:flex;flex-direction:column">
         <div style="display:flex;align-items:center;gap:8px;flex-wrap:nowrap;margin-bottom:10px">
           <div style="font-size:19px;font-weight:800;color:#0d2d5e;text-transform:uppercase;white-space:nowrap">Lớp ${lop.tenLop}</div>
           <span style="font-size:12px;font-weight:700;padding:3px 10px;border-radius:20px;background:${CAP_DO_COLORS[lop.capDo]||'#f0f4fa'};color:${CAP_DO_TEXT[lop.capDo]||'#5a6478'};white-space:nowrap">Trình độ ${lop.capDo||'—'}</span>
@@ -1207,46 +1207,46 @@ async function renderLichTuan(lop, hvList, selectedNgay, activeCaId){
       <div style="flex:1;padding:14px 16px;box-sizing:border-box;min-width:0">
         <div style="position:relative">
           <div class="ca-info-bubble" id="ca-info-bubble"></div>
-          <div class="ca-badge-row" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px">
-            <div data-ca-badge style="flex:1;min-width:150px;display:flex;align-items:center;gap:6px;padding:8px 10px;border:1.5px solid ${autoDDBat?'#86efac':'#d1d8e0'};border-radius:9px;background:#fafbfd;font-size:12px;color:#5a6478;white-space:nowrap;transition:background .15s${autoDDBat?';--pulse-color:rgba(134,239,172,.55);animation:alertPing 1.8s infinite':''}" onmouseover="this.style.background='${autoDDBat?'#f0fdf4':'#f5f8fc'}'" onmouseout="this.style.background='#fafbfd'">
-              <span onclick="showCaInfoBubble('auto',event)" style="display:flex;align-items:center;gap:6px;cursor:pointer;flex:1;min-width:0;overflow:hidden">
-                <span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:${autoDDBat?'#dcfce7':'#eef2f7'};border:1.5px solid ${autoDDBat?'#86efac':'#cbd5e1'};flex-shrink:0"></span>
-                <span style="overflow:hidden;text-overflow:ellipsis">Tự động điểm danh</span>
+          <div class="ca-badge-row" style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:6px">
+            <div data-ca-badge style="display:flex;align-items:center;gap:4px;padding:6px 7px;border:1.5px solid ${autoDDBat?'#86efac':'#d1d8e0'};border-radius:8px;background:#fafbfd;font-size:10.5px;color:#5a6478;white-space:nowrap;transition:background .15s${autoDDBat?';--pulse-color:rgba(134,239,172,.55);animation:alertPing 1.8s infinite':''}" onmouseover="this.style.background='${autoDDBat?'#f0fdf4':'#f5f8fc'}'" onmouseout="this.style.background='#fafbfd'">
+              <span onclick="showCaInfoBubble('auto',event)" style="display:flex;align-items:center;gap:4px;cursor:pointer;flex:1;min-width:0;overflow:hidden">
+                <span style="display:inline-block;width:11px;height:11px;border-radius:3px;background:${autoDDBat?'#dcfce7':'#eef2f7'};border:1.5px solid ${autoDDBat?'#86efac':'#cbd5e1'};flex-shrink:0"></span>
+                <span style="overflow:hidden;text-overflow:ellipsis">Tự động ĐD</span>
               </span>
-              ${USER.role==='admin'?`<span onclick="toggleAutoDD('${lop.lopId}',${!autoDDBat},event)" title="${autoDDBat?'Đang BẬT — bấm để tắt':'Đang TẮT — bấm để bật'}" style="flex-shrink:0;width:30px;height:17px;border-radius:20px;background:${autoDDBat?'#22c55e':'#cbd5e1'};position:relative;cursor:pointer;transition:background .2s">
-                <span style="position:absolute;top:2px;left:${autoDDBat?'15px':'2px'};width:13px;height:13px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.3);transition:left .2s"></span>
+              ${USER.role==='admin'?`<span onclick="toggleAutoDD('${lop.lopId}',${!autoDDBat},event)" title="${autoDDBat?'Đang BẬT — bấm để tắt':'Đang TẮT — bấm để bật'}" style="flex-shrink:0;width:24px;height:14px;border-radius:20px;background:${autoDDBat?'#22c55e':'#cbd5e1'};position:relative;cursor:pointer;transition:background .2s">
+                <span style="position:absolute;top:1.5px;left:${autoDDBat?'11px':'1.5px'};width:11px;height:11px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.3);transition:left .2s"></span>
               </span>`:''}
-              <span onclick="showCaInfoBubble('auto',event)" style="cursor:pointer;color:${autoDDBat?'#86efac':'#cbd5e1'};font-weight:700;flex-shrink:0">ⓘ</span>
+              <span onclick="showCaInfoBubble('auto',event)" style="cursor:pointer;color:${autoDDBat?'#86efac':'#cbd5e1'};font-weight:700;flex-shrink:0;font-size:11px">ⓘ</span>
             </div>
-            <div data-ca-badge onclick="showCaInfoBubble('alert',event)" style="flex:1;min-width:150px;display:flex;align-items:center;gap:6px;padding:8px 10px;border:1.5px solid #fca5a5;border-radius:9px;background:#fafbfd;font-size:12px;color:#5a6478;white-space:nowrap;cursor:pointer;transition:background .15s;--pulse-color:rgba(252,165,165,.55);animation:alertPing 1.8s infinite .3s" onmouseover="this.style.background='#fef2f2'" onmouseout="this.style.background='#fafbfd'">
-              <span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#fee2e2;border:1.5px solid #fca5a5;flex-shrink:0"></span>Cảnh báo<span style="margin-left:auto;color:#fca5a5;font-weight:700;flex-shrink:0">ⓘ</span>
+            <div data-ca-badge onclick="showCaInfoBubble('alert',event)" style="display:flex;align-items:center;gap:4px;padding:6px 7px;border:1.5px solid #fca5a5;border-radius:8px;background:#fafbfd;font-size:10.5px;color:#5a6478;white-space:nowrap;cursor:pointer;transition:background .15s;--pulse-color:rgba(252,165,165,.55);animation:alertPing 1.8s infinite .3s" onmouseover="this.style.background='#fef2f2'" onmouseout="this.style.background='#fafbfd'">
+              <span style="display:inline-block;width:11px;height:11px;border-radius:3px;background:#fee2e2;border:1.5px solid #fca5a5;flex-shrink:0"></span>Cảnh báo<span style="margin-left:auto;color:#fca5a5;font-weight:700;flex-shrink:0;font-size:11px">ⓘ</span>
             </div>
-            <div data-ca-badge onclick="showCaInfoBubble('split',event)" style="flex:1;min-width:150px;display:flex;align-items:center;gap:6px;padding:8px 10px;border:1.5px solid #93c5fd;border-radius:9px;background:#fafbfd;font-size:12px;color:#5a6478;white-space:nowrap;cursor:pointer;transition:background .15s;--pulse-color:rgba(147,197,253,.55);animation:alertPing 1.8s infinite .6s" onmouseover="this.style.background='#eff6ff'" onmouseout="this.style.background='#fafbfd'">
-              <span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#dbeafe;border:1.5px solid #93c5fd;flex-shrink:0"></span>Điểm danh theo buổi<span style="margin-left:auto;color:#93c5fd;font-weight:700;flex-shrink:0">ⓘ</span>
+            <div data-ca-badge onclick="showCaInfoBubble('split',event)" style="display:flex;align-items:center;gap:4px;padding:6px 7px;border:1.5px solid #93c5fd;border-radius:8px;background:#fafbfd;font-size:10.5px;color:#5a6478;white-space:nowrap;cursor:pointer;transition:background .15s;--pulse-color:rgba(147,197,253,.55);animation:alertPing 1.8s infinite .6s" onmouseover="this.style.background='#eff6ff'" onmouseout="this.style.background='#fafbfd'">
+              <span style="display:inline-block;width:11px;height:11px;border-radius:3px;background:#dbeafe;border:1.5px solid #93c5fd;flex-shrink:0"></span>Theo buổi<span style="margin-left:auto;color:#93c5fd;font-weight:700;flex-shrink:0;font-size:11px">ⓘ</span>
             </div>
           </div>
-          <div style="display:flex;flex-wrap:wrap;gap:8px">
-            <div style="flex:1;min-width:150px;display:flex;align-items:center;gap:6px;padding:8px 10px;border:1.5px solid #e4ebf5;border-radius:9px;background:#fafbfd;font-size:12px;color:#5a6478;white-space:nowrap"><span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#dbeafe;border:1.5px solid #93c5fd;flex-shrink:0"></span><strong>P</strong>&nbsp;Nghỉ có phép</div>
-            <div style="flex:1;min-width:150px;display:flex;align-items:center;gap:6px;padding:8px 10px;border:1.5px solid #e4ebf5;border-radius:9px;background:#fafbfd;font-size:12px;color:#5a6478;white-space:nowrap"><span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#fed7aa;border:1.5px solid #f97316;flex-shrink:0"></span><strong>K</strong>&nbsp;Nghỉ không phép</div>
-            <div style="flex:1;min-width:150px;display:flex;align-items:center;gap:6px;padding:8px 10px;border:1.5px solid #e4ebf5;border-radius:9px;background:#fafbfd;font-size:12px;color:#5a6478;white-space:nowrap"><span style="display:inline-block;width:14px;height:14px;border-radius:4px;background:#fef3c7;border:1.5px solid #fcd34d;flex-shrink:0"></span><strong>T</strong>&nbsp;Đi trễ >15'</div>
+          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px">
+            <div style="display:flex;align-items:center;gap:4px;padding:6px 7px;border:1.5px solid #e4ebf5;border-radius:8px;background:#fafbfd;font-size:10.5px;color:#5a6478;white-space:nowrap"><span style="display:inline-block;width:11px;height:11px;border-radius:3px;background:#dbeafe;border:1.5px solid #93c5fd;flex-shrink:0"></span><strong>P</strong>&nbsp;Có phép</div>
+            <div style="display:flex;align-items:center;gap:4px;padding:6px 7px;border:1.5px solid #e4ebf5;border-radius:8px;background:#fafbfd;font-size:10.5px;color:#5a6478;white-space:nowrap"><span style="display:inline-block;width:11px;height:11px;border-radius:3px;background:#fed7aa;border:1.5px solid #f97316;flex-shrink:0"></span><strong>K</strong>&nbsp;Ko phép</div>
+            <div style="display:flex;align-items:center;gap:4px;padding:6px 7px;border:1.5px solid #e4ebf5;border-radius:8px;background:#fafbfd;font-size:10.5px;color:#5a6478;white-space:nowrap"><span style="display:inline-block;width:11px;height:11px;border-radius:3px;background:#fef3c7;border:1.5px solid #fcd34d;flex-shrink:0"></span><strong>T</strong>&nbsp;Đi trễ</div>
           </div>
         </div>
       </div>
     </div>
     <!-- BAND GIỮA: "Danh sách lớp" (trái, 1/3) đi ngang hàng với thanh điều hướng tuần (phải, 2/3) — tỉ lệ khớp với band dưới -->
     <div style="display:flex;border-top:2px solid #e4ebf5">
-      <div style="width:34%;flex-shrink:0;display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:#f5f8fc;border-right:2px solid #e4ebf5;box-sizing:border-box">
-        <span style="font-size:13px;font-weight:700;font-style:italic;text-transform:uppercase;color:#5a6478">Danh sách lớp</span>
+      <div style="width:34%;flex-shrink:0;display:flex;align-items:center;justify-content:space-between;padding:6px 16px;background:#f5f8fc;border-right:2px solid #e4ebf5;box-sizing:border-box">
+        <span style="font-size:16px;font-weight:800;font-style:italic;text-transform:uppercase;color:#3d4c68">Danh sách lớp</span>
         ${['admin','giaovien','trogiang'].includes(USER.role)?`<button class="btn btn-sm" style="font-style:normal;text-transform:none;font-size:11px;padding:4px 6px;white-space:nowrap" onclick="openModalHV(null,'${escapeAttr(lop.tenLop)}')">+ Thêm HV</button>`:''}
       </div>
-      <div style="flex:1;padding:10px 16px;box-sizing:border-box;min-width:0">
+      <div style="flex:1;padding:6px 16px;box-sizing:border-box;min-width:0">
         <div style="display:flex">
-          <button class="btn btn-sm" onclick="changeWeek(-1)" style="flex:1;border:1.5px solid #e4ebf5;border-right:none;border-radius:9px 0 0 9px;padding:10px;height:100%">← Tuần trước</button>
-          <div style="flex:1.2;border:1.5px solid #c7d4e8;border-bottom:none;padding:9px 10px 12px;background:#eef3fb;text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center">
+          <button class="btn btn-sm" onclick="changeWeek(-1)" style="flex:1;border:1.5px solid #e4ebf5;border-right:none;border-radius:9px 0 0 9px;padding:8px;height:100%">← Tuần trước</button>
+          <div style="flex:1.2;border:1.5px solid #c7d4e8;border-bottom:none;padding:6px 10px 8px;background:#eef3fb;text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center">
             <div style="font-size:15px;font-weight:800;color:#0d2d5e">${weekLabel}</div>
             ${LICH_WEEK_OFFSET<0?`<span style="font-size:11px;color:#3a7bd5;cursor:pointer;margin-top:2px" onclick="LICH_WEEK_OFFSET=0;const l=LOP_DATA.find(x=>x.lopId===LOP_DETAIL_ID);renderTabDiemDanh(l)">↺ Về tuần hiện tại</span>`:''}
           </div>
-          <button class="btn btn-sm" onclick="changeWeek(1)" ${LICH_WEEK_OFFSET>=0?'disabled':''} style="flex:1;border:1.5px solid #e4ebf5;border-left:none;border-radius:0 9px 9px 0;padding:10px;height:100%">Tuần sau →</button>
+          <button class="btn btn-sm" onclick="changeWeek(1)" ${LICH_WEEK_OFFSET>=0?'disabled':''} style="flex:1;border:1.5px solid #e4ebf5;border-left:none;border-radius:0 9px 9px 0;padding:8px;height:100%">Tuần sau →</button>
         </div>
       </div>
     </div>
