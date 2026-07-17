@@ -1206,37 +1206,35 @@ async function renderLichTuan(lop, hvList, selectedNgay, activeCaId){
   const weekLabel = `${fmtDate(weekDates[0])} — ${fmtDate(weekDates[6])}`;
 
   return `<div class="table-wrap">
-    <!-- HÀNG TRÊN: 2 cột — (1) thông tin lớp (chia ngầm 2 nửa: lớp | giáo viên, ko viền), (2) chú thích + trạng thái.
-         Cả 3 khối con đều canh giữa theo chiều dọc; canh ngang thì: trái=trái, giữa=giữa, phải=phải. -->
+    <!-- HÀNG TRÊN: 3 cột NGANG HÀNG cấp cao nhất (không lồng nữa) — để cả 3 cùng canh giữa dọc theo ĐÚNG 1 chiều cao chung:
+         (1) thông tin lớp, (2) danh sách giáo viên (không viền, xem như 1 phần của "lớp học"), (3) chú thích + trạng thái. -->
     <div style="display:flex">
-      <div style="width:60%;flex-shrink:0;padding:14px 16px;border-right:2px solid #e4ebf5;background:#f8fafd;box-sizing:border-box;display:flex;gap:18px">
-        <div style="flex:0.85;min-width:0;display:flex;flex-direction:column;justify-content:center">
-          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px">
-            <div style="font-size:28px;font-weight:800;color:#0d2d5e;text-transform:uppercase;white-space:nowrap">Lớp ${lop.tenLop}</div>
-            <span style="font-size:12px;font-weight:700;padding:3px 10px;border-radius:20px;background:${CAP_DO_COLORS[lop.capDo]||'#f0f4fa'};color:${CAP_DO_TEXT[lop.capDo]||'#5a6478'};white-space:nowrap">Trình độ ${lop.capDo||'—'}</span>
-          </div>
-          ${lop.canhBaoGiuaKy?`<div class="badge b-warn1" style="animation:pulse 1.5s infinite;margin-bottom:4px">Giữa kỳ còn ${lop.soNgayConGiuaKy} ngày</div>`:''}
-          ${lop.canhBaoCuoiKy?`<div class="badge b-warn2" style="animation:pulse 1.5s infinite;margin-bottom:4px">Cuối kỳ còn ${lop.soNgayConCuoiKy} ngày</div>`:''}
-          ${lop.ngayBatDau?`<div style="display:flex;align-items:baseline;gap:6px;margin-bottom:3px;flex-wrap:wrap">
-            <span style="font-size:12px;color:#8a96a8;white-space:nowrap">📅 Thời gian học dự kiến:</span>
-            <span style="font-size:14px;font-weight:700;color:#1a2236;white-space:nowrap">${fmtDate(lop.ngayBatDau)} – ${fmtDate(lop.ngayKetThuc||'')}</span>
-          </div>
-          <div style="display:flex;align-items:baseline;gap:6px;flex-wrap:wrap">
-            <span style="font-size:12px;color:#8a96a8;white-space:nowrap">🗓 Số buổi đã học:</span>
-            <span style="font-size:14px;font-weight:700;color:#1a2236;white-space:nowrap">${soBuoi.elapsed}/${soBuoi.total}</span>
-          </div>`:''}
+      <div style="width:26%;flex-shrink:0;padding:14px 16px;background:#f8fafd;box-sizing:border-box;display:flex;flex-direction:column;justify-content:center">
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px">
+          <div style="font-size:34px;font-weight:800;color:#0d2d5e;text-transform:uppercase;white-space:nowrap">Lớp ${lop.tenLop}</div>
+          <span style="font-size:12px;font-weight:700;padding:3px 10px;border-radius:20px;background:${CAP_DO_COLORS[lop.capDo]||'#f0f4fa'};color:${CAP_DO_TEXT[lop.capDo]||'#5a6478'};white-space:nowrap">Trình độ ${lop.capDo||'—'}</span>
         </div>
-        <!-- Mục "Giáo viên" (GV chính/bản xứ/trợ giảng) CHỈ dành cho nội bộ: admin/giáo viên/trợ giảng/quản lý.
-             Phụ huynh không cần và không nên thấy — thực tế phụ huynh cũng không vào được trang Lớp học này
-             luôn (bị ẩn hoàn toàn ở applyRoleNav()), nên không cần tự ẩn thêm ở đây.
-             Canh giữa theo chiều ngang lẫn dọc — cả tiêu đề+nút lẫn danh sách chip đều center. -->
-        <div style="flex:1.15;min-width:0;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center">
-          <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:8px;flex-wrap:nowrap">
-            <span style="font-size:16px;font-weight:800;font-style:italic;text-transform:uppercase;color:#3d4c68;white-space:nowrap">👥 Danh sách giáo viên</span>
-            ${btnThemGV}
-          </div>
-          <div style="line-height:1.4;display:flex;flex-wrap:wrap;gap:8px;justify-content:center">${caHocInfoHtml}</div>
+        ${lop.canhBaoGiuaKy?`<div class="badge b-warn1" style="animation:pulse 1.5s infinite;margin-bottom:4px">Giữa kỳ còn ${lop.soNgayConGiuaKy} ngày</div>`:''}
+        ${lop.canhBaoCuoiKy?`<div class="badge b-warn2" style="animation:pulse 1.5s infinite;margin-bottom:4px">Cuối kỳ còn ${lop.soNgayConCuoiKy} ngày</div>`:''}
+        ${lop.ngayBatDau?`<div style="display:flex;align-items:baseline;gap:6px;margin-bottom:3px;flex-wrap:wrap">
+          <span style="font-size:13px;font-weight:600;color:#75839a;white-space:nowrap">📅 Thời gian học dự kiến:</span>
+          <span style="font-size:15px;font-weight:800;color:#1a2236;white-space:nowrap">${fmtDate(lop.ngayBatDau)} – ${fmtDate(lop.ngayKetThuc||'')}</span>
         </div>
+        <div style="display:flex;align-items:baseline;gap:6px;flex-wrap:wrap">
+          <span style="font-size:13px;font-weight:600;color:#75839a;white-space:nowrap">🗓 Số buổi đã học:</span>
+          <span style="font-size:15px;font-weight:800;color:#1a2236;white-space:nowrap">${soBuoi.elapsed}/${soBuoi.total}</span>
+        </div>`:''}
+      </div>
+      <!-- Mục "Giáo viên" (GV chính/bản xứ/trợ giảng) CHỈ dành cho nội bộ: admin/giáo viên/trợ giảng/quản lý.
+           Phụ huynh không cần và không nên thấy — thực tế phụ huynh cũng không vào được trang Lớp học này
+           luôn (bị ẩn hoàn toàn ở applyRoleNav()), nên không cần tự ẩn thêm ở đây.
+           KHÔNG viền — xem như phần nối tiếp của cột "Lớp học" bên trái, chỉ là 1 cột ảo để canh giữa riêng. -->
+      <div style="width:34%;flex-shrink:0;padding:14px 16px;border-right:2px solid #e4ebf5;background:#f8fafd;box-sizing:border-box;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center">
+        <div style="display:flex;align-items:center;justify-content:center;gap:8px;margin-bottom:8px;flex-wrap:nowrap">
+          <span style="font-size:16px;font-weight:800;font-style:italic;text-transform:uppercase;color:#3d4c68;white-space:nowrap">Danh sách giáo viên</span>
+          ${btnThemGV}
+        </div>
+        <div style="line-height:1.4;display:flex;flex-wrap:wrap;gap:8px;justify-content:center">${caHocInfoHtml}</div>
       </div>
       <div style="flex:1;padding:14px 16px;box-sizing:border-box;min-width:0;display:flex;flex-direction:column;justify-content:center">
         <div style="text-align:right;font-size:16px;font-weight:800;font-style:italic;text-transform:uppercase;color:#3d4c68;margin-bottom:12px">Thông tin điểm danh</div>
