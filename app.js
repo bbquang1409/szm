@@ -1208,7 +1208,7 @@ async function renderLichTuan(lop, hvList, selectedNgay, activeCaId){
     <!-- HÀNG TRÊN: 2 cột — (1) thông tin lớp (chia ngầm 2 nửa: lớp | giáo viên, ko viền), (2) chú thích + trạng thái -->
     <div style="display:flex">
       <div style="width:60%;flex-shrink:0;padding:14px 16px;border-right:2px solid #e4ebf5;background:#f8fafd;box-sizing:border-box;display:flex;gap:18px">
-        <div style="flex:1;min-width:0">
+        <div style="flex:0.85;min-width:0">
           <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px">
             <div style="font-size:28px;font-weight:800;color:#0d2d5e;text-transform:uppercase;white-space:nowrap">Lớp ${lop.tenLop}</div>
             <span style="font-size:12px;font-weight:700;padding:3px 10px;border-radius:20px;background:${CAP_DO_COLORS[lop.capDo]||'#f0f4fa'};color:${CAP_DO_TEXT[lop.capDo]||'#5a6478'};white-space:nowrap">Trình độ ${lop.capDo||'—'}</span>
@@ -1228,17 +1228,17 @@ async function renderLichTuan(lop, hvList, selectedNgay, activeCaId){
              Phụ huynh không cần và không nên thấy — thực tế phụ huynh cũng không vào được trang Lớp học này
              luôn (bị ẩn hoàn toàn ở applyRoleNav()), nên không cần tự ẩn thêm ở đây.
              Đặt ngang hàng với "Lớp Kx" bằng cách nằm cùng 1 dòng flex — KHÔNG border-left để không lộ thành 1 ô riêng biệt. -->
-        <div style="flex:1;min-width:0">
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap">
-            <span style="font-size:16px;font-weight:800;font-style:italic;text-transform:uppercase;color:#3d4c68">👥 Danh sách giáo viên</span>
-            ${USER.role==='admin'?`<button class="btn btn-sm" style="font-style:normal;text-transform:none;font-size:10px;padding:2px 7px" onclick="openModalLop('${lop.lopId}')" title="Thêm/sửa giáo viên chính, giáo viên bản xứ, trợ giảng cho lớp">+ Thêm GV</button>`:''}
+        <div style="flex:1.15;min-width:0">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:nowrap">
+            <span style="font-size:16px;font-weight:800;font-style:italic;text-transform:uppercase;color:#3d4c68;white-space:nowrap">👥 Danh sách giáo viên</span>
+            ${USER.role==='admin'?`<button class="btn btn-sm" style="font-style:normal;text-transform:none;font-size:10px;padding:2px 7px;flex-shrink:0" onclick="openModalLop('${lop.lopId}')" title="Thêm/sửa giáo viên chính, giáo viên bản xứ, trợ giảng cho lớp">+ Thêm GV</button>`:''}
           </div>
 
           <div style="line-height:1.4">${caHocInfoHtml}</div>
         </div>
       </div>
-      <div style="flex:1;padding:14px 16px;box-sizing:border-box;min-width:0">
-        <div style="text-align:center;font-size:16px;font-weight:800;font-style:italic;text-transform:uppercase;color:#3d4c68;margin-bottom:8px">Thông tin điểm danh</div>
+      <div style="flex:1;padding:14px 16px;box-sizing:border-box;min-width:0;display:flex;flex-direction:column;justify-content:center">
+        <div style="text-align:center;font-size:16px;font-weight:800;font-style:italic;text-transform:uppercase;color:#3d4c68;margin-top:10px;margin-bottom:16px">Thông tin điểm danh</div>
         <div style="position:relative">
           <div class="ca-info-bubble" id="ca-info-bubble"></div>
           <div class="ca-badge-row" style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:6px">
