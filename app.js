@@ -1146,8 +1146,8 @@ async function renderLichTuan(lop, hvList, selectedNgay, activeCaId){
   troGiangNames.forEach(n=>gvChips.push({label:'Trợ giảng',name:n,color:'#946200',bg:'#fdf3e0'}));
 
   const caHocInfoHtml = gvChips.length
-    ? `<div style="display:flex;flex-direction:column;gap:5px">${gvChips.map(c=>
-        `<span style="display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:20px;background:${c.bg};font-size:11.5px;white-space:nowrap;width:fit-content">
+    ? `<div style="display:flex;flex-wrap:wrap;gap:10px;justify-content:space-between">${gvChips.map(c=>
+        `<span style="display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:20px;background:${c.bg};font-size:12.5px;white-space:nowrap;flex:1;justify-content:center;min-width:fit-content">
           <span style="color:${c.color};font-weight:600;opacity:.85">${c.label}:</span>
           <span style="color:#1a2236;font-weight:700">${c.name}</span>
         </span>`).join('')}</div>`
@@ -1209,25 +1209,28 @@ async function renderLichTuan(lop, hvList, selectedNgay, activeCaId){
     <div style="display:flex">
       <div style="width:60%;flex-shrink:0;padding:14px 16px;border-right:2px solid #e4ebf5;background:#f8fafd;box-sizing:border-box;display:flex;gap:18px">
         <div style="flex:1;min-width:0">
-          <div style="font-size:19px;font-weight:800;color:#0d2d5e;text-transform:uppercase;white-space:nowrap;margin-bottom:6px">Lớp ${lop.tenLop}</div>
-          <div style="margin-bottom:10px">
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px">
+            <div style="font-size:28px;font-weight:800;color:#0d2d5e;text-transform:uppercase;white-space:nowrap">Lớp ${lop.tenLop}</div>
             <span style="font-size:12px;font-weight:700;padding:3px 10px;border-radius:20px;background:${CAP_DO_COLORS[lop.capDo]||'#f0f4fa'};color:${CAP_DO_TEXT[lop.capDo]||'#5a6478'};white-space:nowrap">Trình độ ${lop.capDo||'—'}</span>
           </div>
           ${lop.canhBaoGiuaKy?`<div class="badge b-warn1" style="animation:pulse 1.5s infinite;margin-bottom:6px">Giữa kỳ còn ${lop.soNgayConGiuaKy} ngày</div>`:''}
           ${lop.canhBaoCuoiKy?`<div class="badge b-warn2" style="animation:pulse 1.5s infinite;margin-bottom:6px">Cuối kỳ còn ${lop.soNgayConCuoiKy} ngày</div>`:''}
-          ${lop.ngayBatDau?`<div style="margin-bottom:3px">
-            <div style="font-size:12px;color:#8a96a8;margin-bottom:2px">📅 Thời gian học</div>
-            <div style="font-size:15px;font-weight:700;color:#1a2236">${soBuoi.elapsed}/${soBuoi.total} buổi</div>
+          ${lop.ngayBatDau?`<div style="margin-bottom:8px">
+            <div style="font-size:12px;color:#8a96a8;margin-bottom:2px">📅 Thời gian học dự kiến</div>
+            <div style="font-size:15px;font-weight:700;color:#1a2236">${fmtDate(lop.ngayBatDau)} – ${fmtDate(lop.ngayKetThuc||'')}</div>
           </div>
-          <div style="font-size:12.5px;color:#5a6478">${fmtDate(lop.ngayBatDau)} – ${fmtDate(lop.ngayKetThuc||'')}</div>`:''}
+          <div>
+            <div style="font-size:12px;color:#8a96a8;margin-bottom:2px">🗓 Số buổi đã học</div>
+            <div style="font-size:15px;font-weight:700;color:#1a2236">${soBuoi.elapsed}/${soBuoi.total} buổi</div>
+          </div>`:''}
         </div>
         <!-- Mục "Giáo viên" (GV chính/bản xứ/trợ giảng) CHỈ dành cho nội bộ: admin/giáo viên/trợ giảng/quản lý.
              Phụ huynh không cần và không nên thấy — thực tế phụ huynh cũng không vào được trang Lớp học này
              luôn (bị ẩn hoàn toàn ở applyRoleNav()), nên không cần tự ẩn thêm ở đây.
              Đặt ngang hàng với "Lớp Kx" bằng cách nằm cùng 1 dòng flex — KHÔNG border-left để không lộ thành 1 ô riêng biệt. -->
         <div style="flex:1;min-width:0">
-          <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;flex-wrap:wrap">
-            <span style="font-size:13px;font-weight:800;font-style:italic;text-transform:uppercase;color:#3d4c68">👥 Danh sách giáo viên</span>
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;flex-wrap:wrap">
+            <span style="font-size:16px;font-weight:800;font-style:italic;text-transform:uppercase;color:#3d4c68">👥 Danh sách giáo viên</span>
             ${USER.role==='admin'?`<button class="btn btn-sm" style="font-style:normal;text-transform:none;font-size:10px;padding:2px 7px" onclick="openModalLop('${lop.lopId}')" title="Thêm/sửa giáo viên chính, giáo viên bản xứ, trợ giảng cho lớp">+ Thêm GV</button>`:''}
           </div>
 
@@ -1235,7 +1238,7 @@ async function renderLichTuan(lop, hvList, selectedNgay, activeCaId){
         </div>
       </div>
       <div style="flex:1;padding:14px 16px;box-sizing:border-box;min-width:0">
-        <div style="text-align:center;font-size:14px;font-weight:800;font-style:italic;text-transform:uppercase;color:#3d4c68;margin-bottom:8px">Thông tin điểm danh</div>
+        <div style="text-align:center;font-size:16px;font-weight:800;font-style:italic;text-transform:uppercase;color:#3d4c68;margin-bottom:8px">Thông tin điểm danh</div>
         <div style="position:relative">
           <div class="ca-info-bubble" id="ca-info-bubble"></div>
           <div class="ca-badge-row" style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:6px">
