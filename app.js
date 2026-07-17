@@ -1012,13 +1012,16 @@ const CA_INFO_TEXT = {
   auto: '🟢 Hệ thống sẽ tự động điểm danh — mặc định là có đi học. Admin có thể bấm nút gạt để Tắt riêng cho từng lớp, khi đó phải điểm danh tay hoàn toàn.',
   alert: '🔴 Học viên nghỉ 3 buổi liên tiếp, hoặc nghỉ hơn 10% tổng số buổi trong tuần.',
   split: '🔵 Ngày nào có 2 buổi học thì điểm danh 2 buổi.',
+  p: '🔵 Học viên nghỉ học nhưng có báo/xin phép trước.',
+  k: '🟠 Học viên nghỉ học mà không báo trước.',
+  t: '🟡 Học viên đến trễ hơn 15 phút so với giờ học.',
 };
 let _caInfoTimer=null, _caInfoDocHandler=null;
 function showCaInfoBubble(key, evt){
-  if(evt) evt.stopPropagation();
+  clearTimeout(_caInfoTimer);
   const bubble = document.getElementById('ca-info-bubble');
   if(!bubble) return;
-  const badge = evt.currentTarget.closest('[data-ca-badge]') || evt.currentTarget; // ô cụ thể vừa bấm (để canh mũi tên)
+  const badge = evt.currentTarget.closest('[data-ca-badge]') || evt.currentTarget; // ô cụ thể đang hover (để canh mũi tên)
   const row = evt.currentTarget.closest('.ca-badge-row'); // cả hàng 3 ô (để canh chiều rộng bubble)
   if(!row) return;
   const rowRect = row.getBoundingClientRect();
@@ -1027,26 +1030,19 @@ function showCaInfoBubble(key, evt){
   bubble.style.left = rowRect.left+'px';
   bubble.style.width = rowRect.width+'px';
   bubble.style.top = rowRect.top+'px'; // CSS transform:translateY(-100%) sẽ tự đẩy bubble lên trên điểm này
-  // Mũi tên trỏ xuống đúng giữa ô vừa bấm, kiểu bong bóng thoại trong truyện tranh
+  // Mũi tên trỏ xuống đúng giữa ô đang hover, kiểu bong bóng thoại trong truyện tranh
   const arrowLeft = Math.round(badgeRect.left - rowRect.left + badgeRect.width/2 - 7);
   bubble.style.setProperty('--arrow-left', arrowLeft+'px');
   bubble.textContent = CA_INFO_TEXT[key];
   bubble.classList.add('show');
-
-  clearTimeout(_caInfoTimer);
-  _caInfoTimer = setTimeout(hideCaInfoBubble, 5000);
-
-  // Bấm vào bất kỳ đâu trên trang (kể cả bubble) đều đóng lại — gắn listener sau khi
-  // click hiện tại kết thúc để không tự đóng ngay lập tức do bubble effect của chính click này.
-  if(_caInfoDocHandler) document.removeEventListener('click', _caInfoDocHandler);
-  _caInfoDocHandler = hideCaInfoBubble;
-  setTimeout(()=>document.addEventListener('click', _caInfoDocHandler, {once:true}), 0);
 }
 function hideCaInfoBubble(){
-  const bubble = document.getElementById('ca-info-bubble');
-  if(bubble) bubble.classList.remove('show');
+  // Trễ nhẹ 100ms trước khi ẩn — tránh việc bubble chớp tắt khi chuột di chuyển nhanh giữa các ô cạnh nhau
   clearTimeout(_caInfoTimer);
-  if(_caInfoDocHandler){ document.removeEventListener('click', _caInfoDocHandler); _caInfoDocHandler=null; }
+  _caInfoTimer = setTimeout(()=>{
+    const bubble = document.getElementById('ca-info-bubble');
+    if(bubble) bubble.classList.remove('show');
+  }, 100);
 }
 
 async function renderLichTuan(lop, hvList, selectedNgay, activeCaId){
@@ -1239,31 +1235,31 @@ async function renderLichTuan(lop, hvList, selectedNgay, activeCaId){
         </div>
       </div>
       <div style="flex:1;padding:14px 16px;box-sizing:border-box;min-width:0">
-        <div style="text-align:center;font-size:14px;font-weight:800;font-style:italic;text-transform:uppercase;color:#3d4c68;margin-bottom:8px">Chú thích điểm danh</div>
+        <div style="text-align:center;font-size:14px;font-weight:800;font-style:italic;text-transform:uppercase;color:#3d4c68;margin-bottom:8px">Thông tin điểm danh</div>
         <div style="position:relative">
           <div class="ca-info-bubble" id="ca-info-bubble"></div>
           <div class="ca-badge-row" style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px;margin-bottom:6px">
-            <div data-ca-badge style="display:flex;align-items:center;gap:4px;padding:6px 7px;border:1.5px solid ${autoDDBat?'#86efac':'#d1d8e0'};border-radius:8px;background:#fafbfd;font-size:10.5px;color:#5a6478;white-space:nowrap;transition:background .15s${autoDDBat?';--pulse-color:rgba(134,239,172,.55);animation:alertPing 1.8s infinite':''}" onmouseover="this.style.background='${autoDDBat?'#f0fdf4':'#f5f8fc'}'" onmouseout="this.style.background='#fafbfd'">
-              <span onclick="showCaInfoBubble('auto',event)" style="display:flex;align-items:center;gap:4px;cursor:pointer;flex:1;min-width:0;overflow:hidden">
+            <div data-ca-badge onmouseenter="showCaInfoBubble('auto',event)" onmouseleave="hideCaInfoBubble()" style="display:flex;align-items:center;gap:4px;padding:6px 7px;border:1.5px solid ${autoDDBat?'#86efac':'#d1d8e0'};border-radius:8px;background:#fafbfd;font-size:10.5px;color:#5a6478;white-space:nowrap;transition:background .15s${autoDDBat?';--pulse-color:rgba(134,239,172,.55);animation:alertPing 1.8s infinite':''}" onmouseover="this.style.background='${autoDDBat?'#f0fdf4':'#f5f8fc'}'" onmouseout="this.style.background='#fafbfd'">
+              <span style="display:flex;align-items:center;gap:4px;flex:1;min-width:0;overflow:hidden">
                 <span style="display:inline-block;width:11px;height:11px;border-radius:3px;background:${autoDDBat?'#dcfce7':'#eef2f7'};border:1.5px solid ${autoDDBat?'#86efac':'#cbd5e1'};flex-shrink:0"></span>
                 <span style="overflow:hidden;text-overflow:ellipsis">Tự động ĐD</span>
               </span>
               ${USER.role==='admin'?`<span onclick="toggleAutoDD('${lop.lopId}',${!autoDDBat},event)" title="${autoDDBat?'Đang BẬT — bấm để tắt':'Đang TẮT — bấm để bật'}" style="flex-shrink:0;width:24px;height:14px;border-radius:20px;background:${autoDDBat?'#22c55e':'#cbd5e1'};position:relative;cursor:pointer;transition:background .2s">
                 <span style="position:absolute;top:1.5px;left:${autoDDBat?'11px':'1.5px'};width:11px;height:11px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.3);transition:left .2s"></span>
               </span>`:''}
-              <span onclick="showCaInfoBubble('auto',event)" style="cursor:pointer;color:${autoDDBat?'#86efac':'#cbd5e1'};font-weight:700;flex-shrink:0;font-size:11px">ⓘ</span>
+              <span style="color:${autoDDBat?'#86efac':'#cbd5e1'};font-weight:700;flex-shrink:0;font-size:11px">ⓘ</span>
             </div>
-            <div data-ca-badge onclick="showCaInfoBubble('alert',event)" style="display:flex;align-items:center;gap:4px;padding:6px 7px;border:1.5px solid #fca5a5;border-radius:8px;background:#fafbfd;font-size:10.5px;color:#5a6478;white-space:nowrap;cursor:pointer;transition:background .15s;--pulse-color:rgba(252,165,165,.55);animation:alertPing 1.8s infinite .3s" onmouseover="this.style.background='#fef2f2'" onmouseout="this.style.background='#fafbfd'">
+            <div data-ca-badge onmouseenter="showCaInfoBubble('alert',event)" onmouseleave="hideCaInfoBubble()" style="display:flex;align-items:center;gap:4px;padding:6px 7px;border:1.5px solid #fca5a5;border-radius:8px;background:#fafbfd;font-size:10.5px;color:#5a6478;white-space:nowrap;transition:background .15s;--pulse-color:rgba(252,165,165,.55);animation:alertPing 1.8s infinite .3s" onmouseover="this.style.background='#fef2f2'" onmouseout="this.style.background='#fafbfd'">
               <span style="display:inline-block;width:11px;height:11px;border-radius:3px;background:#fee2e2;border:1.5px solid #fca5a5;flex-shrink:0"></span>Cảnh báo<span style="margin-left:auto;color:#fca5a5;font-weight:700;flex-shrink:0;font-size:11px">ⓘ</span>
             </div>
-            <div data-ca-badge onclick="showCaInfoBubble('split',event)" style="display:flex;align-items:center;gap:4px;padding:6px 7px;border:1.5px solid #93c5fd;border-radius:8px;background:#fafbfd;font-size:10.5px;color:#5a6478;white-space:nowrap;cursor:pointer;transition:background .15s;--pulse-color:rgba(147,197,253,.55);animation:alertPing 1.8s infinite .6s" onmouseover="this.style.background='#eff6ff'" onmouseout="this.style.background='#fafbfd'">
+            <div data-ca-badge onmouseenter="showCaInfoBubble('split',event)" onmouseleave="hideCaInfoBubble()" style="display:flex;align-items:center;gap:4px;padding:6px 7px;border:1.5px solid #93c5fd;border-radius:8px;background:#fafbfd;font-size:10.5px;color:#5a6478;white-space:nowrap;transition:background .15s;--pulse-color:rgba(147,197,253,.55);animation:alertPing 1.8s infinite .6s" onmouseover="this.style.background='#eff6ff'" onmouseout="this.style.background='#fafbfd'">
               <span style="display:inline-block;width:11px;height:11px;border-radius:3px;background:#dbeafe;border:1.5px solid #93c5fd;flex-shrink:0"></span>Theo buổi<span style="margin-left:auto;color:#93c5fd;font-weight:700;flex-shrink:0;font-size:11px">ⓘ</span>
             </div>
           </div>
-          <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px">
-            <div style="display:flex;align-items:center;gap:4px;padding:6px 7px;border:1.5px solid #e4ebf5;border-radius:8px;background:#fafbfd;font-size:10.5px;color:#5a6478;white-space:nowrap"><span style="display:inline-block;width:11px;height:11px;border-radius:3px;background:#dbeafe;border:1.5px solid #93c5fd;flex-shrink:0"></span><strong>P</strong>&nbsp;Có phép</div>
-            <div style="display:flex;align-items:center;gap:4px;padding:6px 7px;border:1.5px solid #e4ebf5;border-radius:8px;background:#fafbfd;font-size:10.5px;color:#5a6478;white-space:nowrap"><span style="display:inline-block;width:11px;height:11px;border-radius:3px;background:#fed7aa;border:1.5px solid #f97316;flex-shrink:0"></span><strong>K</strong>&nbsp;Ko phép</div>
-            <div style="display:flex;align-items:center;gap:4px;padding:6px 7px;border:1.5px solid #e4ebf5;border-radius:8px;background:#fafbfd;font-size:10.5px;color:#5a6478;white-space:nowrap"><span style="display:inline-block;width:11px;height:11px;border-radius:3px;background:#fef3c7;border:1.5px solid #fcd34d;flex-shrink:0"></span><strong>T</strong>&nbsp;Đi trễ</div>
+          <div class="ca-badge-row" style="display:grid;grid-template-columns:repeat(3,1fr);gap:6px">
+            <div data-ca-badge onmouseenter="showCaInfoBubble('p',event)" onmouseleave="hideCaInfoBubble()" style="display:flex;align-items:center;gap:4px;padding:6px 7px;border:1.5px solid #e4ebf5;border-radius:8px;background:#fafbfd;font-size:10.5px;color:#5a6478;white-space:nowrap"><span style="display:inline-block;width:11px;height:11px;border-radius:3px;background:#dbeafe;border:1.5px solid #93c5fd;flex-shrink:0"></span><strong>P</strong>&nbsp;Có phép</div>
+            <div data-ca-badge onmouseenter="showCaInfoBubble('k',event)" onmouseleave="hideCaInfoBubble()" style="display:flex;align-items:center;gap:4px;padding:6px 7px;border:1.5px solid #e4ebf5;border-radius:8px;background:#fafbfd;font-size:10.5px;color:#5a6478;white-space:nowrap"><span style="display:inline-block;width:11px;height:11px;border-radius:3px;background:#fed7aa;border:1.5px solid #f97316;flex-shrink:0"></span><strong>K</strong>&nbsp;Ko phép</div>
+            <div data-ca-badge onmouseenter="showCaInfoBubble('t',event)" onmouseleave="hideCaInfoBubble()" style="display:flex;align-items:center;gap:4px;padding:6px 7px;border:1.5px solid #e4ebf5;border-radius:8px;background:#fafbfd;font-size:10.5px;color:#5a6478;white-space:nowrap"><span style="display:inline-block;width:11px;height:11px;border-radius:3px;background:#fef3c7;border:1.5px solid #fcd34d;flex-shrink:0"></span><strong>T</strong>&nbsp;Đi trễ</div>
           </div>
         </div>
       </div>
