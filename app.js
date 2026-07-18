@@ -373,26 +373,28 @@ function pickCardChuyenMon(lop, records){
 
 function lopCard(l, cmRecords){
   const {daHoc,tong} = tinhSoBuoi(l);
-  const pct = tong>0 ? Math.max(0,Math.min(100,Math.round(daHoc/tong*100))) : 0;
   const canEdit=['admin'].includes(USER.role);
 
   const {recs, hasSessionToday, todayCa} = pickCardChuyenMon(l, cmRecords);
+  const rec = recs.find(coNoiDungChuyenMon) || null;
 
   const gvHomNay = hasSessionToday
-    ? todayCa.map(ca=>`${ca.ten||'Buổi học'}: ${ca.nguoiDay?nguoiDayName(ca.nguoiDay):'(chưa gán)'}`).join(' · ')
-    : 'Hôm nay không có buổi học';
+    ? todayCa.map(ca=>ca.nguoiDay?nguoiDayName(ca.nguoiDay):'(chưa gán)').join(', ')
+    : (recs.length ? `Nghỉ (gần nhất ${fmtDate(recs[0].ngay)})` : 'Nghỉ hôm nay');
 
-  let cmLine;
-  if(hasSessionToday){
-    const recWithContent = recs.find(coNoiDungChuyenMon);
-    cmLine = recWithContent
-      ? `📚 Hôm nay: ${escapeHtml(cmSummaryText(recWithContent).slice(0,100))}`
-      : '📚 Hôm nay: chưa cập nhật nội dung';
-  }else if(recs.length){
-    cmLine = `📚 Buổi gần nhất (${fmtDate(recs[0].ngay)}): ${escapeHtml(cmSummaryText(recs[0]).slice(0,100))}`;
-  }else{
-    cmLine = '';
+  let lehrbuchLine = '';
+  let contentLine = '';
+  if(rec){
+    lehrbuchLine = [rec.giaoTrinh, rec.baiHoc].filter(Boolean).join(' – ');
+    const parts=[];
+    if(rec.grammatik) parts.push('Gr: '+rec.grammatik);
+    if(rec.wiederholung) parts.push('Wdh: '+rec.wiederholung);
+    contentLine = parts.join(' · ').slice(0,70);
+  }else if(hasSessionToday){
+    lehrbuchLine = 'Chưa cập nhật nội dung hôm nay';
   }
+
+  const ellipsis = 'white-space:nowrap;overflow:hidden;text-overflow:ellipsis';
 
   return `<div class="lop-card ${l.canhBaoGiuaKy||l.canhBaoCuoiKy?'has-alert':''}"
     onclick="openLopDetail('${l.lopId}')" style="cursor:pointer">
@@ -400,18 +402,12 @@ function lopCard(l, cmRecords){
       <button class="btn btn-sm" onclick="event.stopPropagation();openModalLop('${l.lopId}')">Sửa</button>
       <button class="btn btn-danger btn-sm" onclick="event.stopPropagation();deleteLop('${l.lopId}')">Xóa</button>
     </div>`:''}
-    <div class="lop-title">${l.tenLop}</div>
-    <span class="lop-cap" style="background:${CAP_DO_COLORS[l.capDo]||'#f0f4fa'};color:${CAP_DO_TEXT[l.capDo]||'#5a6478'}">${l.capDo||'—'}</span>
-    <div style="font-size:11px;color:#5a6478;margin-top:6px">👤 ${gvHomNay}</div>
-    ${cmLine?`<div style="font-size:11px;color:#5a6478;margin-top:3px;line-height:1.4">${cmLine}</div>`:''}
-    ${l.ngayBatDau&&l.ngayKetThuc?`
-    <div class="lop-progress-wrap">
-      <div class="lop-progress-label"><span>Buổi học</span><span>${daHoc}/${tong}</span></div>
-      <div class="lop-progress"><div class="lop-progress-fill" style="width:${pct}%;background:${pct>=100?'#0f6e56':'#3a7bd5'}"></div></div>
+    <div class="lop-title">${l.tenLop}
+      <span class="lop-cap" style="background:${CAP_DO_COLORS[l.capDo]||'#f0f4fa'};color:${CAP_DO_TEXT[l.capDo]||'#5a6478'}">${l.capDo||'—'}</span>
     </div>
-    <div class="lop-dates">${fmtDate(l.ngayBatDau)} → ${fmtDate(l.ngayKetThuc)}</div>
-    ${l.ngayGiuaKy?`<div style="font-size:11px;color:#8a96a8;margin-top:4px">Giữa kỳ: ${fmtDate(l.ngayGiuaKy)}</div>`:''}
-    `:''}
+    <div style="font-size:11px;color:#5a6478;margin-top:5px;${ellipsis}">🗓 Buổi ${daHoc}/${tong} · 👤 ${escapeHtml(gvHomNay)}</div>
+    ${lehrbuchLine?`<div style="font-size:11px;color:#3d4c68;margin-top:2px;${ellipsis}">📖 ${escapeHtml(lehrbuchLine)}</div>`:''}
+    ${contentLine?`<div style="font-size:11px;color:#8a96a8;margin-top:2px;${ellipsis}">${escapeHtml(contentLine)}</div>`:''}
     ${l.canhBaoGiuaKy?`<div class="kt-alert giua">⚠ Giữa kỳ còn ${l.soNgayConGiuaKy} ngày!</div>`:''}
     ${l.canhBaoCuoiKy?`<div class="kt-alert cuoi">🔴 Cuối kỳ còn ${l.soNgayConCuoiKy} ngày!</div>`:''}
   </div>`;
