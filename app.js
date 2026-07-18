@@ -358,22 +358,23 @@ function lopCard(l, cmRecords){
     ? `${[cmRec.giaoTrinh,cmRec.baiHoc].filter(Boolean).join(' – ')||'—'} (${fmtDate(cmRec.ngay)})`
     : 'Chưa có nội dung';
 
-  const row = (label,value)=>`<div class="lop-progress-label" style="margin-top:6px"><span>${label}</span><span style="color:#3d4c68;font-weight:600;text-align:right;max-width:65%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${value}</span></div>`;
+  // Dòng thông tin dạng "Nhãn: nội dung" viết liền, không canh phải
+  const row = (label,value)=>`<div style="font-size:12.5px;color:#5a6478;margin-top:5px">${label?`<span style="color:#3d4c68;font-weight:700">${label}:</span> `:''}${value}</div>`;
 
   return `<div class="lop-card ${l.canhBaoGiuaKy||l.canhBaoCuoiKy?'has-alert':''}"
     onclick="openLopDetail('${l.lopId}')" style="cursor:pointer">
     ${canEdit?`<div class="lop-actions">
-      <button class="btn btn-sm" onclick="event.stopPropagation();openModalLop('${l.lopId}')">Sửa</button>
-      <button class="btn btn-danger btn-sm" onclick="event.stopPropagation();deleteLop('${l.lopId}')">Xóa</button>
+      <button class="btn-add-pro" onclick="event.stopPropagation();openModalLop('${l.lopId}')"><span class="btn-add-pro-icon">✎</span>Sửa</button>
     </div>`:''}
-    <div class="lop-title">${l.tenLop}</div>
-    <span class="lop-cap" style="background:${CAP_DO_COLORS[l.capDo]||'#f0f4fa'};color:${CAP_DO_TEXT[l.capDo]||'#5a6478'}">${l.capDo||'—'}</span>
-    ${lichHocLines(l).map((line,i)=>row(i===0?'🗓 Lịch học':'', escapeHtml(line))).join('')}
-    ${row('👤 GV chính', escapeHtml(gvChinhTen))}
-    ${row('📖 Chuyên môn', escapeHtml(cmText))}
-    ${row('Số buổi', `${elapsed}/${total}`)}
+    <div class="lop-title" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+      ${l.tenLop}
+      <span class="lop-cap" style="background:${CAP_DO_COLORS[l.capDo]||'#f0f4fa'};color:${CAP_DO_TEXT[l.capDo]||'#5a6478'};margin-bottom:0">${l.capDo||'—'}</span>
+    </div>
+    ${lichHocLines(l).map((line,i)=>row(i===0?'Lịch học':'', escapeHtml(line))).join('')}
+    ${row('GV chính', escapeHtml(gvChinhTen))}
+    ${row('Chuyên môn', escapeHtml(cmText))}
+    ${row('Số buổi đã học', `${elapsed}/${total}`)}
     ${l.ngayBatDau&&l.ngayKetThuc?row('Khóa học', `${fmtDate(l.ngayBatDau)} → ${fmtDate(l.ngayKetThuc)}`):''}
-    ${l.ngayGiuaKy?row('Giữa kỳ', fmtDate(l.ngayGiuaKy)):''}
     ${l.canhBaoGiuaKy?`<div class="kt-alert giua">⚠ Giữa kỳ còn ${l.soNgayConGiuaKy} ngày!</div>`:''}
     ${l.canhBaoCuoiKy?`<div class="kt-alert cuoi">🔴 Cuối kỳ còn ${l.soNgayConCuoiKy} ngày!</div>`:''}
   </div>`;
@@ -864,6 +865,11 @@ async function renderLopDetail(){
     : 'background:#f8fafd;color:#5a6478';
 
   setContent(`
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px">
+      <span style="font-size:13px;color:#3a7bd5;cursor:pointer;font-weight:600" onclick="navTo('lophoc')">← Danh sách lớp</span>
+      <span style="font-size:15px;font-weight:800;color:#0d2d5e">${lop.tenLop}</span>
+      ${USER.role==='admin'?`<button class="btn btn-danger btn-sm" style="margin-left:auto" onclick="deleteLop('${lop.lopId}')">Xóa lớp</button>`:''}
+    </div>
     <div style="display:flex;border:1.5px solid #e4ebf5;border-bottom:none;border-radius:14px 14px 0 0;overflow:hidden">
       <div onclick="switchLopTab('diemdanh')" style="flex:1;text-align:center;padding:13px;font-size:14px;font-weight:700;cursor:pointer;transition:all .15s;${activeStyle('diemdanh')}">📋 Điểm danh</div>
       <div onclick="switchLopTab('chuyenmon')" style="flex:1;text-align:center;padding:13px;font-size:14px;font-weight:700;cursor:pointer;transition:all .15s;border-left:1.5px solid #e4ebf5;${activeStyle('chuyenmon')}">📚 Chuyên môn</div>
