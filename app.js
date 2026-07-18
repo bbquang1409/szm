@@ -284,8 +284,17 @@ async function renderLopHoc(){
   const btnMsg=document.getElementById('btn-msg');
   if(canMsg){ btnMsg.style.display=''; btnMsg.onclick=openModalGuiTinLop; } else { btnMsg.style.display='none'; }
   if(LOP_DATA.length===0){setContent('<div class="empty"><p>Chưa có lớp nào. Thêm lớp đầu tiên!</p></div>');return;}
+
+  // Lấy nội dung Chuyên môn cho các lớp đang hoạt động (đã khai giảng, chưa kết thúc) để hiện lên card
+  // — lớp chưa bắt đầu / đã kết thúc thì bỏ qua, đỡ tốn request không cần thiết.
+  const t = todayStr();
+  const activeLops = LOP_DATA.filter(l=>(!l.ngayBatDau||l.ngayBatDau<=t)&&(!l.ngayKetThuc||l.ngayKetThuc>=t));
+  const cmResults = await Promise.all(activeLops.map(l=>call({action:'getChuyenMonByLop', lopId:l.lopId})));
+  const cmByLopId = {};
+  activeLops.forEach((l,i)=>{ cmByLopId[l.lopId] = cmResults[i].ok ? cmResults[i].data : []; });
+
   setContent(`
-    <div class="lop-grid">${LOP_DATA.map(l=>lopCard(l)).join('')}</div>
+    <div class="lop-grid">${LOP_DATA.map(l=>lopCard(l, cmByLopId[l.lopId]||[])).join('')}</div>
   `);
 }
 
@@ -309,11 +318,82 @@ function openModalGuiTinLop(){
   });
 }
 
-function lopCard(l){
-  const total=dateDiff(l.ngayBatDau,l.ngayKetThuc);
-  const passed=dateDiff(l.ngayBatDau,todayStr());
-  const pct=total>0?Math.max(0,Math.min(100,Math.round(passed/total*100))):0;
+// Tính số buổi đã học / tổng số buổi của cả khóa, dựa theo caHoc (chỉ tính các ca đã khai rõ "thu").
+function tinhSoBuoi(lop){
+  if(!lop.ngayBatDau||!lop.ngayKetThuc) return {daHoc:0, tong:0};
+  let caList=[]; try{ caList = lop.caHoc?JSON.parse(lop.caHoc):[]; }catch(e){ caList=[]; }
+  if(caList.length===0) return {daHoc:0, tong:0};
+  const thuOrder=['T2','T3','T4','T5','T6','T7','CN'];
+  let tong=0, daHoc=0;
+  const start=new Date(lop.ngayBatDau), end=new Date(lop.ngayKetThuc), t=new Date(todayStr());
+  for(let d=new Date(start); d<=end; d.setDate(d.getDate()+1)){
+    const thuCode=thuOrder[d.getDay()===0?6:d.getDay()-1];
+    caList.forEach(ca=>{
+      const thuArr=ca.thu?String(ca.thu).split(',').filter(Boolean):[];
+      if(thuArr.length===0) return; // ca chưa khai rõ ngày học cụ thể — không tính vào tổng
+      if(thuArr.includes(thuCode)){
+        tong++;
+        if(d<=t) daHoc++;
+      }
+    });
+  }
+  return {daHoc, tong};
+}
+
+// Có ít nhất 1 trường nội dung nào đó đã được điền chưa
+function coNoiDungChuyenMon(r){
+  return !!(r&&(r.giaoTrinh||r.baiHoc||r.grammatik||r.tuVung||r.wiederholung||r.baiTapVeNha||r.ghiChu));
+}
+
+// Rút gọn 1 bản ghi Chuyên môn thành 1 dòng tóm tắt để hiện ngoài card lớp
+function cmSummaryText(rec){
+  if(!rec) return '';
+  const parts=[];
+  if(rec.giaoTrinh) parts.push(rec.giaoTrinh+(rec.sach?' ('+rec.sach+')':''));
+  if(rec.baiHoc) parts.push(rec.baiHoc);
+  if(rec.grammatik) parts.push('Grammatik: '+rec.grammatik);
+  if(!parts.length && rec.ghiChu) parts.push(rec.ghiChu);
+  return parts.join(' — ');
+}
+
+// Chọn nội dung Chuyên môn để hiện ngoài card lớp: ưu tiên buổi HÔM NAY (nếu có lịch học);
+// nếu hôm nay không có buổi nào thì lấy nội dung của buổi gần nhất đã dạy trước đó.
+function pickCardChuyenMon(lop, records){
+  const ngay = todayStr();
+  const todayCa = caHocScheduledOnDate(lop, ngay);
+  if(todayCa.length>0){
+    const todayIds = todayCa.map(ca=>caKey(ca));
+    const recs = (records||[]).filter(r=>r.ngay===ngay && todayIds.includes(r.caId));
+    return {recs, hasSessionToday:true, todayCa};
+  }
+  const past = (records||[]).filter(r=>r.ngay<=ngay && coNoiDungChuyenMon(r)).sort((a,b)=>a.ngay<b.ngay?-1:1);
+  const rec = past.length?past[past.length-1]:null;
+  return {recs: rec?[rec]:[], hasSessionToday:false, todayCa:[]};
+}
+
+function lopCard(l, cmRecords){
+  const {daHoc,tong} = tinhSoBuoi(l);
+  const pct = tong>0 ? Math.max(0,Math.min(100,Math.round(daHoc/tong*100))) : 0;
   const canEdit=['admin'].includes(USER.role);
+
+  const {recs, hasSessionToday, todayCa} = pickCardChuyenMon(l, cmRecords);
+
+  const gvHomNay = hasSessionToday
+    ? todayCa.map(ca=>`${ca.ten||'Buổi học'}: ${ca.nguoiDay?nguoiDayName(ca.nguoiDay):'(chưa gán)'}`).join(' · ')
+    : 'Hôm nay không có buổi học';
+
+  let cmLine;
+  if(hasSessionToday){
+    const recWithContent = recs.find(coNoiDungChuyenMon);
+    cmLine = recWithContent
+      ? `📚 Hôm nay: ${escapeHtml(cmSummaryText(recWithContent).slice(0,100))}`
+      : '📚 Hôm nay: chưa cập nhật nội dung';
+  }else if(recs.length){
+    cmLine = `📚 Buổi gần nhất (${fmtDate(recs[0].ngay)}): ${escapeHtml(cmSummaryText(recs[0]).slice(0,100))}`;
+  }else{
+    cmLine = '';
+  }
+
   return `<div class="lop-card ${l.canhBaoGiuaKy||l.canhBaoCuoiKy?'has-alert':''}"
     onclick="openLopDetail('${l.lopId}')" style="cursor:pointer">
     ${canEdit?`<div class="lop-actions">
@@ -322,10 +402,11 @@ function lopCard(l){
     </div>`:''}
     <div class="lop-title">${l.tenLop}</div>
     <span class="lop-cap" style="background:${CAP_DO_COLORS[l.capDo]||'#f0f4fa'};color:${CAP_DO_TEXT[l.capDo]||'#5a6478'}">${l.capDo||'—'}</span>
-    <div style="font-size:11px;color:#8a96a8">GV: ${l.giaoVienEmail||'—'}</div>
+    <div style="font-size:11px;color:#5a6478;margin-top:6px">👤 ${gvHomNay}</div>
+    ${cmLine?`<div style="font-size:11px;color:#5a6478;margin-top:3px;line-height:1.4">${cmLine}</div>`:''}
     ${l.ngayBatDau&&l.ngayKetThuc?`
     <div class="lop-progress-wrap">
-      <div class="lop-progress-label"><span>Tiến độ</span><span>${pct}%</span></div>
+      <div class="lop-progress-label"><span>Buổi học</span><span>${daHoc}/${tong}</span></div>
       <div class="lop-progress"><div class="lop-progress-fill" style="width:${pct}%;background:${pct>=100?'#0f6e56':'#3a7bd5'}"></div></div>
     </div>
     <div class="lop-dates">${fmtDate(l.ngayBatDau)} → ${fmtDate(l.ngayKetThuc)}</div>
@@ -792,6 +873,10 @@ let LOP_DETAIL_TAB = 'diemdanh';
 let LOP_DETAIL_ID = '';
 let LOP_CM_DATE = ''; // ngày đang xem/nhập ở tab Chuyên môn
 
+// Danh sách giáo trình tiếng Đức thường dùng — hiện trong dropdown "Giáo trình (Lehrbuch)".
+// Chọn "Khác..." nếu giáo trình không có trong danh sách để gõ tay.
+const GIAO_TRINH_LIST = ['Schritte Plus Neu','Netzwerk Neu','Menschen','Aspekte Neu','Sicher!','Studio 21','em Neu','DaF Kompakt Neu','Optimal','Ziel'];
+
 function openLopDetail(lopId){
   LOP_DETAIL_ID = lopId;
   LOP_DETAIL_TAB = 'diemdanh';
@@ -1036,20 +1121,102 @@ async function renderTabChuyenMon(lop){
         ${!editable?'<span style="margin-left:auto;font-size:11px;color:#8a96a8">🔒 Chỉ xem</span>':''}
       </div>
       <div style="padding:12px 14px">
+        ${editable ? cmFormEditable(caId, today_rec) : cmFormReadonly(today_rec)}
         ${editable
-          ? `<textarea id="cm-input-${caId}" placeholder="Nội dung buổi học hôm nay... (VD: Kursbuch Lektion 10, Teil A, B. Grammatik... Wiederholung...)" style="width:100%;min-height:90px;font-size:13px;box-sizing:border-box;resize:vertical">${today_rec?escapeHtml(today_rec.noiDung):''}</textarea>
-            <div style="display:flex;align-items:center;gap:10px;margin-top:8px">
+          ? `<div style="display:flex;align-items:center;gap:10px;margin-top:4px">
               <button class="btn btn-primary btn-sm" onclick="saveChuyenMonCa('${caId}')">💾 Lưu</button>
               ${today_rec?`<span style="font-size:11px;color:#8a96a8">Cập nhật lúc ${fmtDateTime(today_rec.capNhatLuc)} bởi ${nguoiDayName(today_rec.capNhatBoi)}</span>`:''}
             </div>`
-          : `<div style="font-size:13px;color:${today_rec?'#3d4c68':'#b8c2d4'};white-space:pre-wrap;min-height:40px">${today_rec?escapeHtml(today_rec.noiDung):'(chưa có nội dung)'}</div>
-             ${today_rec?`<div style="font-size:11px;color:#8a96a8;margin-top:6px">Cập nhật lúc ${fmtDateTime(today_rec.capNhatLuc)} bởi ${nguoiDayName(today_rec.capNhatBoi)}</div>`:''}`
+          : (today_rec?`<div style="font-size:11px;color:#8a96a8;margin-top:6px">Cập nhật lúc ${fmtDateTime(today_rec.capNhatLuc)} bởi ${nguoiDayName(today_rec.capNhatBoi)}</div>`:'')
         }
       </div>
     </div>`;
   }).join('');
 
   wrap.innerHTML = dateNav + `<div style="padding:8px 0">${cards}</div>`;
+
+  // Gắn sự kiện cho các dropdown "Giáo trình" sau khi HTML đã chèn vào DOM
+  caList.forEach(ca=>{
+    const caId = caKey(ca);
+    const sel = document.getElementById('cm-giaotrinh-'+caId);
+    if(sel) sel.addEventListener('change', ()=>toggleGiaoTrinhKhac(caId));
+  });
+}
+
+const CM_FIELD_LABELS = {
+  baiHoc:'Bài học (Lektion/Kapitel)', grammatik:'Grammatik', tuVung:'Từ vựng (Wortschatz)',
+  wiederholung:'Wiederholung (Ôn tập)', baiTapVeNha:'Bài tập về nhà (Hausaufgabe)', ghiChu:'Ghi chú thêm'
+};
+
+function cmField(label, id, value, tall){
+  return `<div style="margin-bottom:8px">
+    <label style="font-size:11px;color:#5a6478;display:block;margin-bottom:3px">${label}</label>
+    <textarea id="${id}" style="width:100%;min-height:${tall?60:44}px;font-size:13px;box-sizing:border-box;resize:vertical">${escapeHtml(value||'')}</textarea>
+  </div>`;
+}
+
+function cmFormEditable(caId, rec){
+  const gt = rec ? rec.giaoTrinh||'' : '';
+  const isKhac = gt && !GIAO_TRINH_LIST.includes(gt);
+  return `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+      <div>
+        <label style="font-size:11px;color:#5a6478;display:block;margin-bottom:3px">Giáo trình (Lehrbuch)</label>
+        <select id="cm-giaotrinh-${caId}" style="width:100%">
+          <option value="">— Chọn —</option>
+          ${GIAO_TRINH_LIST.map(g=>`<option value="${g}" ${gt===g?'selected':''}>${g}</option>`).join('')}
+          <option value="__khac__" ${isKhac?'selected':''}>Khác...</option>
+        </select>
+        <input type="text" id="cm-giaotrinh-khac-${caId}" placeholder="Nhập tên giáo trình khác"
+          value="${escapeAttr(isKhac?gt:'')}"
+          style="width:100%;margin-top:4px;box-sizing:border-box;display:${isKhac?'block':'none'}">
+      </div>
+      <div>
+        <label style="font-size:11px;color:#5a6478;display:block;margin-bottom:3px">Sách</label>
+        <select id="cm-sach-${caId}" style="width:100%">
+          <option value="">— Chọn —</option>
+          <option value="Kursbuch" ${rec&&rec.sach==='Kursbuch'?'selected':''}>Kursbuch</option>
+          <option value="Arbeitsbuch" ${rec&&rec.sach==='Arbeitsbuch'?'selected':''}>Arbeitsbuch</option>
+        </select>
+      </div>
+    </div>
+    <div style="margin-bottom:8px">
+      <label style="font-size:11px;color:#5a6478;display:block;margin-bottom:3px">${CM_FIELD_LABELS.baiHoc}</label>
+      <input type="text" id="cm-baihoc-${caId}" placeholder="VD: Lektion 10, Teil A, B" value="${escapeAttr(rec?rec.baiHoc:'')}" style="width:100%;box-sizing:border-box">
+    </div>
+    ${cmField(CM_FIELD_LABELS.grammatik,'cm-grammatik-'+caId, rec&&rec.grammatik)}
+    ${cmField(CM_FIELD_LABELS.tuVung,'cm-tuvung-'+caId, rec&&rec.tuVung)}
+    ${cmField(CM_FIELD_LABELS.wiederholung,'cm-wiederholung-'+caId, rec&&rec.wiederholung)}
+    ${cmField(CM_FIELD_LABELS.baiTapVeNha,'cm-baitap-'+caId, rec&&rec.baiTapVeNha)}
+    ${cmField(CM_FIELD_LABELS.ghiChu,'cm-ghichu-'+caId, rec&&rec.ghiChu, false)}
+  `;
+}
+
+function cmFormReadonly(rec){
+  if(!rec || !coNoiDungChuyenMon(rec)){
+    return `<div style="font-size:13px;color:#b8c2d4">(chưa có nội dung)</div>`;
+  }
+  const rows = [
+    rec.giaoTrinh ? ['Giáo trình', rec.giaoTrinh+(rec.sach?' ('+rec.sach+')':'')] : null,
+    rec.baiHoc ? [CM_FIELD_LABELS.baiHoc, rec.baiHoc] : null,
+    rec.grammatik ? [CM_FIELD_LABELS.grammatik, rec.grammatik] : null,
+    rec.tuVung ? [CM_FIELD_LABELS.tuVung, rec.tuVung] : null,
+    rec.wiederholung ? [CM_FIELD_LABELS.wiederholung, rec.wiederholung] : null,
+    rec.baiTapVeNha ? [CM_FIELD_LABELS.baiTapVeNha, rec.baiTapVeNha] : null,
+    rec.ghiChu ? [CM_FIELD_LABELS.ghiChu, rec.ghiChu] : null,
+  ].filter(Boolean);
+  return rows.map(([label,val])=>`
+    <div style="margin-bottom:8px">
+      <div style="font-size:11px;color:#8a96a8">${label}</div>
+      <div style="font-size:13px;color:#3d4c68;white-space:pre-wrap">${escapeHtml(val)}</div>
+    </div>`).join('');
+}
+
+function toggleGiaoTrinhKhac(caId){
+  const sel = document.getElementById('cm-giaotrinh-'+caId);
+  const khacInput = document.getElementById('cm-giaotrinh-khac-'+caId);
+  if(!sel||!khacInput) return;
+  khacInput.style.display = sel.value==='__khac__' ? 'block' : 'none';
 }
 
 function changeCMDate(dir){
@@ -1066,9 +1233,23 @@ function selectCMDate(val){
 async function saveChuyenMonCa(caId){
   const lop = LOP_DATA.find(l=>l.lopId===LOP_DETAIL_ID);
   const ngay = LOP_CM_DATE || todayStr();
-  const ta = document.getElementById('cm-input-'+caId);
-  const noiDung = ta ? ta.value : '';
-  const r = await call({action:'saveChuyenMon', lopId:lop.lopId, ngay, caId, noiDung});
+  const val = id => { const el=document.getElementById(id); return el ? el.value.trim() : ''; };
+
+  const selGT = document.getElementById('cm-giaotrinh-'+caId);
+  const giaoTrinh = selGT && selGT.value==='__khac__' ? val('cm-giaotrinh-khac-'+caId) : (selGT?selGT.value:'');
+
+  const payload = {
+    action:'saveChuyenMon', lopId:lop.lopId, ngay, caId,
+    giaoTrinh,
+    sach: val('cm-sach-'+caId),
+    baiHoc: val('cm-baihoc-'+caId),
+    grammatik: val('cm-grammatik-'+caId),
+    tuVung: val('cm-tuvung-'+caId),
+    wiederholung: val('cm-wiederholung-'+caId),
+    baiTapVeNha: val('cm-baitap-'+caId),
+    ghiChu: val('cm-ghichu-'+caId),
+  };
+  const r = await call(payload);
   if(r.ok){ toast('Đã lưu nội dung chuyên môn','success'); renderTabChuyenMon(lop); }
   else toast(r.error||'Lỗi lưu','error');
 }
