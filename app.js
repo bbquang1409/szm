@@ -790,6 +790,7 @@ async function openModalNhanTinPH(studentId,hoTen){
 // ── LOP DETAIL (Diem danh + Bang diem trong 1 lop) ──
 let LOP_DETAIL_TAB = 'diemdanh';
 let LOP_DETAIL_ID = '';
+let LOP_CM_DATE = ''; // ngày đang xem/nhập ở tab Chuyên môn
 
 function openLopDetail(lopId){
   LOP_DETAIL_ID = lopId;
@@ -817,12 +818,14 @@ async function renderLopDetail(){
   setContent(`
     <div style="display:flex;border:1.5px solid #e4ebf5;border-bottom:none;border-radius:14px 14px 0 0;overflow:hidden">
       <div onclick="switchLopTab('diemdanh')" style="flex:1;text-align:center;padding:13px;font-size:14px;font-weight:700;cursor:pointer;transition:all .15s;${activeStyle('diemdanh')}">📋 Điểm danh</div>
+      <div onclick="switchLopTab('chuyenmon')" style="flex:1;text-align:center;padding:13px;font-size:14px;font-weight:700;cursor:pointer;transition:all .15s;border-left:1.5px solid #e4ebf5;${activeStyle('chuyenmon')}">📚 Chuyên môn</div>
       <div onclick="switchLopTab('diem')" style="flex:1;text-align:center;padding:13px;font-size:14px;font-weight:700;cursor:pointer;transition:all .15s;border-left:1.5px solid #e4ebf5;${activeStyle('diem')}">📊 Bảng điểm</div>
     </div>
     <div id="lop-detail-content" style="border:1.5px solid #e4ebf5;border-top:none;border-radius:0 0 14px 14px;overflow:hidden;background:#fff"></div>
   `);
 
   if(LOP_DETAIL_TAB==='diemdanh') renderTabDiemDanh(lop);
+  else if(LOP_DETAIL_TAB==='chuyenmon') renderTabChuyenMon(lop);
   else renderTabBangDiem(lop);
 }
 
@@ -963,6 +966,117 @@ function caKey(ca){
 function nguoiDayName(email){
   const acc = (window.ALL_ACCOUNTS||[]).find(a=>a.email===email);
   return acc ? acc.hoTen : email;
+}
+
+// ── TAB CHUYÊN MÔN (nội dung dạy theo từng buổi) ──
+// Với mỗi ngày, chỉ hiện những ca ĐÃ được lên lịch học đúng "thứ" đó (dùng chung logic với lịch điểm danh).
+// Mỗi ca có 1 khung nội dung riêng, do đúng GV/TG phụ trách ca đó ghi (hoặc admin sửa hộ).
+function caHocScheduledOnDate(lop, ngay){
+  let caHocList=[]; try{ caHocList = lop.caHoc ? JSON.parse(lop.caHoc) : []; }catch(e){ caHocList=[]; }
+  if(caHocList.length===0) caHocList=[{ten:'Buổi học',nguoiDay:'',thu:''}];
+  const thuOrder=['T2','T3','T4','T5','T6','T7','CN'];
+  const d=new Date(ngay);
+  const thuCode = thuOrder[d.getDay()===0?6:d.getDay()-1];
+  return caHocList.filter(ca=>{
+    const thuArr = ca.thu ? String(ca.thu).split(',').filter(Boolean) : [];
+    return thuArr.length===0 || thuArr.includes(thuCode);
+  });
+}
+
+function canEditChuyenMon(ca){
+  return USER.role==='admin' || (ca.nguoiDay && ca.nguoiDay===USER.email);
+}
+
+async function renderTabChuyenMon(lop){
+  const wrap = document.getElementById('lop-detail-content');
+  wrap.innerHTML = '<div class="empty">Đang tải...</div>';
+
+  const ngay = LOP_CM_DATE || todayStr();
+  LOP_CM_DATE = ngay;
+
+  const caList = caHocScheduledOnDate(lop, ngay);
+
+  const cmR = await call({action:'getChuyenMonByLop', lopId:lop.lopId});
+  const records = cmR.ok ? cmR.data : [];
+  // Tất cả bản ghi của 1 ca, sắp theo ngày để tìm nhanh bản ghi hôm nay + bản ghi gần nhất trước đó
+  const byCa = {};
+  records.forEach(r=>{ (byCa[r.caId]=byCa[r.caId]||[]).push(r); });
+  Object.values(byCa).forEach(arr=>arr.sort((a,b)=>a.ngay<b.ngay?-1:1));
+
+  const thuLabelsFull = ['Thứ 2','Thứ 3','Thứ 4','Thứ 5','Thứ 6','Thứ 7','Chủ Nhật'];
+  const d=new Date(ngay);
+  const thuText = thuLabelsFull[d.getDay()===0?6:d.getDay()-1];
+
+  const dateNav = `
+    <div style="display:flex;align-items:center;gap:8px;padding:14px 16px;border-bottom:2px solid #e4ebf5;background:#f5f8fc">
+      <button class="btn btn-sm" onclick="changeCMDate(-1)" style="padding:8px 12px">←</button>
+      <input type="date" id="cm-date" value="${ngay}" onchange="selectCMDate(this.value)" style="flex:1;max-width:200px">
+      <span style="font-size:13px;font-weight:700;color:#3d4c68">${thuText}</span>
+      ${ngay!==todayStr()?`<span style="font-size:11px;color:#3a7bd5;cursor:pointer" onclick="selectCMDate('${todayStr()}')">↺ Hôm nay</span>`:''}
+      <button class="btn btn-sm" onclick="changeCMDate(1)" style="padding:8px 12px;margin-left:auto">→</button>
+    </div>`;
+
+  if(caList.length===0){
+    wrap.innerHTML = dateNav + `<div class="empty" style="padding:40px">Không có buổi học nào vào ${thuText.toLowerCase()} (${fmtDate(ngay)})</div>`;
+    return;
+  }
+
+  const cards = caList.map(ca=>{
+    const caId = caKey(ca);
+    const arr = byCa[caId]||[];
+    const today_rec = arr.find(r=>r.ngay===ngay);
+    const editable = canEditChuyenMon(ca);
+    const tenGV = ca.nguoiDay ? nguoiDayName(ca.nguoiDay) : '(chưa gán người dạy)';
+
+    return `
+    <div class="cm-card" style="border:1.5px solid #e4ebf5;border-radius:12px;margin:12px 16px;overflow:hidden">
+      <div style="display:flex;align-items:center;gap:8px;padding:10px 14px;background:#f8fafd;border-bottom:1.5px solid #e4ebf5">
+        <span style="font-weight:800;color:#1a50a0;font-size:13.5px">${ca.ten||'Buổi học'}</span>
+        <span style="font-size:12px;color:#5a6478">— ${tenGV}</span>
+        ${!editable?'<span style="margin-left:auto;font-size:11px;color:#8a96a8">🔒 Chỉ xem</span>':''}
+      </div>
+      <div style="padding:12px 14px">
+        ${editable
+          ? `<textarea id="cm-input-${caId}" placeholder="Nội dung buổi học hôm nay... (VD: Kursbuch Lektion 10, Teil A, B. Grammatik... Wiederholung...)" style="width:100%;min-height:90px;font-size:13px;box-sizing:border-box;resize:vertical">${today_rec?escapeHtml(today_rec.noiDung):''}</textarea>
+            <div style="display:flex;align-items:center;gap:10px;margin-top:8px">
+              <button class="btn btn-primary btn-sm" onclick="saveChuyenMonCa('${caId}')">💾 Lưu</button>
+              ${today_rec?`<span style="font-size:11px;color:#8a96a8">Cập nhật lúc ${fmtDateTime(today_rec.capNhatLuc)} bởi ${nguoiDayName(today_rec.capNhatBoi)}</span>`:''}
+            </div>`
+          : `<div style="font-size:13px;color:${today_rec?'#3d4c68':'#b8c2d4'};white-space:pre-wrap;min-height:40px">${today_rec?escapeHtml(today_rec.noiDung):'(chưa có nội dung)'}</div>
+             ${today_rec?`<div style="font-size:11px;color:#8a96a8;margin-top:6px">Cập nhật lúc ${fmtDateTime(today_rec.capNhatLuc)} bởi ${nguoiDayName(today_rec.capNhatBoi)}</div>`:''}`
+        }
+      </div>
+    </div>`;
+  }).join('');
+
+  wrap.innerHTML = dateNav + `<div style="padding:8px 0">${cards}</div>`;
+}
+
+function changeCMDate(dir){
+  const d=new Date(LOP_CM_DATE||todayStr());
+  d.setDate(d.getDate()+dir);
+  selectCMDate(d.toISOString().slice(0,10));
+}
+function selectCMDate(val){
+  LOP_CM_DATE = val;
+  const lop=LOP_DATA.find(l=>l.lopId===LOP_DETAIL_ID);
+  renderTabChuyenMon(lop);
+}
+
+async function saveChuyenMonCa(caId){
+  const lop = LOP_DATA.find(l=>l.lopId===LOP_DETAIL_ID);
+  const ngay = LOP_CM_DATE || todayStr();
+  const ta = document.getElementById('cm-input-'+caId);
+  const noiDung = ta ? ta.value : '';
+  const r = await call({action:'saveChuyenMon', lopId:lop.lopId, ngay, caId, noiDung});
+  if(r.ok){ toast('Đã lưu nội dung chuyên môn','success'); renderTabChuyenMon(lop); }
+  else toast(r.error||'Lỗi lưu','error');
+}
+
+function fmtDateTime(s){
+  if(!s) return '—';
+  try{ const d=new Date(s); return d.toLocaleDateString('vi-VN')+' '+d.toLocaleTimeString('vi-VN',{hour:'2-digit',minute:'2-digit'}); }
+  catch{ return s; }
 }
 
 function changeDDDate(val){ LOP_DD_DATE = val; const lop=LOP_DATA.find(l=>l.lopId===LOP_DETAIL_ID); renderTabDiemDanh(lop); }
