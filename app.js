@@ -373,28 +373,29 @@ function pickCardChuyenMon(lop, records){
 
 function lopCard(l, cmRecords){
   const {daHoc,tong} = tinhSoBuoi(l);
+  const pct = tong>0 ? Math.max(0,Math.min(100,Math.round(daHoc/tong*100))) : 0;
   const canEdit=['admin'].includes(USER.role);
 
   const {recs, hasSessionToday, todayCa} = pickCardChuyenMon(l, cmRecords);
-  const rec = recs.find(coNoiDungChuyenMon) || null;
 
   const gvHomNay = hasSessionToday
-    ? todayCa.map(ca=>ca.nguoiDay?nguoiDayName(ca.nguoiDay):'(chưa gán)').join(', ')
-    : (recs.length ? `Nghỉ (gần nhất ${fmtDate(recs[0].ngay)})` : 'Nghỉ hôm nay');
+    ? todayCa.map(ca=>`${ca.ten||'Buổi học'}: ${ca.nguoiDay?nguoiDayName(ca.nguoiDay):'(chưa gán)'}`).join(' · ')
+    : 'Hôm nay không có buổi học';
 
-  let lehrbuchLine = '';
-  let contentLine = '';
-  if(rec){
-    lehrbuchLine = [rec.giaoTrinh, rec.baiHoc].filter(Boolean).join(' – ');
-    const parts=[];
-    if(rec.grammatik) parts.push('Gr: '+rec.grammatik);
-    if(rec.wiederholung) parts.push('Wdh: '+rec.wiederholung);
-    contentLine = parts.join(' · ').slice(0,70);
-  }else if(hasSessionToday){
-    lehrbuchLine = 'Chưa cập nhật nội dung hôm nay';
+  // Dòng Lektion riêng cho từng ca/sách đang học hôm nay (VD: Sáng: Netzwerk Neu – Lektion 10/12).
+  // Nếu hôm nay không có buổi thì hiện nội dung của buổi gần nhất đã dạy (chỉ 1 dòng).
+  let lektionLines = [];
+  if(hasSessionToday){
+    lektionLines = todayCa.map(ca=>{
+      const caId = caKey(ca);
+      const rec = recs.find(r=>r.caId===caId && coNoiDungChuyenMon(r));
+      const noiDung = rec ? [rec.giaoTrinh, rec.baiHoc].filter(Boolean).join(' – ') : '';
+      return `${ca.ten||'Buổi học'}: ${noiDung||'chưa cập nhật'}`;
+    });
+  }else if(recs.length){
+    const rec = recs[0];
+    lektionLines = [`Gần nhất (${fmtDate(rec.ngay)}): ${[rec.giaoTrinh,rec.baiHoc].filter(Boolean).join(' – ')||'—'}`];
   }
-
-  const ellipsis = 'white-space:nowrap;overflow:hidden;text-overflow:ellipsis';
 
   return `<div class="lop-card ${l.canhBaoGiuaKy||l.canhBaoCuoiKy?'has-alert':''}"
     onclick="openLopDetail('${l.lopId}')" style="cursor:pointer">
@@ -402,12 +403,18 @@ function lopCard(l, cmRecords){
       <button class="btn btn-sm" onclick="event.stopPropagation();openModalLop('${l.lopId}')">Sửa</button>
       <button class="btn btn-danger btn-sm" onclick="event.stopPropagation();deleteLop('${l.lopId}')">Xóa</button>
     </div>`:''}
-    <div class="lop-title">${l.tenLop}
-      <span class="lop-cap" style="background:${CAP_DO_COLORS[l.capDo]||'#f0f4fa'};color:${CAP_DO_TEXT[l.capDo]||'#5a6478'}">${l.capDo||'—'}</span>
+    <div class="lop-title">${l.tenLop}</div>
+    <span class="lop-cap" style="background:${CAP_DO_COLORS[l.capDo]||'#f0f4fa'};color:${CAP_DO_TEXT[l.capDo]||'#5a6478'}">${l.capDo||'—'}</span>
+    <div style="font-size:11px;color:#8a96a8;margin-top:6px">👤 ${escapeHtml(gvHomNay)}</div>
+    ${lektionLines.map(t=>`<div style="font-size:11px;color:#3d4c68;margin-top:2px">📖 ${escapeHtml(t)}</div>`).join('')}
+    ${l.ngayBatDau&&l.ngayKetThuc?`
+    <div class="lop-progress-wrap">
+      <div class="lop-progress-label"><span>Buổi học</span><span>${daHoc}/${tong}</span></div>
+      <div class="lop-progress"><div class="lop-progress-fill" style="width:${pct}%;background:${pct>=100?'#0f6e56':'#3a7bd5'}"></div></div>
     </div>
-    <div style="font-size:11px;color:#5a6478;margin-top:5px;${ellipsis}">🗓 Buổi ${daHoc}/${tong} · 👤 ${escapeHtml(gvHomNay)}</div>
-    ${lehrbuchLine?`<div style="font-size:11px;color:#3d4c68;margin-top:2px;${ellipsis}">📖 ${escapeHtml(lehrbuchLine)}</div>`:''}
-    ${contentLine?`<div style="font-size:11px;color:#8a96a8;margin-top:2px;${ellipsis}">${escapeHtml(contentLine)}</div>`:''}
+    <div class="lop-dates">${fmtDate(l.ngayBatDau)} → ${fmtDate(l.ngayKetThuc)}</div>
+    ${l.ngayGiuaKy?`<div style="font-size:11px;color:#8a96a8;margin-top:4px">Giữa kỳ: ${fmtDate(l.ngayGiuaKy)}</div>`:''}
+    `:''}
     ${l.canhBaoGiuaKy?`<div class="kt-alert giua">⚠ Giữa kỳ còn ${l.soNgayConGiuaKy} ngày!</div>`:''}
     ${l.canhBaoCuoiKy?`<div class="kt-alert cuoi">🔴 Cuối kỳ còn ${l.soNgayConCuoiKy} ngày!</div>`:''}
   </div>`;
@@ -868,6 +875,7 @@ async function openModalNhanTinPH(studentId,hoTen){
 let LOP_DETAIL_TAB = 'diemdanh';
 let LOP_DETAIL_ID = '';
 let LOP_CM_DATE = ''; // ngày đang xem/nhập ở tab Chuyên môn
+let CM_WEEK_OFFSET = 0; // 0 = tuần hiện tại, -1 = tuần trước... (giống LICH_WEEK_OFFSET bên Điểm danh nhưng tách riêng)
 
 // Danh sách giáo trình tiếng Đức thường dùng — hiện trong dropdown "Giáo trình (Lehrbuch)".
 // Chọn "Khác..." nếu giáo trình không có trong danh sách để gõ tay.
@@ -1079,7 +1087,7 @@ async function renderTabChuyenMon(lop){
 
   const cmR = await call({action:'getChuyenMonByLop', lopId:lop.lopId});
   const records = cmR.ok ? cmR.data : [];
-  // Tất cả bản ghi của 1 ca, sắp theo ngày để tìm nhanh bản ghi hôm nay + bản ghi gần nhất trước đó
+  // Tất cả bản ghi của 1 ca, sắp theo ngày để tìm nhanh bản ghi của ngày đang xem
   const byCa = {};
   records.forEach(r=>{ (byCa[r.caId]=byCa[r.caId]||[]).push(r); });
   Object.values(byCa).forEach(arr=>arr.sort((a,b)=>a.ngay<b.ngay?-1:1));
@@ -1088,17 +1096,10 @@ async function renderTabChuyenMon(lop){
   const d=new Date(ngay);
   const thuText = thuLabelsFull[d.getDay()===0?6:d.getDay()-1];
 
-  const dateNav = `
-    <div style="display:flex;align-items:center;gap:8px;padding:14px 16px;border-bottom:2px solid #e4ebf5;background:#f5f8fc">
-      <button class="btn btn-sm" onclick="changeCMDate(-1)" style="padding:8px 12px">←</button>
-      <input type="date" id="cm-date" value="${ngay}" onchange="selectCMDate(this.value)" style="flex:1;max-width:200px">
-      <span style="font-size:13px;font-weight:700;color:#3d4c68">${thuText}</span>
-      ${ngay!==todayStr()?`<span style="font-size:11px;color:#3a7bd5;cursor:pointer" onclick="selectCMDate('${todayStr()}')">↺ Hôm nay</span>`:''}
-      <button class="btn btn-sm" onclick="changeCMDate(1)" style="padding:8px 12px;margin-left:auto">→</button>
-    </div>`;
+  const weekStrip = renderCMWeekStrip(lop, records, ngay);
 
   if(caList.length===0){
-    wrap.innerHTML = dateNav + `<div class="empty" style="padding:40px">Không có buổi học nào vào ${thuText.toLowerCase()} (${fmtDate(ngay)})</div>`;
+    wrap.innerHTML = weekStrip + `<div class="empty" style="padding:40px">Không có buổi học nào vào ${thuText.toLowerCase()} (${fmtDate(ngay)})</div>`;
     return;
   }
 
@@ -1129,7 +1130,7 @@ async function renderTabChuyenMon(lop){
     </div>`;
   }).join('');
 
-  wrap.innerHTML = dateNav + `<div style="padding:8px 0">${cards}</div>`;
+  wrap.innerHTML = weekStrip + `<div style="padding:8px 0">${cards}</div>`;
 
   // Gắn sự kiện cho các dropdown "Giáo trình" sau khi HTML đã chèn vào DOM
   caList.forEach(ca=>{
@@ -1139,18 +1140,62 @@ async function renderTabChuyenMon(lop){
   });
 }
 
+// Lịch tuần cho tab Chuyên môn: bấm vào 1 ngày để xem/nhập nội dung của ngày đó.
+// Chấm xanh nhỏ dưới ngày = ngày đó đã có nội dung được lưu. Ngày mờ = không có lịch học.
+function renderCMWeekStrip(lop, records, selectedNgay){
+  const weekDates = getWeekDates(selectedNgay||todayStr(), CM_WEEK_OFFSET);
+  const thuLabels = ['T2','T3','T4','T5','T6','T7','CN'];
+  const today = todayStr();
+  const weekLabel = `${fmtDate(weekDates[0])} — ${fmtDate(weekDates[6])}`;
+
+  const hasSessionByDay = weekDates.map(dt=>caHocScheduledOnDate(lop,dt).length>0);
+  const hasContentByDay = weekDates.map(dt=>records.some(r=>r.ngay===dt && coNoiDungChuyenMon(r)));
+
+  return `
+    <div style="padding:10px 16px;border-bottom:2px solid #e4ebf5;background:#f5f8fc">
+      <div style="display:flex;margin-bottom:8px">
+        <button class="btn btn-sm" onclick="changeCMWeek(-1)" style="flex:1;border:1.5px solid #e4ebf5;border-right:none;border-radius:9px 0 0 9px;padding:6px">← Tuần trước</button>
+        <div style="flex:1.2;border:1.5px solid #c7d4e8;padding:5px 10px;background:#eef3fb;text-align:center;display:flex;flex-direction:column;align-items:center;justify-content:center">
+          <div style="font-size:13px;font-weight:800;color:#0d2d5e">${weekLabel}</div>
+          ${CM_WEEK_OFFSET<0?`<span style="font-size:10px;color:#3a7bd5;cursor:pointer" onclick="CM_WEEK_OFFSET=0;selectCMDate('${today}')">↺ Về tuần hiện tại</span>`:''}
+        </div>
+        <button class="btn btn-sm" onclick="changeCMWeek(1)" ${CM_WEEK_OFFSET>=0?'disabled':''} style="flex:1;border:1.5px solid #e4ebf5;border-left:none;border-radius:0 9px 9px 0;padding:6px">Tuần sau →</button>
+      </div>
+      <div style="display:flex;gap:4px">
+        ${weekDates.map((dt,i)=>{
+          const active = dt===selectedNgay;
+          const isToday = dt===today;
+          const scheduled = hasSessionByDay[i];
+          return `<div onclick="selectCMDate('${dt}')" style="flex:1;cursor:pointer;text-align:center;padding:6px 2px;border-radius:8px;border:1.5px solid ${active?'#3a7bd5':'#e4ebf5'};background:${active?'#eaf1fc':'#fff'};opacity:${scheduled?1:.45}">
+            <div style="font-size:11px;font-weight:700;color:${isToday?'#1a50a0':'#5a6478'}">${thuLabels[i]}</div>
+            <div style="font-size:10px;color:${isToday?'#3a7bd5':'#8a96a8'}">${dt.slice(8)}/${dt.slice(5,7)}</div>
+            <div style="height:8px;margin-top:2px;color:#0f6e56;font-size:10px">${hasContentByDay[i]?'●':''}</div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+}
+
+function changeCMWeek(dir){
+  CM_WEEK_OFFSET = Math.min(0, CM_WEEK_OFFSET + dir);
+  const lop=LOP_DATA.find(l=>l.lopId===LOP_DETAIL_ID);
+  renderTabChuyenMon(lop);
+}
+
 const CM_FIELD_LABELS = {
   baiHoc:'Bài học (Lektion/Kapitel)', grammatik:'Grammatik', tuVung:'Từ vựng (Wortschatz)',
   wiederholung:'Wiederholung (Ôn tập)', baiTapVeNha:'Bài tập về nhà (Hausaufgabe)', ghiChu:'Ghi chú thêm'
 };
 
-function cmField(label, id, value, tall){
+function cmField(label, id, value){
   return `<div style="margin-bottom:8px">
     <label style="font-size:11px;color:#5a6478;display:block;margin-bottom:3px">${label}</label>
-    <textarea id="${id}" style="width:100%;min-height:${tall?60:44}px;font-size:13px;box-sizing:border-box;resize:vertical">${escapeHtml(value||'')}</textarea>
+    <textarea id="${id}" style="width:100%;min-height:44px;font-size:13px;box-sizing:border-box;resize:vertical">${escapeHtml(value||'')}</textarea>
   </div>`;
 }
 
+// Form nhập rút gọn — chỉ 5 mục cốt lõi để GV điền nhanh mỗi ngày, không gây mệt mỏi:
+// Giáo trình, Sách, Bài học (Lektion), Grammatik, Wiederholung.
 function cmFormEditable(caId, rec){
   const gt = rec ? rec.giaoTrinh||'' : '';
   const isKhac = gt && !GIAO_TRINH_LIST.includes(gt);
@@ -1178,13 +1223,10 @@ function cmFormEditable(caId, rec){
     </div>
     <div style="margin-bottom:8px">
       <label style="font-size:11px;color:#5a6478;display:block;margin-bottom:3px">${CM_FIELD_LABELS.baiHoc}</label>
-      <input type="text" id="cm-baihoc-${caId}" placeholder="VD: Lektion 10, Teil A, B" value="${escapeAttr(rec?rec.baiHoc:'')}" style="width:100%;box-sizing:border-box">
+      <input type="text" id="cm-baihoc-${caId}" placeholder="VD: Lektion 10/12, Teil A, B" value="${escapeAttr(rec?rec.baiHoc:'')}" style="width:100%;box-sizing:border-box">
     </div>
     ${cmField(CM_FIELD_LABELS.grammatik,'cm-grammatik-'+caId, rec&&rec.grammatik)}
-    ${cmField(CM_FIELD_LABELS.tuVung,'cm-tuvung-'+caId, rec&&rec.tuVung)}
     ${cmField(CM_FIELD_LABELS.wiederholung,'cm-wiederholung-'+caId, rec&&rec.wiederholung)}
-    ${cmField(CM_FIELD_LABELS.baiTapVeNha,'cm-baitap-'+caId, rec&&rec.baiTapVeNha)}
-    ${cmField(CM_FIELD_LABELS.ghiChu,'cm-ghichu-'+caId, rec&&rec.ghiChu, false)}
   `;
 }
 
@@ -1196,8 +1238,10 @@ function cmFormReadonly(rec){
     rec.giaoTrinh ? ['Giáo trình', rec.giaoTrinh+(rec.sach?' ('+rec.sach+')':'')] : null,
     rec.baiHoc ? [CM_FIELD_LABELS.baiHoc, rec.baiHoc] : null,
     rec.grammatik ? [CM_FIELD_LABELS.grammatik, rec.grammatik] : null,
-    rec.tuVung ? [CM_FIELD_LABELS.tuVung, rec.tuVung] : null,
     rec.wiederholung ? [CM_FIELD_LABELS.wiederholung, rec.wiederholung] : null,
+    // Các trường cũ (Từ vựng/Bài tập về nhà/Ghi chú) không còn ô nhập mới, nhưng vẫn hiện nếu
+    // đã có dữ liệu từ trước — tránh làm "mất" dữ liệu cũ khỏi tầm mắt.
+    rec.tuVung ? [CM_FIELD_LABELS.tuVung, rec.tuVung] : null,
     rec.baiTapVeNha ? [CM_FIELD_LABELS.baiTapVeNha, rec.baiTapVeNha] : null,
     rec.ghiChu ? [CM_FIELD_LABELS.ghiChu, rec.ghiChu] : null,
   ].filter(Boolean);
@@ -1215,11 +1259,6 @@ function toggleGiaoTrinhKhac(caId){
   khacInput.style.display = sel.value==='__khac__' ? 'block' : 'none';
 }
 
-function changeCMDate(dir){
-  const d=new Date(LOP_CM_DATE||todayStr());
-  d.setDate(d.getDate()+dir);
-  selectCMDate(d.toISOString().slice(0,10));
-}
 function selectCMDate(val){
   LOP_CM_DATE = val;
   const lop=LOP_DATA.find(l=>l.lopId===LOP_DETAIL_ID);
@@ -1240,10 +1279,7 @@ async function saveChuyenMonCa(caId){
     sach: val('cm-sach-'+caId),
     baiHoc: val('cm-baihoc-'+caId),
     grammatik: val('cm-grammatik-'+caId),
-    tuVung: val('cm-tuvung-'+caId),
     wiederholung: val('cm-wiederholung-'+caId),
-    baiTapVeNha: val('cm-baitap-'+caId),
-    ghiChu: val('cm-ghichu-'+caId),
   };
   const r = await call(payload);
   if(r.ok){ toast('Đã lưu nội dung chuyên môn','success'); renderTabChuyenMon(lop); }
