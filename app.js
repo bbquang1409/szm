@@ -320,7 +320,7 @@ function openModalGuiTinLop(){
 
 // Có ít nhất 1 trường nội dung nào đó đã được điền chưa
 function coNoiDungChuyenMon(r){
-  return !!(r&&(r.giaoTrinh||r.baiHoc||r.grammatik||r.tuVung||r.wiederholung||r.baiTapVeNha||r.ghiChu));
+  return !!(r&&(r.giaoTrinh||r.baiHoc||r.phan||r.grammatik||r.tuVung||r.wiederholung||r.baiTapVeNha||r.ghiChu));
 }
 
 // Danh sách các dòng lịch học của lớp từ caHoc, mỗi buổi (ca) 1 dòng riêng — VD:
@@ -354,12 +354,28 @@ function lopCard(l, cmRecords){
 
   const gvChinhTen = l.giaoVienEmail ? nguoiDayName(l.giaoVienEmail) : '—';
   const cmRec = chuyenMonGvChinh(l, cmRecords);
-  const cmText = cmRec
-    ? `${[cmRec.giaoTrinh,cmRec.baiHoc].filter(Boolean).join(' – ')||'—'} (${fmtDate(cmRec.ngay)})`
-    : 'Chưa có nội dung';
 
-  // Dòng thông tin dạng "Nhãn: nội dung" viết liền, không canh phải
+  // Dòng đơn giản dạng "Nhãn: nội dung" viết liền, không canh phải
   const row = (label,value)=>`<div style="font-size:12.5px;color:#5a6478;margin-top:5px">${label?`<span style="color:#3d4c68;font-weight:700">${label}:</span> `:''}${value}</div>`;
+  // Nhóm có tiêu đề + các dòng con thụt lề đều nhau (dùng cho Lịch học & Chuyên môn)
+  const rowGroup = (label,subLines)=>{
+    if(!subLines.length) return '';
+    return `<div style="font-size:12.5px;color:#5a6478;margin-top:5px">
+      <span style="color:#3d4c68;font-weight:700">${label}:</span>
+      ${subLines.map(s=>`<div style="margin-top:3px;padding-left:14px">${s}</div>`).join('')}
+    </div>`;
+  };
+
+  const cmSubLines = [];
+  if(cmRec){
+    const sachText = [cmRec.giaoTrinh, cmRec.sach].filter(Boolean).join(' – ');
+    if(sachText) cmSubLines.push('Sách: '+escapeHtml(sachText));
+    if(cmRec.baiHoc) cmSubLines.push('Bài: '+escapeHtml(cmRec.baiHoc));
+    if(cmRec.phan) cmSubLines.push('Phần: '+escapeHtml(cmRec.phan));
+    if(cmRec.grammatik) cmSubLines.push('Ngữ pháp: '+escapeHtml(cmRec.grammatik));
+    if(cmRec.wiederholung) cmSubLines.push('Ôn tập: '+escapeHtml(cmRec.wiederholung));
+  }
+  const cmLabel = cmRec ? `Chuyên môn (${fmtDate(cmRec.ngay)})` : 'Chuyên môn';
 
   return `<div class="lop-card ${l.canhBaoGiuaKy||l.canhBaoCuoiKy?'has-alert':''}"
     onclick="openLopDetail('${l.lopId}')" style="cursor:pointer">
@@ -368,11 +384,11 @@ function lopCard(l, cmRecords){
     </div>`:''}
     <div class="lop-title" style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
       ${l.tenLop}
-      <span class="lop-cap" style="background:${CAP_DO_COLORS[l.capDo]||'#f0f4fa'};color:${CAP_DO_TEXT[l.capDo]||'#5a6478'};margin-bottom:0">${l.capDo||'—'}</span>
+      <span class="lop-cap" style="background:${CAP_DO_COLORS[l.capDo]||'#f0f4fa'};color:${CAP_DO_TEXT[l.capDo]||'#5a6478'};margin-bottom:0">Trình độ ${l.capDo||'—'}</span>
     </div>
-    ${lichHocLines(l).map((line,i)=>row(i===0?'Lịch học':'', escapeHtml(line))).join('')}
+    ${rowGroup('Lịch học', lichHocLines(l).map(escapeHtml))}
     ${row('GV chính', escapeHtml(gvChinhTen))}
-    ${row('Chuyên môn', escapeHtml(cmText))}
+    ${cmSubLines.length ? rowGroup(cmLabel, cmSubLines) : row('Chuyên môn','Chưa có nội dung')}
     ${row('Số buổi đã học', `${elapsed}/${total}`)}
     ${l.ngayBatDau&&l.ngayKetThuc?row('Khóa học', `${fmtDate(l.ngayBatDau)} → ${fmtDate(l.ngayKetThuc)}`):''}
     ${l.canhBaoGiuaKy?`<div class="kt-alert giua">⚠ Giữa kỳ còn ${l.soNgayConGiuaKy} ngày!</div>`:''}
@@ -1148,8 +1164,8 @@ function changeCMWeek(dir){
 }
 
 const CM_FIELD_LABELS = {
-  baiHoc:'Bài học (Lektion/Kapitel)', grammatik:'Grammatik', tuVung:'Từ vựng (Wortschatz)',
-  wiederholung:'Wiederholung (Ôn tập)', baiTapVeNha:'Bài tập về nhà (Hausaufgabe)', ghiChu:'Ghi chú thêm'
+  baiHoc:'Bài (Lektion/Kapitel)', phan:'Phần (Teil)', grammatik:'Ngữ pháp (Grammatik)', tuVung:'Từ vựng (Wortschatz)',
+  wiederholung:'Ôn tập (Wiederholung)', baiTapVeNha:'Bài tập về nhà (Hausaufgabe)', ghiChu:'Ghi chú thêm'
 };
 
 function cmField(label, id, value){
@@ -1186,9 +1202,15 @@ function cmFormEditable(caId, rec){
         </select>
       </div>
     </div>
-    <div style="margin-bottom:8px">
-      <label style="font-size:11px;color:#5a6478;display:block;margin-bottom:3px">${CM_FIELD_LABELS.baiHoc}</label>
-      <input type="text" id="cm-baihoc-${caId}" placeholder="VD: Lektion 10/12, Teil A, B" value="${escapeAttr(rec?rec.baiHoc:'')}" style="width:100%;box-sizing:border-box">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px">
+      <div>
+        <label style="font-size:11px;color:#5a6478;display:block;margin-bottom:3px">${CM_FIELD_LABELS.baiHoc}</label>
+        <input type="text" id="cm-baihoc-${caId}" placeholder="VD: Lektion 10, Kapitel 5" value="${escapeAttr(rec?rec.baiHoc:'')}" style="width:100%;box-sizing:border-box">
+      </div>
+      <div>
+        <label style="font-size:11px;color:#5a6478;display:block;margin-bottom:3px">${CM_FIELD_LABELS.phan}</label>
+        <input type="text" id="cm-phan-${caId}" placeholder="VD: Teil A, B" value="${escapeAttr(rec?rec.phan:'')}" style="width:100%;box-sizing:border-box">
+      </div>
     </div>
     ${cmField(CM_FIELD_LABELS.grammatik,'cm-grammatik-'+caId, rec&&rec.grammatik)}
     ${cmField(CM_FIELD_LABELS.wiederholung,'cm-wiederholung-'+caId, rec&&rec.wiederholung)}
@@ -1202,6 +1224,7 @@ function cmFormReadonly(rec){
   const rows = [
     rec.giaoTrinh ? ['Giáo trình', rec.giaoTrinh+(rec.sach?' ('+rec.sach+')':'')] : null,
     rec.baiHoc ? [CM_FIELD_LABELS.baiHoc, rec.baiHoc] : null,
+    rec.phan ? [CM_FIELD_LABELS.phan, rec.phan] : null,
     rec.grammatik ? [CM_FIELD_LABELS.grammatik, rec.grammatik] : null,
     rec.wiederholung ? [CM_FIELD_LABELS.wiederholung, rec.wiederholung] : null,
     // Các trường cũ (Từ vựng/Bài tập về nhà/Ghi chú) không còn ô nhập mới, nhưng vẫn hiện nếu
@@ -1243,6 +1266,7 @@ async function saveChuyenMonCa(caId){
     giaoTrinh,
     sach: val('cm-sach-'+caId),
     baiHoc: val('cm-baihoc-'+caId),
+    phan: val('cm-phan-'+caId),
     grammatik: val('cm-grammatik-'+caId),
     wiederholung: val('cm-wiederholung-'+caId),
   };
