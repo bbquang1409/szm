@@ -323,14 +323,15 @@ function coNoiDungChuyenMon(r){
   return !!(r&&(r.giaoTrinh||r.baiHoc||r.grammatik||r.tuVung||r.wiederholung||r.baiTapVeNha||r.ghiChu));
 }
 
-// Tóm tắt lịch học của lớp từ caHoc, dạng "Tên ca: T2,T4,T6 · Tên ca khác: T3,T5"
-function lichHocText(lop){
+// Danh sách các dòng lịch học của lớp từ caHoc, mỗi buổi (ca) 1 dòng riêng — VD:
+// ["Sáng: T2,T4,T6", "Chiều: T3,T5,T7"]
+function lichHocLines(lop){
   let caList=[]; try{ caList = lop.caHoc?JSON.parse(lop.caHoc):[]; }catch(e){ caList=[]; }
-  if(caList.length===0) return '—';
+  if(caList.length===0) return ['—'];
   return caList.map(ca=>{
     const thu = ca.thu ? String(ca.thu).split(',').filter(Boolean).join(',') : 'chưa khai lịch';
     return `${ca.ten||'Buổi học'}: ${thu}`;
-  }).join(' · ');
+  });
 }
 
 // Nội dung Chuyên môn gần nhất (tính tới hôm nay) của ĐÚNG ca do Giáo viên chính (lop.giaoVienEmail) phụ trách
@@ -367,7 +368,7 @@ function lopCard(l, cmRecords){
     </div>`:''}
     <div class="lop-title">${l.tenLop}</div>
     <span class="lop-cap" style="background:${CAP_DO_COLORS[l.capDo]||'#f0f4fa'};color:${CAP_DO_TEXT[l.capDo]||'#5a6478'}">${l.capDo||'—'}</span>
-    ${row('🗓 Lịch học', escapeHtml(lichHocText(l)))}
+    ${lichHocLines(l).map((line,i)=>row(i===0?'🗓 Lịch học':'', escapeHtml(line))).join('')}
     ${row('👤 GV chính', escapeHtml(gvChinhTen))}
     ${row('📖 Chuyên môn', escapeHtml(cmText))}
     ${row('Số buổi', `${elapsed}/${total}`)}
