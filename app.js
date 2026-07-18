@@ -318,84 +318,46 @@ function openModalGuiTinLop(){
   });
 }
 
-// Tính số buổi đã học / tổng số buổi của cả khóa, dựa theo caHoc (chỉ tính các ca đã khai rõ "thu").
-function tinhSoBuoi(lop){
-  if(!lop.ngayBatDau||!lop.ngayKetThuc) return {daHoc:0, tong:0};
-  let caList=[]; try{ caList = lop.caHoc?JSON.parse(lop.caHoc):[]; }catch(e){ caList=[]; }
-  if(caList.length===0) return {daHoc:0, tong:0};
-  const thuOrder=['T2','T3','T4','T5','T6','T7','CN'];
-  let tong=0, daHoc=0;
-  const start=new Date(lop.ngayBatDau), end=new Date(lop.ngayKetThuc), t=new Date(todayStr());
-  for(let d=new Date(start); d<=end; d.setDate(d.getDate()+1)){
-    const thuCode=thuOrder[d.getDay()===0?6:d.getDay()-1];
-    caList.forEach(ca=>{
-      const thuArr=ca.thu?String(ca.thu).split(',').filter(Boolean):[];
-      if(thuArr.length===0) return; // ca chưa khai rõ ngày học cụ thể — không tính vào tổng
-      if(thuArr.includes(thuCode)){
-        tong++;
-        if(d<=t) daHoc++;
-      }
-    });
-  }
-  return {daHoc, tong};
-}
-
 // Có ít nhất 1 trường nội dung nào đó đã được điền chưa
 function coNoiDungChuyenMon(r){
   return !!(r&&(r.giaoTrinh||r.baiHoc||r.grammatik||r.tuVung||r.wiederholung||r.baiTapVeNha||r.ghiChu));
 }
 
-// Rút gọn 1 bản ghi Chuyên môn thành 1 dòng tóm tắt để hiện ngoài card lớp
-function cmSummaryText(rec){
-  if(!rec) return '';
-  const parts=[];
-  if(rec.giaoTrinh) parts.push(rec.giaoTrinh+(rec.sach?' ('+rec.sach+')':''));
-  if(rec.baiHoc) parts.push(rec.baiHoc);
-  if(rec.grammatik) parts.push('Grammatik: '+rec.grammatik);
-  if(!parts.length && rec.ghiChu) parts.push(rec.ghiChu);
-  return parts.join(' — ');
+// Tóm tắt lịch học của lớp từ caHoc, dạng "Tên ca: T2,T4,T6 · Tên ca khác: T3,T5"
+function lichHocText(lop){
+  let caList=[]; try{ caList = lop.caHoc?JSON.parse(lop.caHoc):[]; }catch(e){ caList=[]; }
+  if(caList.length===0) return '—';
+  return caList.map(ca=>{
+    const thu = ca.thu ? String(ca.thu).split(',').filter(Boolean).join(',') : 'chưa khai lịch';
+    return `${ca.ten||'Buổi học'}: ${thu}`;
+  }).join(' · ');
 }
 
-// Chọn nội dung Chuyên môn để hiện ngoài card lớp: ưu tiên buổi HÔM NAY (nếu có lịch học);
-// nếu hôm nay không có buổi nào thì lấy nội dung của buổi gần nhất đã dạy trước đó.
-function pickCardChuyenMon(lop, records){
-  const ngay = todayStr();
-  const todayCa = caHocScheduledOnDate(lop, ngay);
-  if(todayCa.length>0){
-    const todayIds = todayCa.map(ca=>caKey(ca));
-    const recs = (records||[]).filter(r=>r.ngay===ngay && todayIds.includes(r.caId));
-    return {recs, hasSessionToday:true, todayCa};
-  }
-  const past = (records||[]).filter(r=>r.ngay<=ngay && coNoiDungChuyenMon(r)).sort((a,b)=>a.ngay<b.ngay?-1:1);
-  const rec = past.length?past[past.length-1]:null;
-  return {recs: rec?[rec]:[], hasSessionToday:false, todayCa:[]};
+// Nội dung Chuyên môn gần nhất (tính tới hôm nay) của ĐÚNG ca do Giáo viên chính (lop.giaoVienEmail) phụ trách
+function chuyenMonGvChinh(lop, cmRecords){
+  let caList=[]; try{ caList = lop.caHoc?JSON.parse(lop.caHoc):[]; }catch(e){ caList=[]; }
+  const gv = (lop.giaoVienEmail||'').toLowerCase();
+  if(!gv) return null;
+  const mainCaIds = caList.filter(ca=>(ca.nguoiDay||'').toLowerCase()===gv).map(ca=>caKey(ca));
+  if(mainCaIds.length===0) return null;
+  const t = todayStr();
+  const recs = (cmRecords||[])
+    .filter(r=>mainCaIds.includes(r.caId) && r.ngay<=t && coNoiDungChuyenMon(r))
+    .sort((a,b)=>a.ngay<b.ngay?-1:1);
+  return recs.length ? recs[recs.length-1] : null;
 }
 
 function lopCard(l, cmRecords){
-  const {daHoc,tong} = tinhSoBuoi(l);
-  const pct = tong>0 ? Math.max(0,Math.min(100,Math.round(daHoc/tong*100))) : 0;
+  const {elapsed,total} = tinhSoBuoi(l);
   const canEdit=['admin'].includes(USER.role);
 
-  const {recs, hasSessionToday, todayCa} = pickCardChuyenMon(l, cmRecords);
+  const gvChinhTen = l.giaoVienEmail ? nguoiDayName(l.giaoVienEmail) : '—';
+  const cmRec = chuyenMonGvChinh(l, cmRecords);
+  const cmText = cmRec
+    ? `${[cmRec.giaoTrinh,cmRec.baiHoc].filter(Boolean).join(' – ')||'—'} (${fmtDate(cmRec.ngay)})`
+    : 'Chưa có nội dung';
 
-  const gvHomNay = hasSessionToday
-    ? todayCa.map(ca=>`${ca.ten||'Buổi học'}: ${ca.nguoiDay?nguoiDayName(ca.nguoiDay):'(chưa gán)'}`).join(' · ')
-    : 'Hôm nay không có buổi học';
-
-  // Dòng Lektion riêng cho từng ca/sách đang học hôm nay (VD: Sáng: Netzwerk Neu – Lektion 10/12).
-  // Nếu hôm nay không có buổi thì hiện nội dung của buổi gần nhất đã dạy (chỉ 1 dòng).
-  let lektionLines = [];
-  if(hasSessionToday){
-    lektionLines = todayCa.map(ca=>{
-      const caId = caKey(ca);
-      const rec = recs.find(r=>r.caId===caId && coNoiDungChuyenMon(r));
-      const noiDung = rec ? [rec.giaoTrinh, rec.baiHoc].filter(Boolean).join(' – ') : '';
-      return `${ca.ten||'Buổi học'}: ${noiDung||'chưa cập nhật'}`;
-    });
-  }else if(recs.length){
-    const rec = recs[0];
-    lektionLines = [`Gần nhất (${fmtDate(rec.ngay)}): ${[rec.giaoTrinh,rec.baiHoc].filter(Boolean).join(' – ')||'—'}`];
-  }
+  const row = (label,value)=>`<div class="lop-progress-label" style="margin-top:6px"><span>${label}</span><span style="color:#3d4c68;font-weight:600;text-align:right;max-width:65%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${value}</span></div>`;
 
   return `<div class="lop-card ${l.canhBaoGiuaKy||l.canhBaoCuoiKy?'has-alert':''}"
     onclick="openLopDetail('${l.lopId}')" style="cursor:pointer">
@@ -405,16 +367,12 @@ function lopCard(l, cmRecords){
     </div>`:''}
     <div class="lop-title">${l.tenLop}</div>
     <span class="lop-cap" style="background:${CAP_DO_COLORS[l.capDo]||'#f0f4fa'};color:${CAP_DO_TEXT[l.capDo]||'#5a6478'}">${l.capDo||'—'}</span>
-    <div style="font-size:11px;color:#8a96a8;margin-top:6px">👤 ${escapeHtml(gvHomNay)}</div>
-    ${lektionLines.map(t=>`<div style="font-size:11px;color:#3d4c68;margin-top:2px">📖 ${escapeHtml(t)}</div>`).join('')}
-    ${l.ngayBatDau&&l.ngayKetThuc?`
-    <div class="lop-progress-wrap">
-      <div class="lop-progress-label"><span>Buổi học</span><span>${daHoc}/${tong}</span></div>
-      <div class="lop-progress"><div class="lop-progress-fill" style="width:${pct}%;background:${pct>=100?'#0f6e56':'#3a7bd5'}"></div></div>
-    </div>
-    <div class="lop-dates">${fmtDate(l.ngayBatDau)} → ${fmtDate(l.ngayKetThuc)}</div>
-    ${l.ngayGiuaKy?`<div style="font-size:11px;color:#8a96a8;margin-top:4px">Giữa kỳ: ${fmtDate(l.ngayGiuaKy)}</div>`:''}
-    `:''}
+    ${row('🗓 Lịch học', escapeHtml(lichHocText(l)))}
+    ${row('👤 GV chính', escapeHtml(gvChinhTen))}
+    ${row('📖 Chuyên môn', escapeHtml(cmText))}
+    ${row('Số buổi', `${elapsed}/${total}`)}
+    ${l.ngayBatDau&&l.ngayKetThuc?row('Khóa học', `${fmtDate(l.ngayBatDau)} → ${fmtDate(l.ngayKetThuc)}`):''}
+    ${l.ngayGiuaKy?row('Giữa kỳ', fmtDate(l.ngayGiuaKy)):''}
     ${l.canhBaoGiuaKy?`<div class="kt-alert giua">⚠ Giữa kỳ còn ${l.soNgayConGiuaKy} ngày!</div>`:''}
     ${l.canhBaoCuoiKy?`<div class="kt-alert cuoi">🔴 Cuối kỳ còn ${l.soNgayConCuoiKy} ngày!</div>`:''}
   </div>`;
