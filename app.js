@@ -323,14 +323,24 @@ function coNoiDungChuyenMon(r){
   return !!(r&&(r.giaoTrinh||r.baiHoc||r.phan||r.grammatik||r.tuVung||r.wiederholung||r.baiTapVeNha||r.ghiChu));
 }
 
-// Danh sách các dòng lịch học của lớp từ caHoc, mỗi buổi (ca) 1 dòng riêng — VD:
-// ["Sáng: T2,T4,T6", "Chiều: T3,T5,T7"]
+// Danh sách các dòng lịch học của lớp từ caHoc, GOM theo tên buổi (Sáng/Chiều/Tối...) — nếu
+// nhiều GV khác nhau cùng dạy 1 buổi tên giống nhau vào những thứ khác nhau (VD Sáng T2,T3,T5,T6
+// của GV chính + Sáng T4 của GV khác) thì gộp chung "thu" lại thành 1 dòng, vì ở đây không hiện
+// tên GV nên tách riêng theo GV là thừa. VD kết quả: ["Sáng: T2,T3,T4,T5,T6", "Chiều: T2,T4,T6"]
 function lichHocLines(lop){
   let caList=[]; try{ caList = lop.caHoc?JSON.parse(lop.caHoc):[]; }catch(e){ caList=[]; }
   if(caList.length===0) return ['—'];
-  return caList.map(ca=>{
-    const thu = ca.thu ? String(ca.thu).split(',').filter(Boolean).join(',') : 'chưa khai lịch';
-    return `${ca.ten||'Buổi học'}: ${thu}`;
+  const thuOrder=['T2','T3','T4','T5','T6','T7','CN'];
+  const map = {}; const order = [];
+  caList.forEach(ca=>{
+    const ten = ca.ten || 'Buổi học';
+    if(!map[ten]){ map[ten] = new Set(); order.push(ten); }
+    const thuArr = ca.thu ? String(ca.thu).split(',').filter(Boolean) : [];
+    thuArr.forEach(t=>map[ten].add(t));
+  });
+  return order.map(ten=>{
+    const thuArr = [...map[ten]].sort((a,b)=>thuOrder.indexOf(a)-thuOrder.indexOf(b));
+    return `${ten}: ${thuArr.length?thuArr.join(','):'chưa khai lịch'}`;
   });
 }
 
@@ -368,10 +378,12 @@ function lopCard(l, cmRecords){
 
   const cmSubLines = [];
   if(cmRec){
-    const sachText = [cmRec.giaoTrinh, cmRec.sach].filter(Boolean).join(' – ');
-    if(sachText) cmSubLines.push('Sách: '+escapeHtml(sachText));
-    if(cmRec.baiHoc) cmSubLines.push('Bài: '+escapeHtml(cmRec.baiHoc));
-    if(cmRec.phan) cmSubLines.push('Phần: '+escapeHtml(cmRec.phan));
+    // Sách / Bài / Phần gộp chung 1 hàng — không hiện Kursbuch/Arbeitsbuch nữa
+    const sbp = [];
+    if(cmRec.giaoTrinh) sbp.push('Sách: '+escapeHtml(cmRec.giaoTrinh));
+    if(cmRec.baiHoc) sbp.push('Bài: '+escapeHtml(cmRec.baiHoc));
+    if(cmRec.phan) sbp.push('Phần: '+escapeHtml(cmRec.phan));
+    if(sbp.length) cmSubLines.push(sbp.join('&nbsp;&nbsp;·&nbsp;&nbsp;'));
     if(cmRec.grammatik) cmSubLines.push('Ngữ pháp: '+escapeHtml(cmRec.grammatik));
     if(cmRec.wiederholung) cmSubLines.push('Ôn tập: '+escapeHtml(cmRec.wiederholung));
   }
@@ -1092,7 +1104,7 @@ async function renderTabChuyenMon(lop){
     const tenGV = ca.nguoiDay ? nguoiDayName(ca.nguoiDay) : '(chưa gán người dạy)';
 
     return `
-    <div class="cm-card" style="border:1.5px solid #e4ebf5;border-radius:12px;margin:12px 16px;overflow:hidden">
+    <div class="cm-card" style="border:1.5px solid #e4ebf5;border-radius:12px;margin:12px auto;max-width:380px;overflow:hidden">
       <div style="display:flex;align-items:center;gap:8px;padding:10px 14px;background:#f8fafd;border-bottom:1.5px solid #e4ebf5">
         <span style="font-weight:800;color:#1a50a0;font-size:13.5px">${ca.ten||'Buổi học'}</span>
         <span style="font-size:12px;color:#5a6478">— ${tenGV}</span>
