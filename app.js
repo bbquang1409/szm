@@ -2016,7 +2016,7 @@ async function renderChamCongAdminOverview(){
   setContent(`
     ${ccMonthNav()}
     <div class="table-wrap">
-      <div class="table-toolbar"><span style="font-size:13px;font-weight:600">Chấm công tất cả GV/TG — ${data.length}</span></div>
+      <div class="table-toolbar"><span style="font-size:13px;font-weight:600">Chấm công tất cả GV/TG — ${data.length}</span><button class="btn btn-sm" style="margin-left:auto" onclick="xuatExcelChamCong()">📥 Xuất Excel</button></div>
       <table>
         <thead><tr><th>Họ tên</th><th>Vai trò</th><th>Tổng hệ thống</th><th>Đã gửi</th><th>Tổng đã gửi</th><th>Khớp?</th><th>Thao tác</th></tr></thead>
         <tbody>
@@ -2168,6 +2168,65 @@ async function guiChamCong(){
 function loadCCSubmitStatus(){
   const el = document.getElementById('cc-submit-status');
   if(el) el.textContent = 'Nhớ bấm Gửi sau khi đã kiểm tra đủ các buổi trong tháng.';
+}
+
+// Xuất file Excel chấm công cho kế toán, theo mẫu bảng chấm công công ty (1 dòng/người,
+// 1 cột/ngày trong tháng) nhưng mỗi ô ghi SỐ BUỔI DẠY thay vì số giờ làm.
+async function xuatExcelChamCong(){
+  if(typeof XLSX==='undefined'){ toast('Chưa tải được thư viện xuất Excel, thử tải lại trang','error'); return; }
+
+  const [rXuat, rOverview] = await Promise.all([
+    call({action:'getChamCongXuatThang', thang:CC_THANG}),
+    call({action:'getChamCongAdminOverview', thang:CC_THANG})
+  ]);
+  if(!rXuat.ok){ toast(rXuat.error||'Lỗi khi lấy dữ liệu','error'); return; }
+  const data = rXuat.data;
+  const guiMap = {};
+  (rOverview.ok?rOverview.data:[]).forEach(row=>{ guiMap[row.email.toLowerCase()] = row; });
+
+  const [y,m] = CC_THANG.split('-').map(Number);
+  const soNgay = new Date(y,m,0).getDate();
+  const thuLabels = ['CN','T2','T3','T4','T5','T6','T7'];
+
+  const header = ['STT','Vai trò','Họ tên','Email'];
+  for(let d=1; d<=soNgay; d++){
+    header.push(d+' ('+thuLabels[new Date(y,m-1,d).getDay()]+')');
+  }
+  header.push('Tổng buổi (hệ thống)','Ngày gửi','Tổng buổi (đã gửi)','Khớp?');
+
+  const rows = [
+    ['BẢNG CHẤM CÔNG'],
+    ['Tháng '+m+' năm '+y+' — đơn vị: buổi dạy'],
+    [],
+    header
+  ];
+
+  data.forEach((row,i)=>{
+    const gui = guiMap[row.email.toLowerCase()];
+    const line = [i+1, ROLES_VI[row.role]||row.role, row.hoTen, row.email];
+    for(let d=1; d<=soNgay; d++) line.push(row.ngayBuoi[d] || '');
+    line.push(
+      row.tongBuoi,
+      gui&&gui.daGui?fmtDate(gui.ngayGui):'Chưa gửi',
+      gui&&gui.tongGui!=null?gui.tongGui:'',
+      gui?(gui.khop?'Khớp':'Lệch'):'—'
+    );
+    rows.push(line);
+  });
+
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  ws['!cols'] = [{wch:4},{wch:10},{wch:22},{wch:24}]
+    .concat(Array(soNgay).fill({wch:6}))
+    .concat([{wch:16},{wch:12},{wch:16},{wch:8}]);
+  ws['!merges'] = [
+    {s:{r:0,c:0},e:{r:0,c:3}},
+    {s:{r:1,c:0},e:{r:1,c:3}}
+  ];
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'ChamCong '+CC_THANG);
+  XLSX.writeFile(wb, 'ChamCong_'+CC_THANG+'.xlsx');
+  toast('Đã xuất file Excel','success');
 }
 
 
