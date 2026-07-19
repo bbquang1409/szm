@@ -46,10 +46,10 @@ async function refreshAllAccounts(){
 
 function applyRoleNav(){
   const r=USER.role;
-  if(r==='phuhuynh'){['nav-lophoc','nav-hocvien','nav-taikhoan','lop-section','lop-nav'].forEach(id=>{const el=document.getElementById(id);if(el)el.style.display='none';});}
+  if(r==='phuhuynh'){['nav-lophoc','nav-hocvien','nav-taikhoan','nav-chamcong','lop-section','lop-nav'].forEach(id=>{const el=document.getElementById(id);if(el)el.style.display='none';});}
   if(r==='giaovien') document.getElementById('nav-taikhoan').style.display='none';
   if(r==='trogiang') document.getElementById('nav-taikhoan').style.display='none';
-  if(r==='quanly') document.getElementById('nav-taikhoan').style.display='none';
+  if(r==='quanly'){ document.getElementById('nav-taikhoan').style.display='none'; document.getElementById('nav-chamcong').style.display='none'; }
 }
 
 async function loadLops(){
@@ -122,8 +122,9 @@ function filterByLop(lop){
 // ── NAV ──
 function navTo(page){
   CURRENT_PAGE=page;CURRENT_TAB='';
+  if(page==='chamcong') CC_TARGET_EMAIL=''; // luôn về bảng tổng hợp khi bấm lại từ sidebar
   document.querySelectorAll('.nav-item[data-page]').forEach(el=>el.classList.toggle('active',el.dataset.page===page));
-  const titles={dashboard:'Dashboard',lophoc:'Lớp học',hocvien:'Học viên',taikhoan:'Tài khoản'};
+  const titles={dashboard:'Dashboard',lophoc:'Lớp học',hocvien:'Học viên',taikhoan:'Tài khoản',chamcong:'Chấm công'};
   document.getElementById('page-title').textContent=titles[page]||page;
   document.getElementById('btn-back').style.display='none';
   document.getElementById('btn-msg').style.display='none';
@@ -143,6 +144,7 @@ function renderCurrentPage(){
     case 'lopdetail':renderLopDetail();break;
     case 'hocvien':  renderHocVien();break;
     case 'taikhoan': renderTaiKhoan();break;
+    case 'chamcong': renderChamCong();break;
   }
 }
 
@@ -1964,7 +1966,211 @@ async function renderTaiKhoan(){
   `);
 }
 
-// ── DU LIEU TEST ──
+// ── CHAM CONG ──────────────────────────────────────────────────────────────
+// Nguyên tắc: hệ thống tự tính buổi dạy dựa theo lịch (caHoc) của các lớp — GV/TG chỉ cần TẮT
+// những buổi mình không dạy thực tế (nghỉ, lớp hủy...), không cần tự khai từ đầu. Admin có thêm
+// thao tác riêng "Phân công dạy thay" khi có người dạy hộ, tự động cộng đúng buổi đó cho người
+// dạy thay mà không cần người dạy thay tự khai tay.
+let CC_THANG = ''; // yyyy-MM đang xem
+let CC_TARGET_EMAIL = ''; // Admin đang xem chi tiết chấm công của ai (rỗng = đang ở bảng tổng hợp / hoặc GV-TG tự xem của mình)
+
+function monthStrOffset(offset){
+  const d = new Date();
+  d.setMonth(d.getMonth()+offset);
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+}
+
+async function renderChamCong(){
+  if(!['admin','giaovien','trogiang'].includes(USER.role)){setContent('<div class="empty"><p>Không có quyền</p></div>');return;}
+  setContent('<div class="empty">Đang tải...</div>');
+  document.getElementById('btn-add').style.display='none';
+  if(!CC_THANG) CC_THANG = monthStrOffset(0);
+
+  if(USER.role==='admin' && !CC_TARGET_EMAIL){
+    await renderChamCongAdminOverview();
+  }else{
+    await renderChamCongCaNhan(CC_TARGET_EMAIL || USER.email);
+  }
+}
+
+function ccMonthNav(){
+  const [y,m] = CC_THANG.split('-').map(Number);
+  return `
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+      <button class="btn btn-sm" onclick="changeCCThang(-1)">← Tháng trước</button>
+      <div style="font-size:15px;font-weight:800;color:#0d2d5e;min-width:110px;text-align:center">Tháng ${m}/${y}</div>
+      <button class="btn btn-sm" onclick="changeCCThang(1)">Tháng sau →</button>
+    </div>`;
+}
+function changeCCThang(dir){
+  const [y,m] = CC_THANG.split('-').map(Number);
+  const d = new Date(y, m-1+dir, 1);
+  CC_THANG = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+  renderChamCong();
+}
+
+// ── Bảng tổng hợp cho Admin ──
+async function renderChamCongAdminOverview(){
+  const r = await call({action:'getChamCongAdminOverview', thang:CC_THANG});
+  const data = r.ok ? r.data : [];
+  setContent(`
+    ${ccMonthNav()}
+    <div class="table-wrap">
+      <div class="table-toolbar"><span style="font-size:13px;font-weight:600">Chấm công tất cả GV/TG — ${data.length}</span></div>
+      <table>
+        <thead><tr><th>Họ tên</th><th>Vai trò</th><th>Tổng hệ thống</th><th>Đã gửi</th><th>Tổng đã gửi</th><th>Khớp?</th><th>Thao tác</th></tr></thead>
+        <tbody>
+          ${data.map(row=>`<tr>
+            <td><div style="display:flex;align-items:center;gap:7px"><div class="avatar" style="width:26px;height:26px;font-size:10px;background:#e8f0fb;color:#1a50a0">${ini(row.hoTen||row.email)}</div><span style="font-weight:500">${escapeHtml(row.hoTen||row.email)}</span></div></td>
+            <td><span class="role-pill r-${row.role}">${ROLES_VI[row.role]||row.role}</span></td>
+            <td style="font-weight:700">${row.tongHeThong}</td>
+            <td style="font-size:12px;color:#8a96a8">${row.daGui?('✓ '+fmtDate(row.ngayGui)):'Chưa gửi'}</td>
+            <td>${row.tongGui!=null?row.tongGui:'—'}</td>
+            <td>${row.khop===null?'—':(row.khop?'<span style="color:#0f6e56;font-weight:700">✓ Khớp</span>':'<span style="color:#e24b4a;font-weight:700">✗ Lệch</span>')}</td>
+            <td><div class="td-actions">
+              <button class="btn btn-sm" onclick="openChamCongChiTiet('${row.email}')">Xem chi tiết</button>
+              ${row.khop===false?`<button class="btn btn-danger btn-sm" onclick="openModalNhanTinLechChamCong('${row.email}','${escapeAttr(row.hoTen||row.email)}')">Nhắn sửa</button>`:''}
+            </div></td>
+          </tr>`).join('')}
+        </tbody>
+      </table>
+      ${data.length===0?'<div class="empty">Chưa có giáo viên/trợ giảng nào</div>':''}
+    </div>
+  `);
+}
+
+function openChamCongChiTiet(email){
+  CC_TARGET_EMAIL = email;
+  renderChamCong();
+}
+
+function openModalNhanTinLechChamCong(email, hoTen){
+  showModal(`Nhắn tin — ${hoTen}`,`
+    <div class="hint" style="margin-bottom:12px">Gửi tới: ${email} — về chấm công tháng ${CC_THANG}</div>
+    <div class="form-row"><label>Nội dung *</label><textarea id="f-msg" rows="4" placeholder="VD: Chấm công tháng này bị lệch, nhờ bạn kiểm tra lại và gửi lại giúp mình nhé.">Chấm công tháng ${CC_THANG} của bạn đang bị lệch so với hệ thống, nhờ bạn kiểm tra lại và gửi lại giúp mình nhé.</textarea></div>
+  `,async()=>{
+    const noiDung=document.getElementById('f-msg').value.trim();
+    if(!noiDung){toast('Nhập nội dung','error');return;}
+    const r=await call({action:'sendThongBao',tieuDe:'Chấm công tháng '+CC_THANG+' bị lệch',noiDung,nguoiNhan:email,lop:''});
+    if(!r.ok){toast(r.error||'Lỗi khi gửi','error');return;}
+    closeModal();toast('Đã gửi tin nhắn','success');
+  });
+}
+
+// ── Lịch chấm công chi tiết của 1 người (GV/TG tự xem, hoặc Admin xem hộ) ──
+async function renderChamCongCaNhan(email){
+  const params = {action:'getChamCongThang', thang:CC_THANG};
+  if(USER.role==='admin' && email!==USER.email) params.targetEmail = email;
+  const r = await call(params);
+  const buoi = r.ok ? r.data : [];
+  const tong = buoi.filter(b=>b.trangThai==='on').length;
+
+  const byNgay = {};
+  buoi.forEach(b=>{ (byNgay[b.ngay]=byNgay[b.ngay]||[]).push(b); });
+  const ngayList = Object.keys(byNgay).sort();
+
+  const isAdminViewing = USER.role==='admin' && email!==USER.email;
+  const isSelf = email===USER.email;
+  const tenNguoiXem = nguoiDayName(email);
+
+  setContent(`
+    ${isAdminViewing?`<div style="margin-bottom:10px"><span style="font-size:13px;color:#3a7bd5;cursor:pointer;font-weight:600" onclick="CC_TARGET_EMAIL='';renderChamCong()">← Quay lại bảng tổng hợp</span></div>`:''}
+    ${ccMonthNav()}
+    ${isAdminViewing?`<div style="font-size:14px;font-weight:700;color:#0d2d5e;margin-bottom:10px">Chấm công của: ${escapeHtml(tenNguoiXem)}</div>`:''}
+    <div class="table-wrap" style="padding:16px 18px">
+      <div style="font-size:22px;font-weight:800;color:#0d2d5e;margin-bottom:14px">Tổng: ${tong} buổi</div>
+      ${ngayList.length===0?'<div class="empty">Không có buổi dạy nào trong tháng này</div>':ngayList.map(ngay=>`
+        <div style="border-bottom:1px solid #f0f4fa;padding:10px 0">
+          <div style="font-size:12.5px;font-weight:700;color:#3d4c68;margin-bottom:5px">${fmtDate(ngay)}</div>
+          ${byNgay[ngay].map(b=>ccBuoiRow(b,email,isAdminViewing)).join('')}
+        </div>`).join('')}
+    </div>
+    ${isSelf?`
+      <div style="margin-top:16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+        <button class="btn btn-primary" onclick="guiChamCong()">📤 Gửi chấm công tháng này</button>
+        <span id="cc-submit-status" style="font-size:12px;color:#8a96a8">Đang kiểm tra trạng thái gửi...</span>
+      </div>`:''}
+  `);
+  if(isSelf) loadCCSubmitStatus();
+}
+
+function ccBuoiRow(b, email, isAdminViewing){
+  const off = b.trangThai==='off';
+  const label = `${b.tenLop} — ${b.tenCa}`;
+  if(b.laDayThay){
+    return `<div style="display:flex;align-items:center;gap:10px;padding:4px 0 4px 10px">
+      <span style="font-size:11px;background:#fff2d6;color:#8a5b00;font-weight:700;padding:2px 8px;border-radius:20px">Dạy thay</span>
+      <span style="font-size:13px;color:#3d4c68">${escapeHtml(label)}</span>
+      <span style="font-size:11px;color:#8a96a8">${escapeHtml(b.ghiChu)}</span>
+      ${isAdminViewing?`<button class="btn btn-sm btn-danger" style="margin-left:auto" onclick="huyPhanCongDayThay('${b.lopId}','${b.caId}','${b.ngay}','${email}','${escapeAttr(b.ghiChu)}')">Hủy</button>`:''}
+    </div>`;
+  }
+  const canToggle = isAdminViewing || email===USER.email;
+  return `<div style="display:flex;align-items:center;gap:10px;padding:4px 0 4px 10px">
+    <input type="checkbox" ${off?'':'checked'} ${canToggle?'':'disabled'} onchange="toggleCCBuoi('${b.lopId}','${b.caId}','${b.ngay}',this.checked,'${email}')" style="width:16px;height:16px;cursor:${canToggle?'pointer':'default'}">
+    <span style="font-size:13px;color:${off?'#b8c2d4':'#3d4c68'};text-decoration:${off?'line-through':'none'}">${escapeHtml(label)}</span>
+    ${isAdminViewing?`<button class="btn btn-sm" style="margin-left:auto" onclick="openPhanCongDayThay('${b.lopId}','${b.caId}','${b.ngay}','${email}','${escapeAttr(b.tenLop)}','${escapeAttr(b.tenCa)}')">Phân công dạy thay</button>`:''}
+  </div>`;
+}
+
+async function toggleCCBuoi(lopId, caId, ngay, checked, email){
+  const trangThai = checked ? 'on' : 'off';
+  const payload = {action:'toggleChamCongBuoi', lopId, caId, ngay, trangThai};
+  if(USER.role==='admin' && email!==USER.email) payload.targetEmail = email;
+  const r = await call(payload);
+  if(r.ok) renderChamCong();
+  else toast(r.error||'Lỗi','error');
+}
+
+function openPhanCongDayThay(lopId, caId, ngay, emailGoc, tenLop, tenCa){
+  const ungVien = (window.ALL_ACCOUNTS||[]).filter(a=>['giaovien','trogiang'].includes(a.role) && a.email.toLowerCase()!==emailGoc.toLowerCase());
+  showModal(`Phân công dạy thay — ${tenLop} · ${tenCa} · ${fmtDate(ngay)}`,`
+    <div class="hint" style="margin-bottom:12px">GV gốc: ${escapeHtml(nguoiDayName(emailGoc))} — buổi này sẽ tự chuyển thành "off" bên GV gốc, và cộng thêm cho người dạy thay bên dưới.</div>
+    <div class="form-row"><label>Người dạy thay *</label>
+      <select id="f-nguoi-thay">
+        <option value="">— Chọn —</option>
+        ${ungVien.map(a=>`<option value="${a.email}">${escapeHtml(a.hoTen)} (${ROLES_VI[a.role]||a.role})</option>`).join('')}
+      </select>
+    </div>
+    <div class="form-row"><label>Ghi chú (không bắt buộc)</label><input type="text" id="f-ghichu" placeholder="VD: GV chính nghỉ ốm"></div>
+  `,async()=>{
+    const emailThay = document.getElementById('f-nguoi-thay').value;
+    if(!emailThay){toast('Chọn người dạy thay','error');return;}
+    const ghiChu = document.getElementById('f-ghichu').value.trim();
+    const r = await call({action:'adminPhanCongDayThay', lopId, caId, ngay, emailGoc, emailThay, ghiChu});
+    if(!r.ok){toast(r.error||'Lỗi','error');return;}
+    closeModal(); toast('Đã phân công dạy thay','success'); renderChamCong();
+  });
+}
+
+async function huyPhanCongDayThay(lopId, caId, ngay, emailThay, ghiChu){
+  // Ghi chú luôn có dạng "Da phan cong ... day thay" (ben GV goc) hoac "Day thay cho <email>..." (ben GV thay)
+  // — trích email GV gốc từ đây thay vì phải hỏi lại người dùng.
+  const m = (ghiChu||'').match(/Day thay cho (\S+)/i);
+  const emailGoc = m ? m[1] : prompt('Không tự nhận diện được GV gốc, nhập email GV gốc:');
+  if(!emailGoc) return;
+  if(!confirm('Hủy phân công dạy thay này?')) return;
+  const r = await call({action:'adminHuyPhanCongDayThay', lopId, caId, ngay, emailGoc:emailGoc.trim(), emailThay});
+  if(!r.ok){toast(r.error||'Lỗi','error');return;}
+  toast('Đã hủy phân công dạy thay','success'); renderChamCong();
+}
+
+async function guiChamCong(){
+  if(!confirm(`Gửi chấm công tháng ${CC_THANG} cho Admin?`)) return;
+  const r = await call({action:'submitChamCong', thang:CC_THANG});
+  if(!r.ok){toast(r.error||'Lỗi khi gửi','error');return;}
+  toast('Đã gửi chấm công: '+r.data.tong+' buổi','success');
+  loadCCSubmitStatus();
+}
+
+// Trạng thái gửi hiện chỉ suy ra được qua bảng tổng hợp của Admin — với GV/TG tự xem, tạm hiện
+// gợi ý đơn giản (không có action riêng để tránh thêm round-trip không cần thiết).
+function loadCCSubmitStatus(){
+  const el = document.getElementById('cc-submit-status');
+  if(el) el.textContent = 'Nhớ bấm Gửi sau khi đã kiểm tra đủ các buổi trong tháng.';
+}
+
+
 function openModalSeedTest(){
   showModal('Tạo dữ liệu test',`
     <div class="form-row">
