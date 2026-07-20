@@ -1769,23 +1769,29 @@ async function renderTabBangDiem(lop){
   const hvList = (hvR.ok?hvR.data:[]).filter(hv=>hv.trangThai==='danghoc'||!hv.trangThai);
   const bdList = bdR.ok?bdR.data:[];
 
-  // Map theo studentId + loai
+  if(!BD_THANG) BD_THANG = monthStrOffset(0);
+
+  // Map theo studentId + loai — dùng cho khối cảnh báo tổng quan
   const bdMap={};
   bdList.forEach(bd=>{
     if(!bdMap[bd.studentId]) bdMap[bd.studentId]={};
     if(!bdMap[bd.studentId][bd.loai]) bdMap[bd.studentId][bd.loai]=[];
     bdMap[bd.studentId][bd.loai].push(bd);
   });
-
-  // Cảnh báo: học viên điểm <5 nhiều lần, hoặc không làm BTVN nhiều lần
   const canhBaoDiem = hvList.map(hv=>{
-    const allDiem = (bdMap[hv.studentId]?.giua_ky||[]).concat(bdMap[hv.studentId]?.cuoi_ky||[]);
+    const allDiem = (bdMap[hv.studentId]?.giua_ky||[]).concat(bdMap[hv.studentId]?.cuoi_ky||[]).concat(bdMap[hv.studentId]?.bai_tap||[]);
     const duoi5 = allDiem.filter(d=>parseFloat(d.diem)<5).length;
     const khongLamBT = (bdMap[hv.studentId]?.khong_lam_btvn||[]).length;
     return {hoTen:hv.hoTen,duoi5,khongLamBT};
   }).filter(x=>x.duoi5>0||x.khongLamBT>0);
 
+  // Nhóm theo ngày để dựng lịch tháng
+  const byNgay = {};
+  bdList.forEach(bd=>{ (byNgay[bd.ngay]=byNgay[bd.ngay]||[]).push(bd); });
+  BD_CACHE = {lop, hvList, bdList, byNgay};
+
   document.getElementById('btn-add').style.display='none';
+  const [y,m] = BD_THANG.split('-').map(Number);
 
   wrap.innerHTML = `
     <div style="padding:12px 16px;border-bottom:1px solid #f0f4fa;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
@@ -1805,94 +1811,185 @@ async function renderTabBangDiem(lop){
       </div>
     </div>`:''}
 
-    <div class="table-wrap" style="margin:0 16px 14px;padding:14px 16px">
-      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
-        <span style="font-size:13px;font-weight:600;color:#0d2d5e">Nhập điểm hàng loạt</span>
-        <select id="bd-loai" style="width:160px" onchange="renderBDInputType()">
-          <option value="giua_ky">Kiểm tra giữa kỳ</option>
-          <option value="cuoi_ky">Kiểm tra cuối kỳ</option>
-          <option value="khong_lam_btvn">Không làm BTVN</option>
-        </select>
-        <input id="bd-tenBai" placeholder="Tên bài kiểm tra..." style="width:180px">
-        <input type="date" id="bd-ngay" value="${todayStr()}" style="width:140px">
-        ${canEdit?`<button class="btn btn-primary" onclick="saveBDGrid()">💾 Lưu tất cả</button>`:''}
+    <div class="table-wrap" style="margin:0 16px 14px;padding:16px 18px">
+      ${bdMonthNav()}
+      ${bdCalendarGrid(byNgay, y, m)}
+      <div style="display:flex;gap:16px;margin-top:12px;font-size:11px;color:#8a96a8;flex-wrap:wrap">
+        <span><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#3a7bd5;margin-right:4px"></span>Có điểm/bài kiểm tra</span>
+        <span><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#e24b4a;margin-right:4px"></span>Có điểm thấp / không làm bài</span>
       </div>
-    </div>
-
-    <div class="table-wrap" style="margin:0 16px 14px">
-      <div style="overflow-x:auto">
-      <table id="bd-grid">
-        <thead><tr id="bd-grid-head">
-          <th style="min-width:160px">Học viên</th>
-          <th style="min-width:90px;text-align:center" id="bd-grid-input-head">Điểm</th>
-          <th style="min-width:160px">Nhận xét</th>
-        </tr></thead>
-        <tbody>
-          ${hvList.map(hv=>`<tr data-sid="${hv.studentId}">
-            <td><div style="font-weight:500">${hv.hoTen}</div></td>
-            <td style="text-align:center" id="bd-input-cell-${hv.studentId}">
-              <input type="number" class="bd-diem" data-sid="${hv.studentId}" min="0" max="10" step="0.1" placeholder="—" style="width:70px;text-align:center;font-size:15px;font-weight:600" oninput="highlightRow(this)">
-            </td>
-            <td><input class="bd-nhanxet" data-sid="${hv.studentId}" placeholder="..." style="width:100%;font-size:12px"></td>
-          </tr>`).join('')}
-        </tbody>
-      </table>
-      </div>
+      ${canEdit?`<div style="margin-top:14px"><button class="btn btn-primary" onclick="openBDDayModal(todayStr())">+ Nhập điểm mới (hôm nay)</button></div>`:''}
     </div>
 
     <div class="table-wrap" style="margin:0 16px 16px">
-      <div class="table-toolbar"><span style="font-size:13px;font-weight:600;color:#0d2d5e">Lịch sử</span></div>
-      <div style="overflow-x:auto">
-      <table>
-        <thead><tr><th>Học viên</th><th>Loại</th><th>Tên bài</th><th>Điểm/Trạng thái</th><th>Ngày</th><th>Nhận xét</th>${canEdit?'<th>Xóa</th>':''}</tr></thead>
-        <tbody>
-          ${bdList.length===0?'<tr><td colspan="7" style="text-align:center;padding:24px;color:#8a96a8">Chưa có dữ liệu</td></tr>':bdList.sort((a,b)=>b.ngay.localeCompare(a.ngay)).map(bd=>{
-            const hv=hvList.find(h=>h.studentId===bd.studentId);
-            const isBT = bd.loai==='khong_lam_btvn';
-            return `<tr>
-              <td><div style="font-weight:500">${hv?.hoTen||bd.studentId}</div></td>
-              <td><span class="badge ${loaiClass(bd.loai)}">${LOAI_DIEM[bd.loai]||bd.loai}</span></td>
-              <td style="font-size:12px">${bd.tenBai||'—'}</td>
-              <td>${isBT?'<span class="badge b-vang">Không làm</span>':`<span style="font-size:14px;font-weight:600;color:${parseFloat(bd.diem)>=5?'#0f6e56':'#e24b4a'}">${bd.diem}</span>`}</td>
-              <td style="font-size:12px;color:#8a96a8">${fmtDate(bd.ngay)}</td>
-              <td style="font-size:12px">${bd.nhanXet||'—'}</td>
-              ${canEdit?`<td><button class="btn btn-danger btn-sm" onclick="deleteBD('${bd.recordId}')">Xóa</button></td>`:''}
-            </tr>`;
-          }).join('')}
-        </tbody>
-      </table>
+      <div class="table-toolbar" style="cursor:pointer" onclick="toggleBDHistory()">
+        <span style="font-size:13px;font-weight:600;color:#0d2d5e">📜 Toàn bộ lịch sử (${bdList.length})</span>
+        <span id="bd-history-caret" style="margin-left:auto;color:#8a96a8">▾ Xem</span>
+      </div>
+      <div id="bd-history-table" style="display:none;overflow-x:auto">
+        <table>
+          <thead><tr><th>Học viên</th><th>Loại</th><th>Tên bài</th><th>Điểm/Trạng thái</th><th>Ngày</th><th>Nhận xét</th>${canEdit?'<th>Xóa</th>':''}</tr></thead>
+          <tbody>
+            ${bdList.length===0?'<tr><td colspan="7" style="text-align:center;padding:24px;color:#8a96a8">Chưa có dữ liệu</td></tr>':bdList.slice().sort((a,b)=>b.ngay.localeCompare(a.ngay)).map(bd=>{
+              const hv=hvList.find(h=>h.studentId===bd.studentId);
+              const isBT = bd.loai==='khong_lam_btvn';
+              return `<tr>
+                <td><div style="font-weight:500">${hv?.hoTen||bd.studentId}</div></td>
+                <td><span class="badge ${loaiClass(bd.loai)}">${LOAI_DIEM[bd.loai]||bd.loai}</span></td>
+                <td style="font-size:12px">${bd.tenBai||'—'}</td>
+                <td>${isBT?'<span class="badge b-vang">Không làm</span>':`<span style="font-size:14px;font-weight:600;color:${parseFloat(bd.diem)>=5?'#0f6e56':'#e24b4a'}">${bd.diem}</span>`}</td>
+                <td style="font-size:12px;color:#8a96a8">${fmtDate(bd.ngay)}</td>
+                <td style="font-size:12px">${bd.nhanXet||'—'}</td>
+                ${canEdit?`<td><button class="btn btn-danger btn-sm" onclick="deleteBD('${bd.recordId}')">Xóa</button></td>`:''}
+              </tr>`;
+            }).join('')}
+          </tbody>
+        </table>
       </div>
     </div>
   `;
 }
 
-function renderBDInputType(){
-  const loai = document.getElementById('bd-loai').value;
-  const head = document.getElementById('bd-grid-input-head');
+function toggleBDHistory(){
+  const el = document.getElementById('bd-history-table');
+  const caret = document.getElementById('bd-history-caret');
+  const show = el.style.display==='none';
+  el.style.display = show?'block':'none';
+  caret.textContent = show?'▴ Ẩn':'▾ Xem';
+}
+
+function bdMonthNav(){
+  const [y,m] = BD_THANG.split('-').map(Number);
+  const isCurrent = BD_THANG===monthStrOffset(0);
+  return `
+    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+      <button class="btn btn-sm" onclick="changeBDThang(-1)">← Tháng trước</button>
+      <button class="btn btn-sm" ${isCurrent?'disabled':''} onclick="gotoBDThangHienTai()">Tháng hiện tại</button>
+      <button class="btn btn-sm" onclick="changeBDThang(1)">Tháng sau →</button>
+      <div style="font-size:15px;font-weight:800;color:#0d2d5e;margin-left:6px">Tháng ${m}/${y}</div>
+    </div>`;
+}
+function changeBDThang(dir){
+  const [y,m] = BD_THANG.split('-').map(Number);
+  const d = new Date(y, m-1+dir, 1);
+  BD_THANG = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0');
+  renderTabBangDiem(BD_CACHE.lop);
+}
+function gotoBDThangHienTai(){
+  BD_THANG = monthStrOffset(0);
+  renderTabBangDiem(BD_CACHE.lop);
+}
+
+// Lịch tháng: ngày có điểm sẽ hiện chấm xanh (có bao nhiêu điểm), ngày có điểm <5 hoặc "không
+// làm BTVN" sẽ viền đỏ NHẤP NHÁY để cảnh báo — bấm vào ngày bất kỳ để xem/nhập điểm ngày đó.
+function bdCalendarGrid(byNgay, y, m){
+  const soNgay = new Date(y, m, 0).getDate();
+  const firstDow = (new Date(y, m-1, 1).getDay()+6)%7; // 0=T2 ... 6=CN
+  const todayS = todayStr();
+  const thuHead = ['T2','T3','T4','T5','T6','T7','CN'].map(t=>`<div class="cc-cell-head">${t}</div>`).join('');
+
+  const cells = [];
+  for(let i=0;i<firstDow;i++) cells.push('<div class="cc-cell cc-cell-empty"></div>');
+  for(let d=1; d<=soNgay; d++){
+    const ngay = y+'-'+String(m).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+    const items = byNgay[ngay]||[];
+    const isToday = ngay===todayS;
+    const coCanhBao = items.some(bd=>bd.loai==='khong_lam_btvn' || (bd.diem!==''&&bd.diem!==undefined&&bd.diem!==null&&!isNaN(parseFloat(bd.diem))&&parseFloat(bd.diem)<5));
+    cells.push(`<div class="cc-cell ${isToday?'cc-cell-today':''} ${coCanhBao?'cc-cell-warn':''}" onclick="openBDDayModal('${ngay}')">
+      <div class="cc-cell-day">${d}</div>
+      ${items.length>0?`<div class="cc-cell-badge" style="background:${coCanhBao?'#e24b4a':'#3a7bd5'}">${items.length} điểm</div>`:''}
+    </div>`);
+  }
+  return `<div class="cc-grid cc-grid-head">${thuHead}</div><div class="cc-grid">${cells.join('')}</div>`;
+}
+
+// Popup 1 ngày: hiện các điểm đã có (nhóm theo loại) + form thêm điểm mới cho cả lớp
+function openBDDayModal(ngay){
+  if(!BD_CACHE) return;
+  BD_MODAL_NGAY = ngay;
+  const canEdit = ['admin','giaovien','trogiang'].includes(USER.role);
+  const items = BD_CACHE.byNgay[ngay]||[];
+
+  const byLoai = {};
+  items.forEach(bd=>{ (byLoai[bd.loai]=byLoai[bd.loai]||[]).push(bd); });
+
+  const existingHtml = Object.keys(byLoai).map(loai=>{
+    const arr = byLoai[loai];
+    return `<div style="margin-bottom:16px">
+      <div style="font-size:12px;font-weight:700;color:#3d4c68;margin-bottom:6px">${LOAI_DIEM[loai]||loai}${arr[0].tenBai?(' — '+escapeHtml(arr[0].tenBai)):''}</div>
+      <table style="width:100%">
+        <thead><tr><th style="text-align:left;font-size:11px;color:#8a96a8;font-weight:600">Học viên</th><th style="font-size:11px;color:#8a96a8;font-weight:600">Điểm/Trạng thái</th><th style="text-align:left;font-size:11px;color:#8a96a8;font-weight:600">Nhận xét</th>${canEdit?'<th></th>':''}</tr></thead>
+        <tbody>
+          ${arr.map(bd=>{
+            const hv = BD_CACHE.hvList.find(h=>h.studentId===bd.studentId);
+            const isBT = bd.loai==='khong_lam_btvn';
+            return `<tr>
+              <td style="font-size:13px;padding:4px 0">${hv?hv.hoTen:bd.studentId}</td>
+              <td style="text-align:center">${isBT?'<span class="badge b-vang">Không làm</span>':`<span style="font-weight:700;color:${parseFloat(bd.diem)>=5?'#0f6e56':'#e24b4a'}">${bd.diem}</span>`}</td>
+              <td style="font-size:12px">${bd.nhanXet||'—'}</td>
+              ${canEdit?`<td><button class="btn btn-danger btn-sm" onclick="deleteBDInModal('${bd.recordId}')">Xóa</button></td>`:''}
+            </tr>`;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>`;
+  }).join('');
+
+  const addFormHtml = canEdit ? `
+    <div style="${Object.keys(byLoai).length?'border-top:1.5px solid #f0f4fa;padding-top:14px':''}">
+      <div style="font-size:12px;font-weight:700;color:#3d4c68;margin-bottom:8px">+ Thêm điểm mới cho ngày này</div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px">
+        <select id="bd-modal-loai" style="flex:1;min-width:150px" onchange="renderBDModalInputType()">
+          <option value="giua_ky">Kiểm tra giữa kỳ</option>
+          <option value="cuoi_ky">Kiểm tra cuối kỳ</option>
+          <option value="bai_tap">Bài tập</option>
+          <option value="khong_lam_btvn">Không làm BTVN</option>
+        </select>
+        <input id="bd-modal-tenBai" placeholder="Tên bài (không bắt buộc)..." style="flex:1;min-width:150px">
+      </div>
+      <div style="max-height:280px;overflow-y:auto">
+        <table style="width:100%">
+          <thead><tr><th style="text-align:left;font-size:11px;color:#8a96a8">Học viên</th><th id="bd-modal-input-head" style="font-size:11px;color:#8a96a8">Điểm</th><th style="text-align:left;font-size:11px;color:#8a96a8">Nhận xét</th></tr></thead>
+          <tbody id="bd-modal-grid-body">
+            ${BD_CACHE.hvList.map(hv=>`<tr data-sid="${hv.studentId}">
+              <td style="font-size:13px;padding:4px 0">${hv.hoTen}</td>
+              <td style="text-align:center" id="bd-modal-input-cell-${hv.studentId}">
+                <input type="number" class="bd-diem" data-sid="${hv.studentId}" min="0" max="10" step="0.1" placeholder="—" style="width:64px;text-align:center">
+              </td>
+              <td><input class="bd-nhanxet" data-sid="${hv.studentId}" placeholder="..." style="width:100%;font-size:12px"></td>
+            </tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  ` : '';
+
+  const body = `${existingHtml}${addFormHtml}${(!Object.keys(byLoai).length && !canEdit)?'<div class="empty">Chưa có điểm nào ngày này</div>':''}`;
+
+  showModal(`Bảng điểm — ${fmtDate(ngay)}`, body, canEdit ? saveBDModalGrid : async()=>{ closeModal(); });
+}
+
+function renderBDModalInputType(){
+  const loai = document.getElementById('bd-modal-loai').value;
+  const head = document.getElementById('bd-modal-input-head');
   const isBT = loai==='khong_lam_btvn';
   head.textContent = isBT ? 'Không làm' : 'Điểm';
-  document.querySelectorAll('[id^="bd-input-cell-"]').forEach(cell=>{
-    const sid = cell.id.replace('bd-input-cell-','');
-    if(isBT){
-      cell.innerHTML = `<input type="checkbox" class="cb bd-checkbox" data-sid="${sid}" style="width:20px;height:20px">`;
-    } else {
-      cell.innerHTML = `<input type="number" class="bd-diem" data-sid="${sid}" min="0" max="10" step="0.1" placeholder="—" style="width:70px;text-align:center;font-size:15px;font-weight:600" oninput="highlightRow(this)">`;
-    }
+  document.querySelectorAll('[id^="bd-modal-input-cell-"]').forEach(cell=>{
+    const sid = cell.id.replace('bd-modal-input-cell-','');
+    cell.innerHTML = isBT
+      ? `<input type="checkbox" class="cb bd-checkbox" data-sid="${sid}" style="width:20px;height:20px">`
+      : `<input type="number" class="bd-diem" data-sid="${sid}" min="0" max="10" step="0.1" placeholder="—" style="width:64px;text-align:center">`;
   });
 }
 
-function highlightRow(input){
-  const tr=input.closest('tr');
-  if(input.value) tr.style.background='#f0f8ff';
-  else tr.style.background='';
-}
-
-async function saveBDGrid(){
-  const loai=document.getElementById('bd-loai').value;
-  const tenBai=document.getElementById('bd-tenBai').value.trim();
-  const ngay=document.getElementById('bd-ngay').value||todayStr();
+async function saveBDModalGrid(){
+  const loaiEl = document.getElementById('bd-modal-loai');
+  if(!loaiEl){ closeModal(); return; } // form thêm điểm không hiện (VD không có quyền) — chỉ đóng
+  const loai = loaiEl.value;
+  const tenBai = document.getElementById('bd-modal-tenBai').value.trim();
+  const ngay = BD_MODAL_NGAY;
   const isBT = loai==='khong_lam_btvn';
-  const rows=document.querySelectorAll('#bd-grid tbody tr');
+  const rows = document.querySelectorAll('#bd-modal-grid-body tr');
   const toSave=[];
 
   if(isBT){
@@ -1901,7 +1998,7 @@ async function saveBDGrid(){
       const checked=tr.querySelector('.bd-checkbox')?.checked;
       if(checked) toSave.push({studentId:sid,loai,tenBai:tenBai||'BTVN',diem:'0',nhanXet:'',ngay,ghiBoi:USER.email});
     });
-  } else {
+  }else{
     rows.forEach(tr=>{
       const sid=tr.dataset.sid;
       const diem=tr.querySelector('.bd-diem')?.value?.trim();
@@ -1914,8 +2011,17 @@ async function saveBDGrid(){
   let ok=0;
   for(const item of toSave){ const r=await call({action:'addBangDiem',...item}); if(r.ok) ok++; }
   toast(`Đã lưu ${ok}/${toSave.length}`,'success');
-  const lop=LOP_DATA.find(l=>l.lopId===LOP_DETAIL_ID);
-  renderTabBangDiem(lop);
+  await renderTabBangDiem(BD_CACHE.lop);
+  openBDDayModal(ngay);
+}
+
+async function deleteBDInModal(recordId){
+  if(!confirm('Xóa bản ghi này?')) return;
+  const r=await call({action:'deleteBangDiem',recordId});
+  if(!r.ok){toast(r.error||'Lỗi khi xóa','error');return;}
+  toast('Đã xóa','success');
+  await renderTabBangDiem(BD_CACHE.lop);
+  openBDDayModal(BD_MODAL_NGAY);
 }
 
 async function deleteBD(recordId){
@@ -1972,6 +2078,9 @@ async function renderTaiKhoan(){
 // thao tác riêng "Phân công dạy thay" khi có người dạy hộ, tự động cộng đúng buổi đó cho người
 // dạy thay mà không cần người dạy thay tự khai tay.
 let CC_THANG = ''; // yyyy-MM đang xem
+let BD_THANG = ''; // yyyy-MM đang xem ở lịch Bảng điểm
+let BD_CACHE = null; // {lop, hvList, bdList, byNgay}
+let BD_MODAL_NGAY = ''; // ngày đang mở trong popup Bảng điểm
 let CC_TARGET_EMAIL = ''; // Admin đang xem chi tiết chấm công của ai (rỗng = đang ở bảng tổng hợp / hoặc GV-TG tự xem của mình)
 
 function monthStrOffset(offset){
