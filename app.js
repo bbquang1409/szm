@@ -156,6 +156,7 @@ async function renderDashboard(){
   const d=r.data;
   if(USER.role==='phuhuynh'){await renderDashboardPH(d);return;}
   const ktAlerts=(d.canhBaoKiemTra||[]);
+  const hvLuuY=(d.hvLuuY||[]);
   setContent(`
     <div class="stat-grid">
       <div class="stat-card"><div class="stat-label">Tổng học viên</div><div class="stat-value">${d.tongHocVien||0}</div><div class="stat-sub">${d.tongLop||0} lớp</div></div>
@@ -163,6 +164,18 @@ async function renderDashboard(){
       <div class="stat-card"><div class="stat-label">Điểm TB</div><div class="stat-value">${d.diemTB||'—'}</div><div class="stat-sub">Toàn trung tâm</div></div>
       <div class="stat-card"><div class="stat-label">Cần liên hệ</div><div class="stat-value" style="color:#e24b4a">${d.canhBaoLan2||0}</div><div class="stat-sub">${d.canhBaoLan1||0} đang theo dõi</div></div>
     </div>
+    ${hvLuuY.length>0?`
+    <div class="table-wrap" style="margin-bottom:16px;padding:14px 16px">
+      <div style="font-size:13px;font-weight:600;color:#0d2d5e;margin-bottom:10px">🚩 Học viên cần lưu ý (${hvLuuY.length})</div>
+      ${hvLuuY.map(hv=>`
+        <div style="display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid #f0f4fa;flex-wrap:wrap">
+          <span style="font-weight:500">${hv.hoTen}</span>
+          <span style="font-size:11px;color:#8a96a8">${hv.lop}</span>
+          ${hv.lyDoLuuY?`<span style="font-size:12px;color:#993c1d">— ${escapeHtml(hv.lyDoLuuY)}</span>`:''}
+          <span style="font-size:11px;color:#8a96a8;margin-left:auto">${fmtDate(hv.ngayLuuY)}</span>
+          ${USER.role==='admin'&&hv.emailPhuHuynh?`<button class="btn btn-sm" onclick="openModalNhanTinPH('${hv.studentId}','${escapeAttr(hv.hoTen)}')">✉️ Nhắn PH</button>`:''}
+        </div>`).join('')}
+    </div>`:''}
     ${ktAlerts.length>0?`
     <div class="table-wrap" style="margin-bottom:16px;padding:14px 16px">
       <div style="font-size:13px;font-weight:600;color:#0d2d5e;margin-bottom:10px">🔔 Cảnh báo kiểm tra sắp tới</div>
@@ -1812,13 +1825,13 @@ async function renderTabBangDiem(lop){
     </div>`:''}
 
     <div class="table-wrap" style="margin:0 16px 14px;padding:16px 18px">
+      ${canEdit?`<div class="hint" style="margin-bottom:12px;text-align:center">💡 Nhấn thẳng vào 1 ngày trên lịch để nhập điểm</div>`:''}
       ${bdMonthNav()}
       ${bdCalendarGrid(byNgay, y, m)}
       <div style="display:flex;gap:16px;margin-top:12px;font-size:11px;color:#8a96a8;flex-wrap:wrap">
         <span><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#3a7bd5;margin-right:4px"></span>Có điểm/bài kiểm tra</span>
         <span><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:#e24b4a;margin-right:4px"></span>Có điểm thấp / không làm bài</span>
       </div>
-      ${canEdit?`<div style="margin-top:14px"><button class="btn btn-primary" onclick="openBDDayModal(todayStr())">+ Nhập điểm mới (hôm nay)</button></div>`:''}
     </div>
 
     <div class="table-wrap" style="margin:0 16px 16px">
@@ -1862,11 +1875,13 @@ function bdMonthNav(){
   const [y,m] = BD_THANG.split('-').map(Number);
   const isCurrent = BD_THANG===monthStrOffset(0);
   return `
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+    <div style="display:flex;align-items:center;justify-content:center;gap:14px;margin-bottom:16px">
       <button class="btn btn-sm" onclick="changeBDThang(-1)">← Tháng trước</button>
-      <button class="btn btn-sm" ${isCurrent?'disabled':''} onclick="gotoBDThangHienTai()">Tháng hiện tại</button>
+      <div style="text-align:center;min-width:140px">
+        <div style="font-size:17px;font-weight:800;color:#0d2d5e">Tháng ${m}/${y}</div>
+        ${!isCurrent?`<span style="font-size:11px;color:#3a7bd5;cursor:pointer;font-weight:600" onclick="gotoBDThangHienTai()">↺ Về tháng hiện tại</span>`:''}
+      </div>
       <button class="btn btn-sm" onclick="changeBDThang(1)">Tháng sau →</button>
-      <div style="font-size:15px;font-weight:800;color:#0d2d5e;margin-left:6px">Tháng ${m}/${y}</div>
     </div>`;
 }
 function changeBDThang(dir){
@@ -1949,15 +1964,22 @@ function openBDDayModal(ngay){
       </div>
       <div style="max-height:280px;overflow-y:auto">
         <table style="width:100%">
-          <thead><tr><th style="text-align:left;font-size:11px;color:#8a96a8">Học viên</th><th id="bd-modal-input-head" style="font-size:11px;color:#8a96a8">Điểm</th><th style="text-align:left;font-size:11px;color:#8a96a8">Nhận xét</th></tr></thead>
+          <thead><tr><th style="text-align:left;font-size:11px;color:#8a96a8">Học viên</th><th id="bd-modal-input-head" style="font-size:11px;color:#8a96a8">Điểm</th><th style="text-align:left;font-size:11px;color:#8a96a8">Nhận xét</th><th style="font-size:11px;color:#8a96a8">Lưu ý</th></tr></thead>
           <tbody id="bd-modal-grid-body">
-            ${BD_CACHE.hvList.map(hv=>`<tr data-sid="${hv.studentId}">
-              <td style="font-size:13px;padding:4px 0">${hv.hoTen}</td>
+            ${BD_CACHE.hvList.map(hv=>{
+              const flagged = hv.canLuuY==='true';
+              return `<tr data-sid="${hv.studentId}">
+              <td style="font-size:13px;padding:4px 0">${hv.hoTen}${flagged?` <span title="${escapeAttr(hv.lyDoLuuY||'')}" style="font-size:11px">🚩</span>`:''}</td>
               <td style="text-align:center" id="bd-modal-input-cell-${hv.studentId}">
                 <input type="number" class="bd-diem" data-sid="${hv.studentId}" min="0" max="10" step="0.1" placeholder="—" style="width:64px;text-align:center">
               </td>
               <td><input class="bd-nhanxet" data-sid="${hv.studentId}" placeholder="..." style="width:100%;font-size:12px"></td>
-            </tr>`).join('')}
+              <td style="text-align:center;white-space:nowrap">
+                <button class="btn btn-sm ${flagged?'btn-danger':''}" onclick="toggleLuuYHV('${hv.studentId}',${flagged},'${escapeAttr(hv.hoTen)}')">${flagged?'🚩 Bỏ lưu ý':'🏳️ Lưu ý'}</button>
+                ${(USER.role==='admin' && flagged && hv.emailPhuHuynh)?`<button class="btn btn-sm" style="margin-left:4px" onclick="openModalNhanTinPH('${hv.studentId}','${escapeAttr(hv.hoTen)}')">✉️ Nhắn PH</button>`:''}
+              </td>
+            </tr>`;
+            }).join('')}
           </tbody>
         </table>
       </div>
@@ -2020,6 +2042,26 @@ async function deleteBDInModal(recordId){
   const r=await call({action:'deleteBangDiem',recordId});
   if(!r.ok){toast(r.error||'Lỗi khi xóa','error');return;}
   toast('Đã xóa','success');
+  await renderTabBangDiem(BD_CACHE.lop);
+  openBDDayModal(BD_MODAL_NGAY);
+}
+
+// Đánh dấu / bỏ đánh dấu 1 học viên "cần lưu ý" — hiện lên Dashboard cho mọi nhân sự thấy,
+// không phụ thuộc điểm số. Gửi tin nhắn phụ huynh (nếu có) là hành động RIÊNG, Admin tự quyết
+// định bấm hay không — không tự động gửi.
+async function toggleLuuYHV(studentId, currentlyFlagged, hoTen){
+  if(currentlyFlagged){
+    if(!confirm('Bỏ đánh dấu lưu ý cho '+hoTen+'?')) return;
+    const r = await call({action:'toggleLuuY', studentId, canLuuY:'false'});
+    if(!r.ok){ toast(r.error||'Lỗi','error'); return; }
+    toast('Đã bỏ lưu ý','success');
+  }else{
+    const lyDo = prompt('Lý do cần lưu ý cho '+hoTen+' (không bắt buộc):','');
+    if(lyDo===null) return; // bấm Cancel thì thôi
+    const r = await call({action:'toggleLuuY', studentId, canLuuY:'true', lyDo});
+    if(!r.ok){ toast(r.error||'Lỗi','error'); return; }
+    toast('Đã đánh dấu lưu ý','success');
+  }
   await renderTabBangDiem(BD_CACHE.lop);
   openBDDayModal(BD_MODAL_NGAY);
 }
@@ -2106,11 +2148,13 @@ function ccMonthNav(){
   const [y,m] = CC_THANG.split('-').map(Number);
   const isCurrent = CC_THANG===monthStrOffset(0);
   return `
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
+    <div style="display:flex;align-items:center;justify-content:center;gap:14px;margin-bottom:16px">
       <button class="btn btn-sm" onclick="changeCCThang(-1)">← Tháng trước</button>
-      <button class="btn btn-sm" ${isCurrent?'disabled':''} onclick="gotoCCThangHienTai()">Tháng hiện tại</button>
+      <div style="text-align:center;min-width:140px">
+        <div style="font-size:17px;font-weight:800;color:#0d2d5e">Tháng ${m}/${y}</div>
+        ${!isCurrent?`<span style="font-size:11px;color:#3a7bd5;cursor:pointer;font-weight:600" onclick="gotoCCThangHienTai()">↺ Về tháng hiện tại</span>`:''}
+      </div>
       <button class="btn btn-sm" onclick="changeCCThang(1)">Tháng sau →</button>
-      <div style="font-size:15px;font-weight:800;color:#0d2d5e;margin-left:6px">Tháng ${m}/${y}</div>
     </div>`;
 }
 function gotoCCThangHienTai(){
