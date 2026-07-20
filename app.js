@@ -1995,12 +1995,18 @@ async function renderChamCong(){
 
 function ccMonthNav(){
   const [y,m] = CC_THANG.split('-').map(Number);
+  const isCurrent = CC_THANG===monthStrOffset(0);
   return `
     <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px">
       <button class="btn btn-sm" onclick="changeCCThang(-1)">← Tháng trước</button>
-      <div style="font-size:15px;font-weight:800;color:#0d2d5e;min-width:110px;text-align:center">Tháng ${m}/${y}</div>
+      <button class="btn btn-sm" ${isCurrent?'disabled':''} onclick="gotoCCThangHienTai()">Tháng hiện tại</button>
       <button class="btn btn-sm" onclick="changeCCThang(1)">Tháng sau →</button>
+      <div style="font-size:15px;font-weight:800;color:#0d2d5e;margin-left:6px">Tháng ${m}/${y}</div>
     </div>`;
+}
+function gotoCCThangHienTai(){
+  CC_THANG = monthStrOffset(0);
+  renderChamCong();
 }
 function changeCCThang(dir){
   const [y,m] = CC_THANG.split('-').map(Number);
@@ -2067,11 +2073,14 @@ async function renderChamCongCaNhan(email){
 
   const byNgay = {};
   buoi.forEach(b=>{ (byNgay[b.ngay]=byNgay[b.ngay]||[]).push(b); });
-  const ngayList = Object.keys(byNgay).sort();
 
   const isAdminViewing = USER.role==='admin' && email!==USER.email;
   const isSelf = email===USER.email;
   const tenNguoiXem = nguoiDayName(email);
+  const [y,m] = CC_THANG.split('-').map(Number);
+
+  // Lưu lại để openCCDayModal dùng khi bấm vào 1 ngày, khỏi phải gọi lại API
+  CC_CACHE = {email, isAdminViewing, byNgay};
 
   setContent(`
     ${isAdminViewing?`<div style="margin-bottom:10px"><span style="font-size:13px;color:#3a7bd5;cursor:pointer;font-weight:600" onclick="CC_TARGET_EMAIL='';renderChamCong()">← Quay lại bảng tổng hợp</span></div>`:''}
@@ -2079,11 +2088,7 @@ async function renderChamCongCaNhan(email){
     ${isAdminViewing?`<div style="font-size:14px;font-weight:700;color:#0d2d5e;margin-bottom:10px">Chấm công của: ${escapeHtml(tenNguoiXem)}</div>`:''}
     <div class="table-wrap" style="padding:16px 18px">
       <div style="font-size:22px;font-weight:800;color:#0d2d5e;margin-bottom:14px">Tổng: ${tong} buổi</div>
-      ${ngayList.length===0?'<div class="empty">Không có buổi dạy nào trong tháng này</div>':ngayList.map(ngay=>`
-        <div style="border-bottom:1px solid #f0f4fa;padding:10px 0">
-          <div style="font-size:12.5px;font-weight:700;color:#3d4c68;margin-bottom:5px">${fmtDate(ngay)}</div>
-          ${byNgay[ngay].map(b=>ccBuoiRow(b,email,isAdminViewing)).join('')}
-        </div>`).join('')}
+      ${ccCalendarGrid(byNgay, y, m)}
     </div>
     ${isSelf?`
       <div style="margin-top:16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
@@ -2092,6 +2097,44 @@ async function renderChamCongCaNhan(email){
       </div>`:''}
   `);
   if(isSelf) loadCCSubmitStatus();
+}
+
+// Lịch tháng dạng lưới thật (T2→CN), ngày hôm nay sáng lên, ngày có buổi hiện số buổi —
+// bấm thẳng vào ô ngày để mở bảng sửa (vì đã tự động điểm danh sẵn rồi, chỉ cần chỉnh).
+function ccCalendarGrid(byNgay, y, m){
+  const soNgay = new Date(y, m, 0).getDate();
+  const firstDow = (new Date(y, m-1, 1).getDay()+6)%7; // 0=T2 ... 6=CN
+  const todayS = todayStr();
+  const thuHead = ['T2','T3','T4','T5','T6','T7','CN'].map(t=>`<div class="cc-cell-head">${t}</div>`).join('');
+
+  const cells = [];
+  for(let i=0;i<firstDow;i++) cells.push('<div class="cc-cell cc-cell-empty"></div>');
+  for(let d=1; d<=soNgay; d++){
+    const ngay = y+'-'+String(m).padStart(2,'0')+'-'+String(d).padStart(2,'0');
+    const items = byNgay[ngay]||[];
+    const tongNgay = items.filter(b=>b.trangThai==='on').length;
+    const coOff = items.some(b=>b.trangThai==='off');
+    const isToday = ngay===todayS;
+    cells.push(`<div class="cc-cell ${isToday?'cc-cell-today':''}" onclick="openCCDayModal('${ngay}')">
+      <div class="cc-cell-day">${d}</div>
+      ${tongNgay>0?`<div class="cc-cell-badge">${tongNgay} buổi</div>`:(coOff?`<div class="cc-cell-badge cc-cell-badge-off">nghỉ</div>`:'')}
+    </div>`);
+  }
+  return `<div class="cc-grid cc-grid-head">${thuHead}</div><div class="cc-grid">${cells.join('')}</div>`;
+}
+
+let CC_CACHE = null; // {email, isAdminViewing, byNgay} — cache nhẹ để mở modal ngày không cần gọi lại API
+
+function openCCDayModal(ngay){
+  if(!CC_CACHE) return;
+  const {email, isAdminViewing, byNgay} = CC_CACHE;
+  const items = byNgay[ngay]||[];
+  const body = items.length
+    ? items.map(b=>ccBuoiRow(b,email,isAdminViewing)).join('')
+    : '<div class="empty" style="padding:20px 0">Không có buổi học nào theo lịch vào ngày này</div>';
+  // Checkbox trong modal này tự lưu ngay khi bấm (toggleCCBuoi), nên nút "Lưu" ở đây chỉ cần đóng
+  // lại — không thao tác gì thêm, tránh đụng vào footer chung của modal (dùng lại ở nhiều chỗ khác).
+  showModal(`Chấm công — ${fmtDate(ngay)}`, body, async()=>{ closeModal(); });
 }
 
 function ccBuoiRow(b, email, isAdminViewing){
@@ -2118,7 +2161,7 @@ async function toggleCCBuoi(lopId, caId, ngay, checked, email){
   const payload = {action:'toggleChamCongBuoi', lopId, caId, ngay, trangThai};
   if(USER.role==='admin' && email!==USER.email) payload.targetEmail = email;
   const r = await call(payload);
-  if(r.ok) renderChamCong();
+  if(r.ok){ await renderChamCong(); openCCDayModal(ngay); }
   else toast(r.error||'Lỗi','error');
 }
 
@@ -2139,7 +2182,8 @@ function openPhanCongDayThay(lopId, caId, ngay, emailGoc, tenLop, tenCa){
     const ghiChu = document.getElementById('f-ghichu').value.trim();
     const r = await call({action:'adminPhanCongDayThay', lopId, caId, ngay, emailGoc, emailThay, ghiChu});
     if(!r.ok){toast(r.error||'Lỗi','error');return;}
-    closeModal(); toast('Đã phân công dạy thay','success'); renderChamCong();
+    toast('Đã phân công dạy thay','success');
+    await renderChamCong(); openCCDayModal(ngay);
   });
 }
 
@@ -2152,7 +2196,8 @@ async function huyPhanCongDayThay(lopId, caId, ngay, emailThay, ghiChu){
   if(!confirm('Hủy phân công dạy thay này?')) return;
   const r = await call({action:'adminHuyPhanCongDayThay', lopId, caId, ngay, emailGoc:emailGoc.trim(), emailThay});
   if(!r.ok){toast(r.error||'Lỗi','error');return;}
-  toast('Đã hủy phân công dạy thay','success'); renderChamCong();
+  toast('Đã hủy phân công dạy thay','success');
+  await renderChamCong(); openCCDayModal(ngay);
 }
 
 async function guiChamCong(){
