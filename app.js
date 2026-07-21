@@ -636,20 +636,22 @@ async function renderHVList(){
       <div style="overflow-x:auto">
       <table id="hv-table">
         <thead><tr>
-          <th>Họ tên</th><th>Lớp</th><th>SĐT cá nhân</th><th>Email cá nhân</th>
-          <th>SĐT phụ huynh</th><th>Email PH</th>
-          <th>Đóng tiền</th><th>Trạng thái</th><th>Ghi chú</th>
-          ${canMsg?'<th>Nhắn tin</th>':''}
-          ${canEdit?'<th>Sửa</th>':''}
+          <th style="width:32px;text-align:center">#</th>
+          <th style="min-width:160px">Họ tên</th><th style="width:60px">Lớp</th><th style="width:95px">SĐT cá nhân</th><th style="width:120px">Email cá nhân</th>
+          <th style="width:95px">SĐT PH</th><th style="width:120px">Email PH</th>
+          <th style="width:60px;text-align:center">Đóng tiền</th><th style="width:100px">Trạng thái</th><th style="width:90px">Ghi chú</th>
+          ${canMsg?'<th style="width:44px"></th>':''}
+          ${canEdit?'<th style="width:50px"></th>':''}
         </tr></thead>
         <tbody>
-          ${hvList.map(hv=>`<tr data-name="${hv.hoTen.toLowerCase()}">
-            <td><div style="display:flex;align-items:center;gap:7px"><div class="avatar" style="width:26px;height:26px;font-size:10px;background:#e8f0fb;color:#1a50a0">${ini(hv.hoTen)}</div><span style="font-weight:500">${hv.hoTen}</span></div></td>
-            <td>${hv.lop}</td>
-            <td>${hv.sdtCaNhan||'—'}</td>
-            <td style="font-size:12px">${hv.emailCaNhan||'—'}</td>
-            <td>${hv.soDienThoaiPH||'—'}</td>
-            <td style="font-size:12px">${hv.emailPhuHuynh||'—'}</td>
+          ${hvList.map((hv,i)=>`<tr data-name="${hv.hoTen.toLowerCase()}">
+            <td style="text-align:center;color:#8a96a8;font-size:11px">${i+1}</td>
+            <td><div style="display:flex;align-items:center;gap:8px;white-space:nowrap;cursor:pointer" onclick="openHVDetail('${hv.studentId}')"><div class="avatar" style="width:26px;height:26px;font-size:10px;flex-shrink:0;background:#e8f0fb;color:#1a50a0">${ini(hv.hoTen)}</div><span style="font-weight:700;font-size:13.5px;color:#1a50a0;text-decoration:underline;text-decoration-color:transparent" onmouseover="this.style.textDecorationColor='#1a50a0'" onmouseout="this.style.textDecorationColor='transparent'">${escapeHtml(hv.hoTen)}</span></div></td>
+            <td style="font-size:11px">${hv.lop}</td>
+            <td style="font-size:11px">${bubbleCell(hv.sdtCaNhan,90)}</td>
+            <td style="font-size:11px">${bubbleCell(hv.emailCaNhan,115)}</td>
+            <td style="font-size:11px">${bubbleCell(hv.soDienThoaiPH,90)}</td>
+            <td style="font-size:11px">${bubbleCell(hv.emailPhuHuynh,115)}</td>
             <td style="text-align:center">
               ${canEdit
                 ?`<input type="checkbox" class="cb" ${hv.daDongTien==='true'?'checked':''} onchange="toggleDongTien('${hv.studentId}',this.checked)">`
@@ -657,22 +659,65 @@ async function renderHVList(){
             </td>
             <td>
               ${canEdit
-                ?`<select class="tt-select" style="font-size:12px;padding:4px 8px" onchange="toggleTrangThai('${hv.studentId}',this.value)">
+                ?`<select class="tt-select" style="font-size:11px;padding:3px 5px;width:100%" onchange="toggleTrangThai('${hv.studentId}',this.value)">
                     <option value="danghoc" ${hv.trangThai==='danghoc'?'selected':''}>Đang học</option>
                     <option value="nghi" ${hv.trangThai==='nghi'?'selected':''}>Đã nghỉ</option>
                     <option value="baoluu" ${hv.trangThai==='baoluu'?'selected':''}>Bảo lưu</option>
                   </select>`
                 :`<span class="badge ${ttClass(hv.trangThai)}">${TRANG_THAI_HV[hv.trangThai]||hv.trangThai}</span>`}
             </td>
-            <td style="font-size:12px;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${hv.ghiChu||''}">${hv.ghiChu||'—'}</td>
-            ${canMsg?`<td>${hv.emailPhuHuynh?`<button class="btn btn-sm" onclick="openModalNhanTinPH('${hv.studentId}','${hv.hoTen}')">✉️</button>`:'<span style="color:#a0aab8;font-size:11px">—</span>'}</td>`:''}
-            ${canEdit?`<td><button class="btn btn-sm" onclick="openModalHV('${hv.studentId}')">Sửa</button></td>`:''}
+            <td style="font-size:11px">${bubbleCell(hv.ghiChu,80)}</td>
+            ${canMsg?`<td style="text-align:center">${hv.emailPhuHuynh?`<button class="btn btn-sm" onclick="openModalNhanTinPH('${hv.studentId}','${hv.hoTen}')">✉️</button>`:'<span style="color:#a0aab8;font-size:11px">—</span>'}</td>`:''}
+            ${canEdit?`<td style="text-align:center"><button class="btn btn-sm" onclick="openModalHV('${hv.studentId}')">Sửa</button></td>`:''}
           </tr>`).join('')}
         </tbody>
       </table>
       </div>
     </div>
   `);
+}
+
+// Hiện text rút gọn (dấu ...) trong ô bảng — rê chuột vào sẽ hiện bubble phóng to + nút Copy
+function bubbleCell(value, width){
+  if(!value) return '<span style="color:#c5cedd">—</span>';
+  return `<span class="cell-truncate" style="max-width:${width||130}px" onmouseenter="showCellBubble(event,'${escapeAttr(value)}')">${escapeHtml(value)}</span>`;
+}
+
+// Bấm vào tên học viên trong bảng → mở popup dọc hiện đầy đủ thông tin, mỗi dòng copy được riêng
+async function openHVDetail(studentId){
+  const r = await call({action:'getHocVienById', studentId});
+  if(!r.ok || !r.data){ toast('Không tìm thấy học viên','error'); return; }
+  const hv = r.data;
+  const rows = [
+    ['Lớp', hv.lop],
+    ['SĐT cá nhân', hv.sdtCaNhan],
+    ['Email cá nhân', hv.emailCaNhan],
+    ['SĐT phụ huynh', hv.soDienThoaiPH],
+    ['Email phụ huynh', hv.emailPhuHuynh],
+    ['Ngày sinh', hv.ngaySinh?fmtDate(hv.ngaySinh):''],
+    ['Giới tính', hv.gioiTinh],
+    ['Trạng thái', TRANG_THAI_HV[hv.trangThai]||hv.trangThai],
+    ['Đóng tiền', hv.daDongTien==='true'?'Đã đóng':'Chưa đóng'],
+    ['Ngày nhập học', hv.ngayNhapHoc?fmtDate(hv.ngayNhapHoc):''],
+    ['Ghi chú', hv.ghiChu],
+  ];
+  showModal(`${hv.hoTen}`, `
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;padding-bottom:14px;border-bottom:1.5px solid #f0f4fa">
+      <div class="avatar" style="width:46px;height:46px;font-size:17px;background:#e8f0fb;color:#1a50a0">${ini(hv.hoTen)}</div>
+      <div>
+        <div style="font-size:17px;font-weight:800;color:#0d2d5e">${escapeHtml(hv.hoTen)}</div>
+        <button class="btn btn-sm" style="margin-top:4px" onclick="copyText('${escapeAttr(hv.hoTen)}')">📋 Copy tên</button>
+      </div>
+    </div>
+    ${rows.map(([label,val])=>`
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid #f0f4fa">
+        <div style="min-width:0">
+          <div style="font-size:11px;color:#8a96a8;margin-bottom:2px">${label}</div>
+          <div style="font-size:14px;font-weight:600;color:#0d2d5e;word-break:break-word">${val?escapeHtml(val):'<span style="color:#c5cedd;font-weight:400">—</span>'}</div>
+        </div>
+        ${val?`<button class="btn btn-sm" style="flex-shrink:0" onclick="copyText('${escapeAttr(val)}')">📋</button>`:''}
+      </div>`).join('')}
+  `, async()=>{ closeModal(); });
 }
 
 function filterHVTable(q){
@@ -2530,6 +2575,53 @@ function closeModal(){
   MODAL_CB=null;
   document.removeEventListener('keydown',_ddKeyHandler);
 }
+
+// ── BUBBLE PHÓNG TO (hover vào ô bảng bị cắt gọn) + COPY ──
+let CELL_BUBBLE_TEXT = '';
+function showCellBubble(e, text){
+  if(!text || text==='—') return;
+  e.stopPropagation();
+  CELL_BUBBLE_TEXT = text;
+  const bubble = document.getElementById('cell-bubble');
+  document.getElementById('cell-bubble-text').textContent = text;
+  bubble.style.display='flex';
+  const rect = e.currentTarget.getBoundingClientRect();
+  bubble.style.left = rect.left+'px';
+  bubble.style.top = (rect.bottom+6)+'px';
+  // Chỉnh lại vị trí nếu tràn ra ngoài màn hình (chỉ biết kích thước bubble sau khi đã render)
+  requestAnimationFrame(()=>{
+    const bw=bubble.offsetWidth, bh=bubble.offsetHeight;
+    let left=rect.left, top=rect.bottom+6;
+    if(left+bw>window.innerWidth-10) left=window.innerWidth-bw-10;
+    if(top+bh>window.innerHeight-10) top=rect.top-bh-6;
+    bubble.style.left=Math.max(10,left)+'px';
+    bubble.style.top=Math.max(10,top)+'px';
+  });
+}
+function hideCellBubble(){
+  const bubble=document.getElementById('cell-bubble');
+  if(bubble) bubble.style.display='none';
+}
+function copyCellBubble(){ copyText(CELL_BUBBLE_TEXT); hideCellBubble(); }
+
+// Copy text vào clipboard — dùng chung cho bubble và modal chi tiết học viên
+async function copyText(text){
+  try{
+    await navigator.clipboard.writeText(text);
+    toast('Đã copy','success');
+  }catch(e){
+    // Fallback cho trình duyệt/ngữ cảnh không hỗ trợ Clipboard API (vd không phải HTTPS)
+    try{
+      const ta=document.createElement('textarea');
+      ta.value=text; ta.style.position='fixed'; ta.style.opacity='0';
+      document.body.appendChild(ta); ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      toast('Đã copy','success');
+    }catch(e2){ toast('Không copy được, thử chọn thủ công','error'); }
+  }
+}
+
 // Ham Luu dung chung cho ca bam nut chuot lan bam Enter — khoa nut trong luc dang luu,
 // luon cho (await) va bat loi (try/catch/finally) day du, tranh truong hop bam Enter roi
 // lo cham/bam ra ngoai popup trong luc dang gui du lieu len server khien bi dong popup
@@ -2693,6 +2785,7 @@ window.addEventListener('load',async ()=>{
   document.getElementById('modal-ok').addEventListener('click',runModalSave);
   document.getElementById('modal').addEventListener('click',e=>{if(e.target===e.currentTarget && !MODAL_SAVING)closeModal();});
   document.querySelectorAll('.nav-item[data-page]').forEach(el=>{el.addEventListener('click',()=>navTo(el.dataset.page));});
+  document.addEventListener('click', hideCellBubble);
 
   // Nếu vừa đăng nhập gần đây (F5 lúc test) và token còn hạn thì vào thẳng app,
   // khỏi phải bấm đăng nhập lại. Access_token thường sống ~1 tiếng.
