@@ -634,24 +634,24 @@ async function renderHVList(){
         <input placeholder="Tìm tên..." style="width:160px" oninput="filterHVTable(this.value)">
       </div>
       <div style="overflow-x:auto">
-      <table id="hv-table">
+      <table id="hv-table" style="table-layout:fixed">
         <thead><tr>
-          <th style="width:32px;text-align:center">#</th>
-          <th style="min-width:160px">Họ tên</th><th style="width:60px">Lớp</th><th style="width:95px">SĐT cá nhân</th><th style="width:120px">Email cá nhân</th>
-          <th style="width:95px">SĐT PH</th><th style="width:120px">Email PH</th>
-          <th style="width:60px;text-align:center">Đóng tiền</th><th style="width:100px">Trạng thái</th><th style="width:90px">Ghi chú</th>
-          ${canMsg?'<th style="width:44px"></th>':''}
-          ${canEdit?'<th style="width:50px"></th>':''}
+          <th style="width:34px;text-align:center">STT</th>
+          <th style="width:150px">Họ tên</th><th style="width:64px">Lớp</th><th style="width:90px">SĐT cá nhân</th><th style="width:115px">Email cá nhân</th>
+          <th style="width:90px">SĐT PH</th><th style="width:115px">Email PH</th>
+          <th style="width:48px;text-align:center">Đóng tiền</th><th style="width:100px">Trạng thái</th><th style="width:75px">Ghi chú</th>
+          ${canMsg?'<th style="width:40px"></th>':''}
+          ${canEdit?'<th style="width:46px"></th>':''}
         </tr></thead>
         <tbody>
           ${hvList.map((hv,i)=>`<tr data-name="${hv.hoTen.toLowerCase()}">
             <td style="text-align:center;color:#8a96a8;font-size:11px">${i+1}</td>
-            <td><div style="display:flex;align-items:center;gap:8px;white-space:nowrap;cursor:pointer" onclick="openHVDetail('${hv.studentId}')"><div class="avatar" style="width:26px;height:26px;font-size:10px;flex-shrink:0;background:#e8f0fb;color:#1a50a0">${ini(hv.hoTen)}</div><span style="font-weight:700;font-size:13.5px;color:#1a50a0;text-decoration:underline;text-decoration-color:transparent" onmouseover="this.style.textDecorationColor='#1a50a0'" onmouseout="this.style.textDecorationColor='transparent'">${escapeHtml(hv.hoTen)}</span></div></td>
-            <td style="font-size:11px">${hv.lop}</td>
-            <td style="font-size:11px">${bubbleCell(hv.sdtCaNhan,90)}</td>
-            <td style="font-size:11px">${bubbleCell(hv.emailCaNhan,115)}</td>
-            <td style="font-size:11px">${bubbleCell(hv.soDienThoaiPH,90)}</td>
-            <td style="font-size:11px">${bubbleCell(hv.emailPhuHuynh,115)}</td>
+            <td><span style="font-weight:700;font-size:13.5px;color:#1a50a0;cursor:pointer;text-decoration:underline;text-decoration-color:transparent" onclick="openHVDetail('${hv.studentId}')" onmouseover="this.style.textDecorationColor='#1a50a0'" onmouseout="this.style.textDecorationColor='transparent'">${escapeHtml(hv.hoTen)}</span></td>
+            <td style="font-size:11px;white-space:nowrap">${hv.lop}</td>
+            <td style="font-size:11px">${bubbleCell(hv.sdtCaNhan,80)}</td>
+            <td style="font-size:11px">${bubbleCell(hv.emailCaNhan,103)}</td>
+            <td style="font-size:11px">${bubbleCell(hv.soDienThoaiPH,80)}</td>
+            <td style="font-size:11px">${bubbleCell(hv.emailPhuHuynh,103)}</td>
             <td style="text-align:center">
               ${canEdit
                 ?`<input type="checkbox" class="cb" ${hv.daDongTien==='true'?'checked':''} onchange="toggleDongTien('${hv.studentId}',this.checked)">`
@@ -659,14 +659,14 @@ async function renderHVList(){
             </td>
             <td>
               ${canEdit
-                ?`<select class="tt-select" style="font-size:11px;padding:3px 5px;width:100%" onchange="toggleTrangThai('${hv.studentId}',this.value)">
+                ?`<select class="tt-select" onchange="toggleTrangThai('${hv.studentId}',this.value)">
                     <option value="danghoc" ${hv.trangThai==='danghoc'?'selected':''}>Đang học</option>
                     <option value="nghi" ${hv.trangThai==='nghi'?'selected':''}>Đã nghỉ</option>
                     <option value="baoluu" ${hv.trangThai==='baoluu'?'selected':''}>Bảo lưu</option>
                   </select>`
                 :`<span class="badge ${ttClass(hv.trangThai)}">${TRANG_THAI_HV[hv.trangThai]||hv.trangThai}</span>`}
             </td>
-            <td style="font-size:11px">${bubbleCell(hv.ghiChu,80)}</td>
+            <td style="font-size:11px">${bubbleCell(hv.ghiChu,63)}</td>
             ${canMsg?`<td style="text-align:center">${hv.emailPhuHuynh?`<button class="btn btn-sm" onclick="openModalNhanTinPH('${hv.studentId}','${hv.hoTen}')">✉️</button>`:'<span style="color:#a0aab8;font-size:11px">—</span>'}</td>`:''}
             ${canEdit?`<td style="text-align:center"><button class="btn btn-sm" onclick="openModalHV('${hv.studentId}')">Sửa</button></td>`:''}
           </tr>`).join('')}
