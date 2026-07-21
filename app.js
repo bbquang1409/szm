@@ -625,7 +625,6 @@ async function renderHVList(){
   const r=await call({action:'getHocVienByLop',lop:CURRENT_LOP});
   const hvList=r.ok?r.data:[];
   const canEdit=['admin','giaovien','trogiang'].includes(USER.role);
-  const canMsg=['admin','quanly','giaovien','trogiang'].includes(USER.role);
   setContent(`
     <div class="table-wrap">
       <div class="table-toolbar">
@@ -637,27 +636,22 @@ async function renderHVList(){
       <table id="hv-table" style="table-layout:fixed">
         <thead><tr>
           <th style="width:34px;text-align:center">STT</th>
-          <th style="width:150px">Họ tên</th><th style="width:64px">Lớp</th><th style="width:90px">SĐT cá nhân</th><th style="width:115px">Email cá nhân</th>
-          <th style="width:90px">SĐT PH</th><th style="width:115px">Email PH</th>
-          <th style="width:48px;text-align:center">Đóng tiền</th><th style="width:100px">Trạng thái</th><th style="width:75px">Ghi chú</th>
-          ${canMsg?'<th style="width:40px"></th>':''}
-          ${canEdit?'<th style="width:46px"></th>':''}
+          <th style="width:170px">Họ tên</th><th style="width:70px">Lớp</th><th style="width:105px">SĐT cá nhân</th><th style="width:135px">Email cá nhân</th>
+          <th style="width:64px;text-align:center">Đóng tiền</th><th style="width:115px">Trạng thái</th><th style="width:90px">Ghi chú</th>
         </tr></thead>
         <tbody>
-          ${hvList.map((hv,i)=>`<tr data-name="${hv.hoTen.toLowerCase()}">
+          ${hvList.map((hv,i)=>`<tr data-name="${hv.hoTen.toLowerCase()}" style="cursor:pointer" onclick="openModalHV('${hv.studentId}')">
             <td style="text-align:center;color:#8a96a8;font-size:11px">${i+1}</td>
-            <td><span style="font-weight:700;font-size:13.5px;color:#1a50a0;cursor:pointer;text-decoration:underline;text-decoration-color:transparent" onclick="openHVDetail('${hv.studentId}')" onmouseover="this.style.textDecorationColor='#1a50a0'" onmouseout="this.style.textDecorationColor='transparent'">${escapeHtml(hv.hoTen)}</span></td>
+            <td><span style="font-weight:700;font-size:13.5px;color:#1a50a0">${escapeHtml(hv.hoTen)}</span></td>
             <td style="font-size:11px;white-space:nowrap">${hv.lop}</td>
-            <td style="font-size:11px">${bubbleCell(hv.sdtCaNhan,80)}</td>
-            <td style="font-size:11px">${bubbleCell(hv.emailCaNhan,103)}</td>
-            <td style="font-size:11px">${bubbleCell(hv.soDienThoaiPH,80)}</td>
-            <td style="font-size:11px">${bubbleCell(hv.emailPhuHuynh,103)}</td>
-            <td style="text-align:center">
+            <td style="font-size:11px">${bubbleCell(hv.sdtCaNhan,95)}</td>
+            <td style="font-size:11px">${bubbleCell(hv.emailCaNhan,123)}</td>
+            <td style="text-align:center" onclick="event.stopPropagation()">
               ${canEdit
                 ?`<input type="checkbox" class="cb" ${hv.daDongTien==='true'?'checked':''} onchange="toggleDongTien('${hv.studentId}',this.checked)">`
                 :`<span class="badge ${hv.daDongTien==='true'?'b-dong':'b-chua'}">${hv.daDongTien==='true'?'Đã đóng':'Chưa'}</span>`}
             </td>
-            <td>
+            <td onclick="event.stopPropagation()">
               ${canEdit
                 ?`<select class="tt-select" onchange="toggleTrangThai('${hv.studentId}',this.value)">
                     <option value="danghoc" ${hv.trangThai==='danghoc'?'selected':''}>Đang học</option>
@@ -666,9 +660,7 @@ async function renderHVList(){
                   </select>`
                 :`<span class="badge ${ttClass(hv.trangThai)}">${TRANG_THAI_HV[hv.trangThai]||hv.trangThai}</span>`}
             </td>
-            <td style="font-size:11px">${bubbleCell(hv.ghiChu,63)}</td>
-            ${canMsg?`<td style="text-align:center">${hv.emailPhuHuynh?`<button class="btn btn-sm" onclick="openModalNhanTinPH('${hv.studentId}','${hv.hoTen}')">✉️</button>`:'<span style="color:#a0aab8;font-size:11px">—</span>'}</td>`:''}
-            ${canEdit?`<td style="text-align:center"><button class="btn btn-sm" onclick="openModalHV('${hv.studentId}')">Sửa</button></td>`:''}
+            <td style="font-size:11px">${bubbleCell(hv.ghiChu,80)}</td>
           </tr>`).join('')}
         </tbody>
       </table>
@@ -681,43 +673,6 @@ async function renderHVList(){
 function bubbleCell(value, width){
   if(!value) return '<span style="color:#c5cedd">—</span>';
   return `<span class="cell-truncate" style="max-width:${width||130}px" onmouseenter="showCellBubble(event,'${escapeAttr(value)}')">${escapeHtml(value)}</span>`;
-}
-
-// Bấm vào tên học viên trong bảng → mở popup dọc hiện đầy đủ thông tin, mỗi dòng copy được riêng
-async function openHVDetail(studentId){
-  const r = await call({action:'getHocVienById', studentId});
-  if(!r.ok || !r.data){ toast('Không tìm thấy học viên','error'); return; }
-  const hv = r.data;
-  const rows = [
-    ['Lớp', hv.lop],
-    ['SĐT cá nhân', hv.sdtCaNhan],
-    ['Email cá nhân', hv.emailCaNhan],
-    ['SĐT phụ huynh', hv.soDienThoaiPH],
-    ['Email phụ huynh', hv.emailPhuHuynh],
-    ['Ngày sinh', hv.ngaySinh?fmtDate(hv.ngaySinh):''],
-    ['Giới tính', hv.gioiTinh],
-    ['Trạng thái', TRANG_THAI_HV[hv.trangThai]||hv.trangThai],
-    ['Đóng tiền', hv.daDongTien==='true'?'Đã đóng':'Chưa đóng'],
-    ['Ngày nhập học', hv.ngayNhapHoc?fmtDate(hv.ngayNhapHoc):''],
-    ['Ghi chú', hv.ghiChu],
-  ];
-  showModal(`${hv.hoTen}`, `
-    <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px;padding-bottom:14px;border-bottom:1.5px solid #f0f4fa">
-      <div class="avatar" style="width:46px;height:46px;font-size:17px;background:#e8f0fb;color:#1a50a0">${ini(hv.hoTen)}</div>
-      <div>
-        <div style="font-size:17px;font-weight:800;color:#0d2d5e">${escapeHtml(hv.hoTen)}</div>
-        <button class="btn btn-sm" style="margin-top:4px" onclick="copyText('${escapeAttr(hv.hoTen)}')">📋 Copy tên</button>
-      </div>
-    </div>
-    ${rows.map(([label,val])=>`
-      <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;padding:9px 0;border-bottom:1px solid #f0f4fa">
-        <div style="min-width:0">
-          <div style="font-size:11px;color:#8a96a8;margin-bottom:2px">${label}</div>
-          <div style="font-size:14px;font-weight:600;color:#0d2d5e;word-break:break-word">${val?escapeHtml(val):'<span style="color:#c5cedd;font-weight:400">—</span>'}</div>
-        </div>
-        ${val?`<button class="btn btn-sm" style="flex-shrink:0" onclick="copyText('${escapeAttr(val)}')">📋</button>`:''}
-      </div>`).join('')}
-  `, async()=>{ closeModal(); });
 }
 
 function filterHVTable(q){
@@ -754,11 +709,24 @@ async function openModalHV(studentId, defaultLop){
   }
   const showAutocomplete = !isEdit && USER.role==='admin';
 
+  const canMsg = ['admin','quanly','giaovien','trogiang'].includes(USER.role);
+  const fieldRow = (label, id, value, type)=>`
+    <div class="form-row">
+      <label>${label}</label>
+      <div style="display:flex;gap:6px">
+        <input ${type?`type="${type}"`:''} id="${id}" value="${escapeAttr(value||'')}" style="flex:1">
+        ${value?`<button type="button" class="btn btn-sm" style="flex-shrink:0" onclick="copyText('${escapeAttr(value)}')">📋</button>`:''}
+      </div>
+    </div>`;
+
   showModal(isEdit?'Sửa học viên':'Thêm học viên',`
     <div class="form-grid2">
       <div class="form-row" style="position:relative">
         <label>Họ tên *${showAutocomplete?' <span style="font-weight:400;color:#8a96a8">(gõ để tìm học viên có sẵn)</span>':''}</label>
-        <input id="f-hoTen" value="${hv?.hoTen||''}" autocomplete="off" ${showAutocomplete?`oninput="filterHVAutocomplete()" onfocus="filterHVAutocomplete()"`:''}>
+        <div style="display:flex;gap:6px">
+          <input id="f-hoTen" value="${hv?.hoTen||''}" autocomplete="off" style="flex:1" ${showAutocomplete?`oninput="filterHVAutocomplete()" onfocus="filterHVAutocomplete()"`:''}>
+          ${hv?.hoTen?`<button type="button" class="btn btn-sm" style="flex-shrink:0" onclick="copyText('${escapeAttr(hv.hoTen)}')">📋</button>`:''}
+        </div>
         <input type="hidden" id="f-existingId" value="">
         ${showAutocomplete?`<div id="hv-autocomplete" style="display:none;position:absolute;top:100%;left:0;right:0;z-index:50;background:#fff;border:1.5px solid #e4ebf5;border-radius:8px;max-height:220px;overflow-y:auto;box-shadow:0 8px 24px rgba(0,0,0,.12);margin-top:2px"></div>`:''}
       </div>
@@ -776,10 +744,10 @@ async function openModalHV(studentId, defaultLop){
           <option value="Nữ" ${hv?.gioiTinh==='Nữ'?'selected':''}>Nữ</option>
         </select>
       </div>
-      <div class="form-row"><label>SĐT cá nhân</label><input id="f-sdtCN" value="${hv?.sdtCaNhan||''}"></div>
-      <div class="form-row"><label>Email cá nhân</label><input id="f-emailCN" value="${hv?.emailCaNhan||''}"></div>
-      <div class="form-row"><label>SĐT phụ huynh</label><input id="f-sdtPH" value="${hv?.soDienThoaiPH||''}"></div>
-      <div class="form-row"><label>Email phụ huynh</label><input id="f-emailPH" value="${hv?.emailPhuHuynh||''}"></div>
+      ${fieldRow('SĐT cá nhân','f-sdtCN',hv?.sdtCaNhan)}
+      ${fieldRow('Email cá nhân','f-emailCN',hv?.emailCaNhan)}
+      ${fieldRow('SĐT phụ huynh','f-sdtPH',hv?.soDienThoaiPH)}
+      ${fieldRow('Email phụ huynh','f-emailPH',hv?.emailPhuHuynh)}
     </div>
     <div class="form-grid2">
       <div class="form-row"><label>Trạng thái</label>
@@ -797,7 +765,10 @@ async function openModalHV(studentId, defaultLop){
       </div>
     </div>
     <div class="form-row"><label>Ghi chú</label><textarea id="f-ghiChu" rows="2">${hv?.ghiChu||''}</textarea></div>
-    ${isEdit&&USER.role==='admin'?`<button class="btn btn-danger btn-sm" onclick="deleteHV('${studentId}')">Xóa học viên</button>`:''}
+    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:6px">
+      ${isEdit&&canMsg&&hv?.emailPhuHuynh?`<button type="button" class="btn btn-sm" onclick="openModalNhanTinPH('${studentId}','${escapeAttr(hv.hoTen)}')">✉️ Nhắn tin phụ huynh</button>`:''}
+      ${isEdit&&USER.role==='admin'?`<button class="btn btn-danger btn-sm" onclick="deleteHV('${studentId}')">Xóa học viên</button>`:''}
+    </div>
   `,async()=>{
     const lopVal=document.getElementById('f-lop').value;
     const body={hoTen:document.getElementById('f-hoTen').value.trim(),lop:lopVal==='__new__'?prompt('Tên lớp mới:'):lopVal,sdtCaNhan:document.getElementById('f-sdtCN').value.trim(),emailCaNhan:document.getElementById('f-emailCN').value.trim(),soDienThoaiPH:document.getElementById('f-sdtPH').value.trim(),emailPhuHuynh:document.getElementById('f-emailPH').value.trim(),gioiTinh:document.getElementById('f-gioiTinh').value,ngaySinh:document.getElementById('f-ngaySinh').value,trangThai:document.getElementById('f-tt').value,daDongTien:document.getElementById('f-dongTien').value,ghiChu:document.getElementById('f-ghiChu').value.trim()};
