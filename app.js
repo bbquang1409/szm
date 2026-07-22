@@ -637,7 +637,7 @@ async function renderHVList(){
         <thead><tr>
           <th style="width:34px;text-align:center">STT</th>
           <th style="width:170px">Họ tên</th><th style="width:70px">Lớp</th><th style="width:105px">SĐT cá nhân</th><th style="width:135px">Email cá nhân</th>
-          <th style="width:64px;text-align:center">Đóng tiền</th><th style="width:115px">Trạng thái</th><th style="width:90px">Ghi chú</th>
+          <th style="width:64px;text-align:center">Đóng tiền</th><th style="width:62px">Trạng thái</th><th style="width:143px">Ghi chú</th>
         </tr></thead>
         <tbody>
           ${hvList.map((hv,i)=>`<tr data-name="${hv.hoTen.toLowerCase()}" style="cursor:pointer" onclick="openModalHV('${hv.studentId}')">
@@ -653,14 +653,14 @@ async function renderHVList(){
             </td>
             <td onclick="event.stopPropagation()">
               ${canEdit
-                ?`<select class="tt-select" onchange="toggleTrangThai('${hv.studentId}',this.value)">
-                    <option value="danghoc" ${hv.trangThai==='danghoc'?'selected':''}>Đang học</option>
-                    <option value="nghi" ${hv.trangThai==='nghi'?'selected':''}>Đã nghỉ</option>
-                    <option value="baoluu" ${hv.trangThai==='baoluu'?'selected':''}>Bảo lưu</option>
+                ?`<select class="tt-select" title="Trạng thái" onchange="toggleTrangThai('${hv.studentId}',this.value)">
+                    <option value="danghoc" ${hv.trangThai==='danghoc'?'selected':''}>Học</option>
+                    <option value="nghi" ${hv.trangThai==='nghi'?'selected':''}>Nghỉ</option>
+                    <option value="baoluu" ${hv.trangThai==='baoluu'?'selected':''}>Lưu</option>
                   </select>`
                 :`<span class="badge ${ttClass(hv.trangThai)}">${TRANG_THAI_HV[hv.trangThai]||hv.trangThai}</span>`}
             </td>
-            <td style="font-size:11px">${bubbleCell(hv.ghiChu,80)}</td>
+            <td style="font-size:11px">${bubbleCell(hv.ghiChu,135)}</td>
           </tr>`).join('')}
         </tbody>
       </table>
